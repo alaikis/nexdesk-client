@@ -5,6 +5,7 @@ import 'features/auth/auth_provider.dart';
 import 'features/auth/auth_screen.dart';
 import 'features/devices/device_list_screen.dart';
 import 'features/session/session_screen.dart';
+import 'features/settings/settings_screen.dart';
 
 class NexApp extends StatelessWidget {
   const NexApp({super.key});
@@ -41,6 +42,10 @@ class NexApp extends StatelessWidget {
             final sessionId = state.pathParameters['id']!;
             return SessionScreen(sessionId: sessionId);
           },
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsScreen(),
         ),
       ],
     );

@@ -37,6 +37,10 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
         title: const Text('Devices'),
         actions: [
           IconButton(
+            onPressed: () => context.go('/settings'),
+            icon: const Icon(Icons.settings),
+          ),
+          IconButton(
             onPressed: () => context.go('/login'),
             icon: const Icon(Icons.logout),
           ),
