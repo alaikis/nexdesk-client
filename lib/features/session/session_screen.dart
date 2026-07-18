@@ -3,6 +3,9 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../../core/webrtc_service.dart';
 import '../../core/screen_service.dart';
 import 'screen_selector.dart';
+import 'file_transfer_screen.dart';
+import 'clipboard_screen.dart';
+import 'quality_settings_sheet.dart';
 
 class SessionScreen extends StatefulWidget {
   final String sessionId;
@@ -66,7 +69,23 @@ class _SessionScreenState extends State<SessionScreen> {
         title: Text('Session ${widget.sessionId}'),
         actions: [
           IconButton(
+            onPressed: () => _showQualitySettings(),
+            tooltip: 'Quality',
+            icon: const Icon(Icons.hd),
+          ),
+          IconButton(
+            onPressed: () => _showFileTransfers(),
+            tooltip: 'Files',
+            icon: const Icon(Icons.folder_open),
+          ),
+          IconButton(
+            onPressed: () => _showClipboard(),
+            tooltip: 'Clipboard',
+            icon: const Icon(Icons.content_paste),
+          ),
+          IconButton(
             onPressed: () => _webrtc.dispose(),
+            tooltip: 'Close',
             icon: const Icon(Icons.close),
           ),
         ],
@@ -146,6 +165,31 @@ class _SessionScreenState extends State<SessionScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _showQualitySettings() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => QualitySettingsSheet(sessionId: widget.sessionId),
+    );
+  }
+
+  void _showFileTransfers() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FileTransferScreen(sessionId: widget.sessionId),
+      ),
+    );
+  }
+
+  void _showClipboard() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ClipboardScreen(sessionId: widget.sessionId, deviceId: 0),
+      ),
     );
   }
 
