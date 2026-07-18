@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 
@@ -13,6 +14,7 @@ enum SignalingMessageType {
   callReject,
   callEnd,
   keyExchange,
+  resumeSession,
   error;
 
   factory SignalingMessageType.fromString(String value) {
@@ -59,17 +61,25 @@ class SignalingService {
   final String serverUrl;
   final String token;
   final String deviceId;
+  final void Function(bool connected)? onConnectionChanged;
+  final void Function(String sessionId)? onSessionResume;
 
   WebSocketChannel? _channel;
   final _controller = StreamController<SignalingMessage>.broadcast();
   Timer? _heartbeatTimer;
   Timer? _reconnectTimer;
   bool _connected = false;
+  int _reconnectAttempts = 0;
+  final int _maxDelay = 30;
+  String? _activeSessionId;
+  final Random _random = Random();
 
   SignalingService({
     required this.serverUrl,
     required this.token,
     required this.deviceId,
+    this.onConnectionChanged,
+    this.onSessionResume,
   });
 
   bool get isConnected => _connected;
@@ -81,6 +91,11 @@ class SignalingService {
       _channel = WebSocketChannel.connect(uri);
       await _channel!.ready;
       _connected = true;
+      _reconnectAttempts = 0;
+      if (_activeSessionId != null) {
+        onSessionResume?.call(_activeSessionId!);
+      }
+      onConnectionChanged?.call(true);
       _channel!.stream.listen(
         _onMessage,
         onError: _onError,
@@ -97,6 +112,9 @@ class SignalingService {
     try {
       final json = jsonDecode(data as String) as Map<String, dynamic>;
       final msg = SignalingMessage.fromJson(json);
+      if (msg.type == SignalingMessageType.resumeSession && msg.sessionId != null) {
+        onSessionResume?.call(msg.sessionId!);
+      }
       _controller.add(msg);
     } catch (e) {
       // ignore malformed messages
@@ -105,11 +123,13 @@ class SignalingService {
 
   void _onError(error) {
     _connected = false;
+    onConnectionChanged?.call(false);
     _scheduleReconnect();
   }
 
   void _onDone() {
     _connected = false;
+    onConnectionChanged?.call(false);
     _scheduleReconnect();
   }
 
@@ -122,7 +142,14 @@ class SignalingService {
 
   void _scheduleReconnect() {
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(const Duration(seconds: 5), connect);
+    final delay = min(1 << _reconnectAttempts, _maxDelay);
+    final jitter = _random.nextInt(500);
+    _reconnectAttempts++;
+    _reconnectTimer = Timer(Duration(seconds: delay, milliseconds: jitter), connect);
+  }
+
+  void setActiveSession(String sessionId) {
+    _activeSessionId = sessionId;
   }
 
   void send(SignalingMessage message) {

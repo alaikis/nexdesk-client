@@ -1,17 +1,34 @@
-# flutter_app
+# NEX Remote Desktop Client
 
-A new Flutter project.
+Flutter multi-platform client for [NEX](https://github.com/elstella/nex.elstella.com).
 
-## Getting Started
+Supported platforms:
+- Windows (x64)
+- macOS (arm64/x64)
+- Linux (x64)
+- Android (arm64-v8a)
 
-This project is a starting point for a Flutter application.
+## Development
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter pub get
+flutter analyze
+flutter run
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Build Release
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+# Desktop
+flutter build linux --release
+flutter build macos --release
+flutter build windows --release
+
+# Android
+flutter build apk --release
+flutter build appbundle --release
+```
+
+## GitHub Actions
+
+Push a tag matching `v*` (e.g. `v0.1.0`) to trigger automated builds and GitHub Release creation.

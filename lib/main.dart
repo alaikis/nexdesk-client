@@ -6,9 +6,12 @@ import 'app.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/devices/device_provider.dart';
 import 'features/session/session_provider.dart';
+import 'platform/platform_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await PlatformService.initPlatform();
 
   if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
     await windowManager.ensureInitialized();

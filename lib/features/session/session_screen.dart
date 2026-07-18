@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../../core/webrtc_service.dart';
 import '../../core/screen_service.dart';
+import '../../core/signaling_service.dart';
 import 'screen_selector.dart';
 import 'file_transfer_screen.dart';
 import 'clipboard_screen.dart';
 import 'quality_settings_sheet.dart';
+import 'recording_screen.dart';
 
 class SessionScreen extends StatefulWidget {
   final String sessionId;
@@ -18,10 +20,12 @@ class SessionScreen extends StatefulWidget {
 class _SessionScreenState extends State<SessionScreen> {
   final WebRtcService _webrtc = WebRtcService();
   final ScreenService _screenService = ScreenService();
+  SignalingService? _signaling;
 
   List<ScreenInfo> _screens = [];
   Set<int> _selectedScreenIds = {};
   bool _selectingScreens = true;
+  bool _reconnecting = false;
 
   @override
   void initState() {
@@ -45,14 +49,36 @@ class _SessionScreenState extends State<SessionScreen> {
 
     setState(() => _selectingScreens = false);
 
+    _signaling = SignalingService(
+      serverUrl: 'ws://localhost:3000',
+      token: 'demo-token',
+      deviceId: 'device-1',
+      onConnectionChanged: (connected) {
+        if (mounted) {
+          setState(() => _reconnecting = !connected);
+        }
+      },
+      onSessionResume: (sessionId) {
+        debugPrint('Session resume requested: $sessionId');
+      },
+    );
+    await _signaling!.connect();
+    _signaling!.setActiveSession(widget.sessionId);
+
     await _webrtc.initialize(
       role: SessionRole.controller,
       selectedScreenIds: _selectedScreenIds.toList(),
       onLocalDescription: (desc) {
-        // send via signaling
+        _signaling?.send(SignalingMessage(
+          type: SignalingMessageType.callOffer,
+          sessionId: widget.sessionId,
+        ));
       },
       onIceCandidate: (candidate) {
-        // send via signaling
+        _signaling?.send(SignalingMessage(
+          type: SignalingMessageType.ice,
+          sessionId: widget.sessionId,
+        ));
       },
       onRemoteStream: (stream) {
         // Remote screen stream received
@@ -82,6 +108,11 @@ class _SessionScreenState extends State<SessionScreen> {
             onPressed: () => _showClipboard(),
             tooltip: 'Clipboard',
             icon: const Icon(Icons.content_paste),
+          ),
+          IconButton(
+            onPressed: () => _showRecording(),
+            tooltip: 'Recording',
+            icon: const Icon(Icons.fiber_manual_record),
           ),
           IconButton(
             onPressed: () => _webrtc.dispose(),
@@ -143,28 +174,45 @@ class _SessionScreenState extends State<SessionScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 16 / 9,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: streams.length,
-      itemBuilder: (context, index) {
-        final stream = streams[index];
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE5E5EA)),
+    return Column(
+      children: [
+        if (_reconnecting)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            color: const Color(0xFFFF3B30),
+            child: const Text(
+              'Reconnecting...',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+            ),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: RTCVideoView(stream.renderer),
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 16 / 9,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: streams.length,
+            itemBuilder: (context, index) {
+              final stream = streams[index];
+              return Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E5EA)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: RTCVideoView(stream.renderer),
+                ),
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -189,6 +237,15 @@ class _SessionScreenState extends State<SessionScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => ClipboardScreen(sessionId: widget.sessionId, deviceId: 0),
+      ),
+    );
+  }
+
+  void _showRecording() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RecordingScreen(sessionId: widget.sessionId),
       ),
     );
   }

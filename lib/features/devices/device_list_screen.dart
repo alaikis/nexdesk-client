@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/signaling_service.dart';
+import '../../features/devices/device_provider.dart';
 
 class DeviceListScreen extends StatefulWidget {
   const DeviceListScreen({super.key});
@@ -10,48 +10,80 @@ class DeviceListScreen extends StatefulWidget {
 }
 
 class _DeviceListScreenState extends State<DeviceListScreen> {
+  final DeviceProvider _deviceProvider = DeviceProvider();
+  bool _waking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _deviceProvider.loadDevices();
+  }
+
+  Future<void> _wakeDevice(String deviceId) async {
+    setState(() => _waking = true);
+    final ok = await _deviceProvider.wakeDevice(deviceId);
+    if (mounted) {
+      setState(() => _waking = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ok ? 'Magic packet sent' : 'Failed to wake device')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final signaling = SignalingService(
-      serverUrl: 'ws://localhost:3000',
-      token: 'demo-token',
-      deviceId: 'device-1',
-    );
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Devices'),
         actions: [
-          IconButton(
-            onPressed: signaling.connect,
-            icon: const Icon(Icons.wifi),
-          ),
           IconButton(
             onPressed: () => context.go('/login'),
             icon: const Icon(Icons.logout),
           ),
         ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: 3,
-        itemBuilder: (context, index) {
-          final isOnline = index == 0;
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(14),
-              leading: _DeviceIcon(index: index),
-              title: Text(
-                index == 0 ? 'Workstation' : index == 1 ? 'MacBook Pro' : 'iPhone 15',
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-              ),
-              subtitle: Text(
-                index == 0 ? 'Windows 11 · x86_64' : index == 1 ? 'macOS 15 · arm64' : 'iOS 18 · arm64',
-                style: const TextStyle(fontSize: 13, color: Color(0xFF8E8E93)),
-              ),
-              trailing: _StatusBadge(isOnline: isOnline),
-            ),
+      body: ListenableBuilder(
+        listenable: _deviceProvider,
+        builder: (context, _) {
+          final devices = _deviceProvider.devices;
+          if (devices.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: devices.length,
+            itemBuilder: (context, index) {
+              final device = devices[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(14),
+                  leading: _DeviceIcon(index: index),
+                  title: Text(
+                    device.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                  subtitle: Text(
+                    device.os,
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF8E8E93)),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _StatusBadge(isOnline: device.online),
+                      if (device.wolEnabled) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: _waking ? null : () => _wakeDevice(device.id),
+                          tooltip: 'Wake',
+                          icon: const Icon(Icons.power_settings_new, color: Color(0xFF007AFF)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -85,10 +117,10 @@ class _DeviceIcon extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: colors[index].withOpacity(0.1),
+        color: colors[index % colors.length].withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(icons[index], color: colors[index], size: 20),
+      child: Icon(icons[index % icons.length], color: colors[index % colors.length], size: 20),
     );
   }
 }

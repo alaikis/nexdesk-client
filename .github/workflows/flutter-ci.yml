@@ -1,0 +1,125 @@
+name: Flutter CI
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: [linux, macos, windows, android]
+          - os: [ubuntu-latest]
+            platform: [linux]
+          - os: [macos-latest]
+            platform: [macos]
+          - os: [windows-latest]
+            platform: [windows]
+          - os: [ubuntu-latest]
+            platform: [android]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Setup Android keystore
+        if: matrix.platform == 'android'
+        run: |
+          mkdir -p android/app/keystore
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/keystore/nex.keystore
+        shell: bash
+
+      - name: Create keystore.properties
+        if: matrix.platform == 'android'
+        run: |
+          cat > android/keystore.properties <<EOF
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          storeFile=android/app/keystore/nex.keystore
+          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
+          EOF
+        shell: bash
+
+      - name: Build Linux
+        if: matrix.platform == 'linux'
+        run: flutter build linux --release
+
+      - name: Build macOS
+        if: matrix.platform == 'macos'
+        run: flutter build macos --release
+
+      - name: Build Windows
+        if: matrix.platform == 'windows'
+        run: flutter build windows --release
+
+      - name: Build Android APK
+        if: matrix.platform == 'android'
+        run: flutter build apk --release
+
+      - name: Build Linux artifacts
+        if: matrix.platform == 'linux'
+        run: |
+          cd build/linux/x64/release/bundle
+          7z a ../../../nex-client-${{ github.ref_name }}-linux.zip .
+        shell: bash
+
+      - name: Build macOS artifacts
+        if: matrix.platform == 'macos'
+        run: |
+          cd build/macos/Build/Products/Release
+          7z a ../../../nex-client-${{ github.ref_name }}-macos.zip nex_client.app
+        shell: bash
+
+      - name: Build Windows artifacts
+        if: matrix.platform == 'windows'
+        run: |
+          cd build/windows/x64/Release
+          7z a ../../../nex-client-${{ github.ref_name }}-windows.zip .
+        shell: bash
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: |
+            build/nex-client-*.zip
+            build/app/outputs/flutter-apk/*.apk
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/nex-client-*.zip
+            build/app/outputs/flutter-apk/*.apk
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

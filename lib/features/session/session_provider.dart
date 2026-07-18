@@ -38,9 +38,22 @@ class SessionProvider with ChangeNotifier {
 
   Session? _activeSession;
   List<Session> _history = [];
+  bool _reconnecting = false;
 
   Session? get activeSession => _activeSession;
   List<Session> get history => List.unmodifiable(_history);
+  bool get reconnecting => _reconnecting;
+  String? get activeSessionId => _activeSession?.id;
+
+  void setReconnecting(bool value) {
+    _reconnecting = value;
+    notifyListeners();
+  }
+
+  void setActiveSession(Session? session) {
+    _activeSession = session;
+    notifyListeners();
+  }
 
   Future<Session?> startSession(String controlleeDeviceId) async {
     try {

@@ -160,4 +160,48 @@ class ApiClient {
     final res = await get('/public/releases/latest?platform=$platform');
     return res;
   }
+
+  Future<bool> wakeDevice(int deviceId) async {
+    final res = await post('/devices/$deviceId/wol', {});
+    return res['ok'] == true;
+  }
+
+  Future<Map<String, dynamic>> startRecording(String sessionId) async {
+    return post('/sessions/$sessionId/recordings/start', {});
+  }
+
+  Future<Map<String, dynamic>> stopRecording(String sessionId) async {
+    return post('/sessions/$sessionId/recordings/stop', {});
+  }
+
+  Future<Map<String, dynamic>> setupTOTP() async {
+    return post('/auth/2fa/setup', {});
+  }
+
+  Future<bool> verifyTOTP(String tempToken, String code) async {
+    final res = await post('/auth/2fa/verify', {
+      'temp_token': tempToken,
+      'code': code,
+    });
+    _token = res['token'] as String?;
+    if (_token != null) {
+      await StorageService.setString('jwt_token', _token!);
+    }
+    return _token != null;
+  }
+
+  Future<bool> enableTOTP(String code) async {
+    final res = await post('/auth/2fa/enable', {'code': code});
+    return res['ok'] == true;
+  }
+
+  Future<bool> disableTOTP(String code) async {
+    final res = await post('/auth/2fa/disable', {'code': code});
+    return res['ok'] == true;
+  }
+
+  Future<bool> is2FAEnabled() async {
+    final res = await get('/auth/2fa/status');
+    return res['enabled'] == true;
+  }
 }

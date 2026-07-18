@@ -7,12 +7,14 @@ class Device with ChangeNotifier {
   final String name;
   final String os;
   final bool online;
+  final bool wolEnabled;
 
   Device({
     required this.id,
     required this.name,
     required this.os,
     required this.online,
+    this.wolEnabled = false,
   });
 
   factory Device.fromJson(Map<String, dynamic> json) {
@@ -21,6 +23,7 @@ class Device with ChangeNotifier {
       name: json['name'] as String? ?? 'Unknown',
       os: json['os'] as String? ?? 'unknown',
       online: json['online'] as bool? ?? false,
+      wolEnabled: json['wol_enabled'] as bool? ?? false,
     );
   }
 }
@@ -64,5 +67,11 @@ class DeviceProvider with ChangeNotifier {
       debugPrint('Register device failed: $e');
       return false;
     }
+  }
+
+  Future<bool> wakeDevice(String deviceId) async {
+    final id = int.tryParse(deviceId);
+    if (id == null) return false;
+    return await _api.wakeDevice(id);
   }
 }

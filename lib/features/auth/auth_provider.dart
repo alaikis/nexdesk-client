@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -104,6 +105,11 @@ class AuthProvider with ChangeNotifier {
   String _generateDeviceId() => const Uuid().v4();
 
   String _detectOS() {
+    if (Platform.isWindows) return 'windows';
+    if (Platform.isMacOS) return 'macos';
+    if (Platform.isLinux) return 'linux';
+    if (Platform.isAndroid) return 'android';
+    if (Platform.isIOS) return 'ios';
     return 'unknown';
   }
 }
