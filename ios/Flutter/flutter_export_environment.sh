@@ -1,8 +1,8 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
 export "FLUTTER_ROOT=/home/workspace/runtime/flutter/flutter"
-export "FLUTTER_APPLICATION_PATH=/home/workspace/nex.elstella.com/flutter_app"
-export "FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=/home/workspace/nex.elstella.com/flutter_app/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework"
+export "FLUTTER_APPLICATION_PATH=/home/workspace/nex-flutter.hottol.com"
+export "FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=/home/workspace/nex-flutter.hottol.com/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_TARGET=lib/main.dart"
 export "FLUTTER_BUILD_DIR=build"

@@ -1,0 +1,25 @@
+# Flutter build artifacts
+build/
+*.iml
+.idea/
+*.swp
+*.swo
+*~
+
+# Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+*.tmp
+*.temp
+coverage/

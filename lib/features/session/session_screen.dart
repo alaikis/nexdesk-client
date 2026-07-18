@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../../core/webrtc_service.dart';
+import '../../core/screen_service.dart';
+import 'screen_selector.dart';
 
 class SessionScreen extends StatefulWidget {
   final String sessionId;
@@ -10,17 +13,38 @@ class SessionScreen extends StatefulWidget {
 }
 
 class _SessionScreenState extends State<SessionScreen> {
-  final _webrtc = WebRtcService();
+  final WebRtcService _webrtc = WebRtcService();
+  final ScreenService _screenService = ScreenService();
+
+  List<ScreenInfo> _screens = [];
+  Set<int> _selectedScreenIds = {};
+  bool _selectingScreens = true;
 
   @override
   void initState() {
     super.initState();
-    _initWebRtc();
+    _initScreens();
   }
 
-  Future<void> _initWebRtc() async {
+  Future<void> _initScreens() async {
+    await _screenService.init();
+    final screens = _screenService.screens;
+    if (screens.isNotEmpty) {
+      setState(() {
+        _screens = screens;
+        _selectedScreenIds = {screens.first.id};
+      });
+    }
+  }
+
+  Future<void> _startSession() async {
+    if (_selectedScreenIds.isEmpty) return;
+
+    setState(() => _selectingScreens = false);
+
     await _webrtc.initialize(
       role: SessionRole.controller,
+      selectedScreenIds: _selectedScreenIds.toList(),
       onLocalDescription: (desc) {
         // send via signaling
       },
@@ -28,10 +52,11 @@ class _SessionScreenState extends State<SessionScreen> {
         // send via signaling
       },
       onRemoteStream: (stream) {
-        // Remote stream received
+        // Remote screen stream received
       },
     );
-    await _webrtc.createOffer();
+
+    _webrtc.createOffer();
   }
 
   @override
@@ -46,16 +71,81 @@ class _SessionScreenState extends State<SessionScreen> {
           ),
         ],
       ),
-      body: FutureBuilder(
-        future: _webrtc.remoteRenderer,
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            final renderer = snapshot.data as dynamic;
-            return Center(child: renderer.renderer as Widget);
-          }
-          return const Center(child: CircularProgressIndicator());
-        },
+      body: _selectingScreens
+          ? _buildScreenSelector()
+          : _buildSessionView(),
+    );
+  }
+
+  Widget _buildScreenSelector() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Select screens to share',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1D1D1F)),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Choose one or more displays to control remotely.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF636366)),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _screens.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : ScreenSelector(
+                    screens: _screens,
+                    selectedIds: _selectedScreenIds,
+                    onSelectionChanged: (ids) => setState(() => _selectedScreenIds = ids),
+                  ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 44,
+            child: ElevatedButton(
+              onPressed: _selectedScreenIds.isEmpty ? null : _startSession,
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text(_selectedScreenIds.isEmpty ? 'Select at least one screen' : 'Start Session'),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildSessionView() {
+    final streams = _webrtc.remoteStreams;
+    if (streams.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 16 / 9,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: streams.length,
+      itemBuilder: (context, index) {
+        final stream = streams[index];
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E5EA)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: RTCVideoView(stream.renderer),
+          ),
+        );
+      },
     );
   }
 

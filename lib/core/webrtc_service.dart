@@ -5,18 +5,33 @@ enum SessionRole {
   controllee,
 }
 
+class ScreenStream {
+  final MediaStream stream;
+  final int screenId;
+  final String screenName;
+  final RTCVideoRenderer renderer;
+
+  ScreenStream({
+    required this.stream,
+    required this.screenId,
+    required this.screenName,
+    required this.renderer,
+  });
+}
+
 class WebRtcService {
   RTCPeerConnection? _pc;
-  MediaStream? _localStream;
-  RTCVideoRenderer? _remoteRenderer;
+  final List<ScreenStream> _localStreams = [];
+  final List<ScreenStream> _remoteStreams = [];
 
   final List<RTCIceCandidate> _remoteCandidates = [];
 
   Future<void> initialize({
     required SessionRole role,
+    required List<int> selectedScreenIds,
     required Function(RTCSessionDescription) onLocalDescription,
     required Function(RTCIceCandidate) onIceCandidate,
-    required Function(MediaStream) onRemoteStream,
+    required Function(ScreenStream) onRemoteStream,
   }) async {
     final configuration = <String, dynamic>{
       'iceServers': [
@@ -30,31 +45,59 @@ class WebRtcService {
 
     _pc!.onTrack = (RTCTrackEvent event) {
       if (event.streams.isNotEmpty) {
-        onRemoteStream(event.streams.first);
+        final stream = event.streams.first;
+        final screenId = stream.id.hashCode;
+        final screenName = 'Screen ${_remoteStreams.length + 1}';
+        final renderer = RTCVideoRenderer();
+        renderer.initialize();
+        final screenStream = ScreenStream(
+          stream: stream,
+          screenId: screenId,
+          screenName: screenName,
+          renderer: renderer,
+        );
+        _remoteStreams.add(screenStream);
+        onRemoteStream(screenStream);
       }
     };
 
     if (role == SessionRole.controllee) {
+      await _captureScreens(selectedScreenIds);
+    }
+  }
+
+  Future<void> _captureScreens(List<int> selectedScreenIds) async {
+    for (final screenId in selectedScreenIds) {
       try {
         final displayMedia = await navigator.mediaDevices.getDisplayMedia(
           {'video': true, 'audio': false},
         );
-        _localStream = displayMedia;
+        final renderer = RTCVideoRenderer();
+        await renderer.initialize();
+        final screenStream = ScreenStream(
+          stream: displayMedia,
+          screenId: screenId,
+          screenName: 'Screen $screenId',
+          renderer: renderer,
+        );
+        _localStreams.add(screenStream);
         displayMedia.getTracks().forEach((track) => _pc!.addTrack(track, displayMedia));
       } catch (e) {
-        // Screen capture permission denied
+        // Screen capture permission denied for this screen
       }
     }
   }
 
-  Future<void> createOffer() async {
-    final offer = await _pc!.createOffer();
-    await _pc!.setLocalDescription(await RTCSessionDescription(offer.sdp ?? '', 'offer'));
+  void createOffer() {
+    _pc!.createOffer().then((offer) {
+      _pc!.setLocalDescription(offer);
+    });
   }
 
-  Future<void> createAnswer() async {
-    final answer = await _pc!.createAnswer();
-    await _pc!.setLocalDescription(await RTCSessionDescription(answer.sdp ?? '', 'answer'));
+  void createAnswer() {
+    _pc!.createAnswer().then((answer) {
+      _pc!.setLocalDescription(answer);
+    });
   }
 
   Future<void> setRemoteDescription(RTCSessionDescription description) async {
@@ -73,18 +116,19 @@ class WebRtcService {
     }
   }
 
-  Future<RTCVideoRenderer> get remoteRenderer async {
-    if (_remoteRenderer == null) {
-      _remoteRenderer = RTCVideoRenderer();
-      await _remoteRenderer!.initialize();
-    }
-    return _remoteRenderer!;
-  }
+  List<ScreenStream> get localStreams => List.unmodifiable(_localStreams);
+  List<ScreenStream> get remoteStreams => List.unmodifiable(_remoteStreams);
 
   Future<void> dispose() async {
-    await _localStream?.dispose();
-    await _remoteRenderer?.dispose();
-    _remoteRenderer = null;
+    for (final s in _localStreams) {
+      await s.stream.dispose();
+      await s.renderer.dispose();
+    }
+    for (final s in _remoteStreams) {
+      await s.renderer.dispose();
+    }
+    _localStreams.clear();
+    _remoteStreams.clear();
     await _pc?.close();
     _pc = null;
     _remoteCandidates.clear();
