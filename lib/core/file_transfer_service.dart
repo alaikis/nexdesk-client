@@ -58,6 +58,7 @@ class FileTransferService {
 
   final ApiClient _api = ApiClient();
   final Map<int, http.Client> _activeClients = {};
+  final Set<int> _cancelledIds = {};
 
   Future<FileTransfer> startUpload(String sessionId, File file, {void Function(int transferred, int total)? onProgress}) async {
     final stat = await file.stat();
@@ -78,13 +79,19 @@ class FileTransferService {
       final stream = await client.send(request);
       final total = stat.size;
       int transferred = 0;
+      int lastReported = 0;
       final buffer = Uint8List(8192);
 
       await for (final chunk in stream.stream) {
         transferred += chunk.length;
         buffer.setAll(0, chunk);
+        if (transferred - lastReported >= 256 * 1024) {
+          lastReported = transferred;
+          unawaited(_updateProgress(transfer.id, transferred));
+        }
         onProgress?.call(transferred, total);
       }
+      await _updateProgress(transfer.id, transferred);
 
       if (stream.statusCode >= 200 && stream.statusCode < 300) {
         transfer.status = TransferStatus.completed;
@@ -94,10 +101,16 @@ class FileTransferService {
         transfer.errorMessage = 'Upload failed with status ${stream.statusCode}';
       }
     } catch (e) {
-      transfer.status = TransferStatus.failed;
-      transfer.errorMessage = e.toString();
+      if (_cancelledIds.contains(transfer.id)) {
+        transfer.status = TransferStatus.cancelled;
+        _cancelledIds.remove(transfer.id);
+      } else {
+        transfer.status = TransferStatus.failed;
+        transfer.errorMessage = e.toString();
+      }
     } finally {
       _activeClients.remove(transfer.id);
+      _cancelledIds.remove(transfer.id);
       client.close();
     }
 
@@ -123,12 +136,18 @@ class FileTransferService {
       final streamed = await client.send(request);
       final sink = file.openWrite();
       int transferred = 0;
+      int lastReported = 0;
 
       await for (final chunk in streamed.stream) {
         sink.add(chunk);
         transferred += chunk.length;
+        if (transferred - lastReported >= 256 * 1024) {
+          lastReported = transferred;
+          unawaited(_updateProgress(transfer.id, transferred));
+        }
         onProgress?.call(transferred, fileSize);
       }
+      await _updateProgress(transfer.id, transferred);
       await sink.flush();
       await sink.close();
 
@@ -140,10 +159,16 @@ class FileTransferService {
         transfer.errorMessage = 'Download failed with status ${streamed.statusCode}';
       }
     } catch (e) {
-      transfer.status = TransferStatus.failed;
-      transfer.errorMessage = e.toString();
+      if (_cancelledIds.contains(transfer.id)) {
+        transfer.status = TransferStatus.cancelled;
+        _cancelledIds.remove(transfer.id);
+      } else {
+        transfer.status = TransferStatus.failed;
+        transfer.errorMessage = e.toString();
+      }
     } finally {
       _activeClients.remove(transfer.id);
+      _cancelledIds.remove(transfer.id);
       client.close();
     }
 
@@ -151,9 +176,18 @@ class FileTransferService {
   }
 
   Future<void> cancelTransfer(int transferId) async {
+    _cancelledIds.add(transferId);
     final client = _activeClients.remove(transferId);
     client?.close();
     await _api.post('/files/$transferId/cancel', {});
+  }
+
+  Future<void> _updateProgress(int transferId, int transferred) async {
+    try {
+      await _api.patch('/files/$transferId/progress', {
+        'transferred': transferred,
+      });
+    } catch (_) {}
   }
 
   Future<List<FileTransfer>> listTransfers(String sessionId) async {
