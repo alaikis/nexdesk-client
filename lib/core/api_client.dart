@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../config/app_config.dart';
 import '../../core/storage_service.dart';
+import '../../core/log_service.dart';
 
 class ApiException implements Exception {
   final int statusCode;
@@ -15,6 +16,10 @@ class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
   ApiClient._internal();
+
+  http.Client? _client;
+
+  ApiClient.test(this._client);
 
   String? _token;
 
@@ -52,27 +57,30 @@ class ApiClient {
     }
 
     late http.Response response;
+    final client = _client ?? http.Client();
     switch (method) {
       case 'GET':
-        response = await http.get(uri, headers: headers);
+        response = await client.get(uri, headers: headers);
         break;
       case 'POST':
-        response = await http.post(uri, headers: headers, body: _encode(body));
+        response = await client.post(uri, headers: headers, body: _encode(body));
         break;
       case 'PATCH':
-        response = await http.patch(uri, headers: headers, body: _encode(body));
+        response = await client.patch(uri, headers: headers, body: _encode(body));
         break;
       case 'DELETE':
-        response = await http.delete(uri, headers: headers);
+        response = await client.delete(uri, headers: headers);
         break;
       default:
         throw ArgumentError('Unsupported method: $method');
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      LogService().debug('HTTP $method $path -> ${response.statusCode}');
       if (response.body.isEmpty) return {};
       return jsonDecode(response.body) as Map<String, dynamic>;
     }
+    LogService().warning('HTTP $method $path -> ${response.statusCode}: ${response.body}');
     String? msg;
     try {
       final map = jsonDecode(response.body) as Map<String, dynamic>;
@@ -125,13 +133,14 @@ class ApiClient {
     String? fingerprint,
   }) async {
     final deviceId = await StorageService.getString('device_id');
-    return post('/devices', {
-      if (deviceId != null) 'id': deviceId,
+    final body = <String, dynamic>{
       'name': name,
       'os': os,
       'pubkey': pubkey,
-      if (fingerprint != null) 'fingerprint': fingerprint,
-    });
+    };
+    if (deviceId != null) body['id'] = deviceId;
+    if (fingerprint != null) body['fingerprint'] = fingerprint;
+    return post('/devices', body);
   }
 
   Future<List<dynamic>> listDevices() async {

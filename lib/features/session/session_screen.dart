@@ -3,6 +3,9 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../../core/webrtc_service.dart';
 import '../../core/screen_service.dart';
 import '../../core/signaling_service.dart';
+import '../../core/storage_service.dart';
+import '../../config/app_config.dart';
+import '../../core/error_handler.dart';
 import 'screen_selector.dart';
 import 'file_transfer_screen.dart';
 import 'clipboard_screen.dart';
@@ -17,7 +20,7 @@ class SessionScreen extends StatefulWidget {
   State<SessionScreen> createState() => _SessionScreenState();
 }
 
-class _SessionScreenState extends State<SessionScreen> {
+class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   final WebRtcService _webrtc = WebRtcService();
   final ScreenService _screenService = ScreenService();
   SignalingService? _signaling;
@@ -49,43 +52,52 @@ class _SessionScreenState extends State<SessionScreen> {
 
     setState(() => _selectingScreens = false);
 
-    _signaling = SignalingService(
-      serverUrl: 'ws://localhost:3000',
-      token: 'demo-token',
-      deviceId: 'device-1',
-      onConnectionChanged: (connected) {
-        if (mounted) {
-          setState(() => _reconnecting = !connected);
-        }
-      },
-      onSessionResume: (sessionId) {
-        debugPrint('Session resume requested: $sessionId');
-      },
-    );
-    await _signaling!.connect();
-    _signaling!.setActiveSession(widget.sessionId);
+    try {
+      final token = await StorageService.getString('jwt_token') ?? '';
+      final deviceId = await StorageService.getString('device_id') ?? '';
 
-    await _webrtc.initialize(
-      role: SessionRole.controller,
-      selectedScreenIds: _selectedScreenIds.toList(),
-      onLocalDescription: (desc) {
-        _signaling?.send(SignalingMessage(
-          type: SignalingMessageType.callOffer,
-          sessionId: widget.sessionId,
-        ));
-      },
-      onIceCandidate: (candidate) {
-        _signaling?.send(SignalingMessage(
-          type: SignalingMessageType.ice,
-          sessionId: widget.sessionId,
-        ));
-      },
-      onRemoteStream: (stream) {
-        // Remote screen stream received
-      },
-    );
+      _signaling = SignalingService(
+        serverUrl: AppConfig.wsSignalUrl,
+        token: token,
+        deviceId: deviceId,
+        onConnectionChanged: (connected) {
+          if (mounted) {
+            setState(() => _reconnecting = !connected);
+          }
+        },
+        onSessionResume: (sessionId) {
+          debugPrint('Session resume requested: $sessionId');
+        },
+      );
+      await _signaling!.connect();
+      await _webrtc.initialize(
+        role: SessionRole.controller,
+        selectedScreenIds: _selectedScreenIds.toList(),
+        onLocalDescription: (desc) {
+          _signaling?.send(SignalingMessage(
+            type: SignalingMessageType.callOffer,
+            sessionId: widget.sessionId,
+          ));
+        },
+        onIceCandidate: (candidate) {
+          _signaling?.send(SignalingMessage(
+            type: SignalingMessageType.ice,
+            sessionId: widget.sessionId,
+          ));
+        },
+        onRemoteStream: (stream) {
+          // Remote screen stream received
+        },
+      );
 
-    _webrtc.createOffer();
+      _webrtc.createOffer();
+    } catch (e) {
+      // ignore: use_build_context_synchronously
+      handleError(e, context: context);
+      if (mounted) {
+        setState(() => _selectingScreens = true);
+      }
+    }
   }
 
   @override

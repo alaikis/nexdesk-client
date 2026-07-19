@@ -25,15 +25,24 @@ class AuthProvider with ChangeNotifier {
   String? get deviceId => _deviceId;
   String? get deviceName => _deviceName;
   bool get isLoggedIn => _status == AuthStatus.authenticated;
+  String? _lastError;
+  String? get lastError => _lastError;
 
   Future<void> init() async {
+    _lastError = null;
     await _api.init();
     final token = await StorageService.getString('jwt_token');
     if (token != null) {
       _status = AuthStatus.authenticated;
-      final meRes = await _api.get('/auth/me');
-      _userId = meRes['id']?.toString();
-      _email = meRes['email'] as String?;
+      try {
+        final meRes = await _api.get('/auth/me');
+        _userId = meRes['id']?.toString();
+        _email = meRes['email'] as String?;
+      } on ApiException catch (e) {
+        _status = AuthStatus.unauthenticated;
+        _lastError = e.message;
+        await StorageService.delete('jwt_token');
+      }
     } else {
       _status = AuthStatus.unauthenticated;
     }
@@ -46,6 +55,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> register(String email, String password, String name) async {
+    _lastError = null;
     try {
       final res = await _api.register(email: email, password: password, name: name);
       _userId = res['id']?.toString();
@@ -55,12 +65,14 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } on ApiException catch (e) {
+      _lastError = e.message;
       debugPrint('Register failed: $e');
       return false;
     }
   }
 
   Future<bool> login(String email, String password) async {
+    _lastError = null;
     try {
       final res = await _api.login(email: email, password: password);
       _userId = res['id']?.toString();
@@ -70,12 +82,14 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } on ApiException catch (e) {
+      _lastError = e.message;
       debugPrint('Login failed: $e');
       return false;
     }
   }
 
   Future<void> logout() async {
+    _lastError = null;
     await _api.logout();
     _status = AuthStatus.unauthenticated;
     _userId = null;

@@ -64,7 +64,7 @@ class NexApp extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.black.withOpacity(0.04)),
+            side: BorderSide(color: Colors.black.withValues(alpha: 0.04)),
           ),
         ),
         appBarTheme: const AppBarTheme(
@@ -133,7 +133,7 @@ class NexApp extends StatelessWidget {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.black.withOpacity(0.06)),
+            borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.06)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
@@ -154,7 +154,7 @@ class NexApp extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.white.withOpacity(0.06)),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
           ),
         ),
         appBarTheme: const AppBarTheme(

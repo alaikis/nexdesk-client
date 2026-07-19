@@ -21,5 +21,5 @@ class AppConfig {
     if (stunUrl != null) AppConfig.stunUrl = stunUrl;
   }
 
-  static String get wsSignalUrl => serverUrl.replaceFirst('https', 'wss') + '/ws/signal';
+  static String get wsSignalUrl => '${serverUrl.replaceFirst('https', 'wss')}/ws/signal';
 }

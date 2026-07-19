@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import '../../core/file_transfer_service.dart';
 
 class FileTransferScreen extends StatefulWidget {
@@ -29,10 +31,19 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
   }
 
   Future<void> _pickAndUpload() async {
-    // TODO: integrate file picker
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('File picker integration pending')),
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      type: FileType.any,
     );
+    if (result == null || result.files.isEmpty) return;
+    final picked = result.files.first;
+    if (picked.path == null) return;
+    final file = File(picked.path!);
+    final transfer = await _service.startUpload(widget.sessionId, file);
+    if (!mounted) return;
+    setState(() {
+      _transfers.add(transfer);
+    });
   }
 
   @override

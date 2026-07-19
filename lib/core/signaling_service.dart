@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
+import 'log_service.dart';
 
 enum SignalingMessageType {
   hello,
@@ -39,11 +40,18 @@ class SignalingMessage {
   });
 
   factory SignalingMessage.fromJson(Map<String, dynamic> json) {
+    final type = SignalingMessageType.fromString(json['type'] as String? ?? 'error');
+    final to = json['to'] as String?;
+    final sessionId = json['session_id'] as String?;
+    final payload = Map<String, dynamic>.from(json);
+    payload.remove('type');
+    payload.remove('to');
+    payload.remove('session_id');
     return SignalingMessage(
-      type: SignalingMessageType.fromString(json['type'] as String? ?? 'error'),
-      to: json['to'] as String?,
-      sessionId: json['session_id'] as String?,
-      payload: Map<String, dynamic>.from(json['payload'] ?? {}),
+      type: type,
+      to: to,
+      sessionId: sessionId,
+      payload: payload,
     );
   }
 
@@ -92,6 +100,7 @@ class SignalingService {
       await _channel!.ready;
       _connected = true;
       _reconnectAttempts = 0;
+      LogService().info('Signaling connected');
       if (_activeSessionId != null) {
         onSessionResume?.call(_activeSessionId!);
       }
@@ -104,6 +113,7 @@ class SignalingService {
       );
       _startHeartbeat();
     } catch (e) {
+      LogService().warning('Signaling connect failed: $e');
       _scheduleReconnect();
     }
   }
@@ -121,14 +131,16 @@ class SignalingService {
     }
   }
 
-  void _onError(error) {
+  void _onError(Object? error) {
     _connected = false;
+    LogService().warning('Signaling error: $error');
     onConnectionChanged?.call(false);
     _scheduleReconnect();
   }
 
   void _onDone() {
     _connected = false;
+    LogService().info('Signaling connection closed');
     onConnectionChanged?.call(false);
     _scheduleReconnect();
   }

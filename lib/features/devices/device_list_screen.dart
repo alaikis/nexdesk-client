@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../features/devices/device_provider.dart';
+import '../../features/auth/auth_provider.dart';
+import '../../core/error_handler.dart';
 
 class DeviceListScreen extends StatefulWidget {
   const DeviceListScreen({super.key});
@@ -9,7 +12,7 @@ class DeviceListScreen extends StatefulWidget {
   State<DeviceListScreen> createState() => _DeviceListScreenState();
 }
 
-class _DeviceListScreenState extends State<DeviceListScreen> {
+class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   final DeviceProvider _deviceProvider = DeviceProvider();
   bool _waking = false;
 
@@ -41,7 +44,13 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
             icon: const Icon(Icons.settings),
           ),
           IconButton(
-            onPressed: () => context.go('/login'),
+            onPressed: () async {
+              final auth = context.read<AuthProvider>();
+              await auth.logout();
+              if (!mounted) return;
+              // ignore: use_build_context_synchronously
+              context.go('/login');
+            },
             icon: const Icon(Icons.logout),
           ),
         ],
@@ -92,9 +101,8 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: register new device
-        },
+        onPressed: null,
+        tooltip: 'Register new device (coming soon)',
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -121,7 +129,7 @@ class _DeviceIcon extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: colors[index % colors.length].withOpacity(0.1),
+        color: colors[index % colors.length].withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Icon(icons[index % icons.length], color: colors[index % colors.length], size: 20),
@@ -138,7 +146,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isOnline ? const Color(0xFF34C759).withOpacity(0.12) : const Color(0xFF8E8E93).withOpacity(0.12),
+        color: isOnline ? const Color(0xFF34C759).withValues(alpha: 0.12) : const Color(0xFF8E8E93).withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(

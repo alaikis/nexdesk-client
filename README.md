@@ -13,6 +13,7 @@ Supported platforms:
 ```bash
 flutter pub get
 flutter analyze
+flutter test
 flutter run
 ```
 
@@ -28,6 +29,25 @@ flutter build windows --release
 flutter build apk --release
 flutter build appbundle --release
 ```
+
+## Platform-Specific Notes
+
+### Android
+- Release signing uses `android/keystore.properties` (git-ignored).
+- Foreground service for screen capture is declared in `AndroidManifest.xml`.
+- ProGuard rules are in `android/app/proguard-rules.pro`.
+
+### iOS
+- Add `ios/Runner/Info.plist` with `NSCameraUsageDescription` and screen-capture usage descriptions before App Store submission.
+- Xcode release signing and provisioning profiles are configured per Apple Developer account.
+
+### macOS
+- Enable "Hardened Runtime" and notarization in Xcode before distributing outside the App Store.
+- See Apple documentation: [Hardened Runtime](https://developer.apple.com/documentation/security/hardened_runtime).
+
+### Windows
+- Update `windows/runner/resources/app_icon.ico` and version info in `windows/runner/Runner.rc` before release.
+- Consider MSIX packaging for Microsoft Store distribution.
 
 ## GitHub Actions
 

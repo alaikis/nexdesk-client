@@ -48,6 +48,9 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
+      - name: Test
+        run: flutter test
+
       - name: Setup Android keystore
         if: matrix.platform == 'android'
         run: |

@@ -7,11 +7,13 @@ import 'features/auth/auth_provider.dart';
 import 'features/devices/device_provider.dart';
 import 'features/session/session_provider.dart';
 import 'platform/platform_service.dart';
+import 'core/crash_reporter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await PlatformService.initPlatform();
+  await CrashReporter().init();
 
   if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
     await windowManager.ensureInitialized();

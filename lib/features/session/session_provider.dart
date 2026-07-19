@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/api_client.dart';
 
 class Session with ChangeNotifier {
@@ -22,9 +23,9 @@ class Session with ChangeNotifier {
 
   factory Session.fromJson(Map<String, dynamic> json) {
     return Session(
-      id: json['id']?.toString() ?? json['id'] as String,
-      controllerDeviceId: json['controller_device_id']?.toString() ?? json['controller_device_id'] as String,
-      controlleeDeviceId: json['controllee_device_id']?.toString() ?? json['controllee_device_id'] as String,
+      id: json['id']?.toString() ?? const Uuid().v4(),
+      controllerDeviceId: json['controller_device_id']?.toString() ?? 'unknown',
+      controlleeDeviceId: json['controllee_device_id']?.toString() ?? 'unknown',
       startedAt: json['started_at'] as String? ?? DateTime.now().toIso8601String(),
       endedAt: json['ended_at'] as String?,
       status: json['status'] as String? ?? 'active',
