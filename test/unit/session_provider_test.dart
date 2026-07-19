@@ -38,5 +38,29 @@ void main() {
       expect(provider.activeSessionId, isNull);
       expect(provider.history, isEmpty);
     });
+
+    test('setReconnectionState updates reconnectionState to reconnecting', () {
+      final provider = SessionProvider();
+      provider.setReconnectionState(ReconnectionState.reconnecting);
+      expect(provider.reconnectionState, ReconnectionState.reconnecting);
+    });
+
+    test('setReconnectionState updates reconnectionState to connected', () {
+      final provider = SessionProvider();
+      provider.setReconnectionState(ReconnectionState.connected);
+      expect(provider.reconnectionState, ReconnectionState.connected);
+    });
+
+    test('setReconnectionState updates reconnectionState to failed', () {
+      final provider = SessionProvider();
+      provider.setReconnectionState(ReconnectionState.failed);
+      expect(provider.reconnectionState, ReconnectionState.failed);
+    });
+
+    test('setReconnectionState stores reconnectAttempts', () {
+      final provider = SessionProvider();
+      provider.setReconnectionState(ReconnectionState.reconnecting, attempts: 3);
+      expect(provider.reconnectAttempts, 3);
+    });
   });
 }

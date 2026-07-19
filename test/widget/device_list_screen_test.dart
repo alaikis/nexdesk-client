@@ -17,5 +17,19 @@ void main() {
       );
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
+
+    testWidgets('shows empty state when no devices', (tester) async {
+      final provider = DeviceProvider();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider.value(
+            value: provider,
+            child: const DeviceListScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('No devices yet'), findsOneWidget);
+    });
   });
 }

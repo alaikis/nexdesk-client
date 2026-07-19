@@ -19,7 +19,6 @@ void main() {
           home: SessionScreen(sessionId: 'test-session'),
         ),
       );
-      // Either a progress indicator or a button should be visible
       expect(
         find.byType(CircularProgressIndicator).evaluate().isNotEmpty ||
         find.text('Start Session').evaluate().isNotEmpty ||

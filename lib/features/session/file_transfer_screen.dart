@@ -31,13 +31,28 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
     super.dispose();
   }
 
-  Future<void> _loadTransfers() async {
-    final transfers = await _service.listTransfers(widget.sessionId);
-    if (!mounted) return;
+  @visibleForTesting
+  void simulateTransferAdded(FileTransfer transfer) {
     setState(() {
-      _transfers = transfers;
+      _transfers.add(transfer);
       _loading = false;
     });
+  }
+
+  Future<void> _loadTransfers() async {
+    try {
+      final transfers = await _service.listTransfers(widget.sessionId);
+      if (!mounted) return;
+      setState(() {
+        _transfers = transfers;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _pickAndUpload() async {
@@ -49,24 +64,34 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
     final picked = result.files.first;
     if (picked.path == null) return;
     final file = File(picked.path!);
+    final stat = await file.stat();
+
+    final placeholder = FileTransfer(
+      id: -1,
+      fileName: file.path.split('/').last,
+      filePath: file.path,
+      fileSize: stat.size,
+      direction: TransferDirection.upload,
+    );
+    setState(() {
+      _transfers.add(placeholder);
+    });
+
     final transfer = await _service.startUpload(
       widget.sessionId,
       file,
       onProgress: (transferred, total) {
         if (!mounted) return;
         setState(() {
-          final idx = _transfers.indexWhere((t) => t.id == transfer.id);
-          if (idx >= 0) {
-            _transfers[idx].transferred = transferred;
-          } else {
-            _transfers.add(transfer);
+          if (_transfers.isNotEmpty && _transfers.last.id == placeholder.id) {
+            _transfers.last.transferred = transferred;
           }
         });
       },
     );
     if (!mounted) return;
     setState(() {
-      final idx = _transfers.indexWhere((t) => t.id == transfer.id);
+      final idx = _transfers.indexWhere((t) => t.id == placeholder.id);
       if (idx >= 0) {
         _transfers[idx] = transfer;
       } else {
@@ -98,7 +123,7 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
       }
     });
     if (transfer.direction == TransferDirection.upload) {
-      final file = File(transfer.fileName);
+      final file = File(transfer.filePath);
       if (file.existsSync()) {
         await _service.startUpload(widget.sessionId, file, onProgress: (transferred, total) {
           if (!mounted) return;

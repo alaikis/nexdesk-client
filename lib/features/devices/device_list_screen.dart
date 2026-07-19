@@ -59,8 +59,11 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
         listenable: _deviceProvider,
         builder: (context, _) {
           final devices = _deviceProvider.devices;
-          if (devices.isEmpty) {
+          if (_deviceProvider.loading) {
             return const Center(child: CircularProgressIndicator());
+          }
+          if (devices.isEmpty) {
+            return const Center(child: Text('No devices yet'));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(20),

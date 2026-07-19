@@ -31,5 +31,17 @@ void main() {
       expect(json.containsKey('session_id'), isFalse);
       expect(json['type'], 'ping');
     });
+
+    test('resumeSession with session_invalid payload includes status', () {
+      final msg = SignalingMessage(
+        type: SignalingMessageType.resumeSession,
+        sessionId: 'session-123',
+        payload: {'status': 'session_invalid'},
+      );
+      final json = msg.toJson();
+      expect(json['type'], 'resumeSession');
+      expect(json['session_id'], 'session-123');
+      expect(json['status'], 'session_invalid');
+    });
   });
 }

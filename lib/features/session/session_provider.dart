@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/api_client.dart';
 
+enum ReconnectionState { connecting, connected, reconnecting, failed }
+
 class Session with ChangeNotifier {
   final String id;
   final String controllerDeviceId;
@@ -39,15 +41,18 @@ class SessionProvider with ChangeNotifier {
 
   Session? _activeSession;
   List<Session> _history = [];
-  bool _reconnecting = false;
+  ReconnectionState _reconnectionState = ReconnectionState.connected;
+  int _reconnectAttempts = 0;
 
   Session? get activeSession => _activeSession;
   List<Session> get history => List.unmodifiable(_history);
-  bool get reconnecting => _reconnecting;
+  ReconnectionState get reconnectionState => _reconnectionState;
+  int get reconnectAttempts => _reconnectAttempts;
   String? get activeSessionId => _activeSession?.id;
 
-  void setReconnecting(bool value) {
-    _reconnecting = value;
+  void setReconnectionState(ReconnectionState state, {int attempts = 0}) {
+    _reconnectionState = state;
+    _reconnectAttempts = attempts;
     notifyListeners();
   }
 

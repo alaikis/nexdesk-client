@@ -71,6 +71,8 @@ class SignalingService {
   final String deviceId;
   final void Function(bool connected)? onConnectionChanged;
   final void Function(String sessionId)? onSessionResume;
+  final void Function(int attempts)? onReconnectAttempts;
+  final void Function(int attempts)? onReconnectFailed;
 
   WebSocketChannel? _channel;
   final _controller = StreamController<SignalingMessage>.broadcast();
@@ -79,6 +81,7 @@ class SignalingService {
   bool _connected = false;
   int _reconnectAttempts = 0;
   final int _maxDelay = 30;
+  static const int _maxReconnectAttempts = 5;
   String? _activeSessionId;
   final Random _random = Random();
 
@@ -88,6 +91,8 @@ class SignalingService {
     required this.deviceId,
     this.onConnectionChanged,
     this.onSessionResume,
+    this.onReconnectAttempts,
+    this.onReconnectFailed,
   });
 
   bool get isConnected => _connected;
@@ -123,7 +128,14 @@ class SignalingService {
       final json = jsonDecode(data as String) as Map<String, dynamic>;
       final msg = SignalingMessage.fromJson(json);
       if (msg.type == SignalingMessageType.resumeSession && msg.sessionId != null) {
-        onSessionResume?.call(msg.sessionId!);
+        final status = msg.payload['status'] as String?;
+      if (status == 'session_invalid') {
+        LogService().warning('Session invalid, clearing session');
+        _activeSessionId = null;
+        onSessionResume?.call('__session_invalid__');
+        } else {
+          onSessionResume?.call(msg.sessionId!);
+        }
       }
       _controller.add(msg);
     } catch (e) {
@@ -154,8 +166,13 @@ class SignalingService {
 
   void _scheduleReconnect() {
     _reconnectTimer?.cancel();
+    if (_reconnectAttempts >= _maxReconnectAttempts) {
+      onReconnectFailed?.call(_reconnectAttempts);
+      return;
+    }
     final delay = min(1 << _reconnectAttempts, _maxDelay);
     final jitter = _random.nextInt(500);
+    onReconnectAttempts?.call(_reconnectAttempts);
     _reconnectAttempts++;
     _reconnectTimer = Timer(Duration(seconds: delay, milliseconds: jitter), connect);
   }

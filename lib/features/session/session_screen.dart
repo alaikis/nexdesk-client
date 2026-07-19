@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../core/webrtc_service.dart';
 import '../../core/screen_service.dart';
 import '../../core/signaling_service.dart';
@@ -7,6 +9,7 @@ import '../../core/storage_service.dart';
 import '../../config/app_config.dart';
 import '../../core/error_handler.dart';
 import '../../core/screen_capture_service.dart';
+import '../session/session_provider.dart';
 import 'screen_selector.dart';
 import 'file_transfer_screen.dart';
 import 'clipboard_screen.dart';
@@ -29,7 +32,6 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   List<ScreenInfo> _screens = [];
   Set<int> _selectedScreenIds = {};
   bool _selectingScreens = true;
-  bool _reconnecting = false;
 
   @override
   void initState() {
@@ -74,12 +76,30 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         token: token,
         deviceId: deviceId,
         onConnectionChanged: (connected) {
-          if (mounted) {
-            setState(() => _reconnecting = !connected);
+          if (!mounted) return;
+          final sp = context.read<SessionProvider>();
+          if (connected) {
+            sp.setReconnectionState(ReconnectionState.connected);
+          } else {
+            sp.setReconnectionState(ReconnectionState.reconnecting, attempts: 0);
           }
         },
         onSessionResume: (sessionId) {
           debugPrint('Session resume requested: $sessionId');
+          if (sessionId == '__session_invalid__') {
+            if (mounted) {
+              context.read<SessionProvider>().setActiveSession(null);
+              GoRouter.of(context).go('/devices');
+            }
+          }
+        },
+        onReconnectAttempts: (attempts) {
+          if (!mounted) return;
+          context.read<SessionProvider>().setReconnectionState(ReconnectionState.reconnecting, attempts: attempts);
+        },
+        onReconnectFailed: (attempts) {
+          if (!mounted) return;
+          context.read<SessionProvider>().setReconnectionState(ReconnectionState.failed, attempts: attempts);
         },
       );
       await _signaling!.connect();
@@ -111,6 +131,16 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         setState(() => _selectingScreens = true);
       }
     }
+  }
+
+  Future<void> _retryConnection() async {
+    context.read<SessionProvider>().setReconnectionState(ReconnectionState.connecting);
+    await _signaling?.connect();
+  }
+
+  @visibleForTesting
+  void simulateSessionStarted() {
+    setState(() => _selectingScreens = false);
   }
 
   @override
@@ -194,22 +224,62 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   }
 
   Widget _buildSessionView() {
+    final sessionProvider = context.watch<SessionProvider>();
     final streams = _webrtc.remoteStreams;
+
+    if (sessionProvider.reconnectionState == ReconnectionState.failed) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.wifi_off, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text('Connection lost', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Text('Failed after ${sessionProvider.reconnectAttempts} attempts'),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _retryConnection,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: () => GoRouter.of(context).go('/devices'),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Return to devices'),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (streams.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: sessionProvider.reconnectionState == ReconnectionState.reconnecting
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Reconnecting...'),
+                ],
+              )
+            : const CircularProgressIndicator(),
+      );
     }
 
     return Column(
       children: [
-        if (_reconnecting)
+        if (sessionProvider.reconnectionState == ReconnectionState.reconnecting)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             color: const Color(0xFFFF3B30),
-            child: const Text(
-              'Reconnecting...',
+            child: Text(
+              'Reconnecting... (attempt ${sessionProvider.reconnectAttempts + 1})',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ),
         Expanded(

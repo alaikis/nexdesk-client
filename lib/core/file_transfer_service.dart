@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
@@ -15,16 +14,18 @@ enum TransferStatus { pending, transferring, completed, failed, cancelled }
 class FileTransfer {
   final int id;
   final String fileName;
+  final String filePath;
   final int fileSize;
   final TransferDirection direction;
   TransferStatus status;
   int transferred;
   final String? checksum;
-  final String? errorMessage;
+  String? errorMessage;
 
   FileTransfer({
     required this.id,
     required this.fileName,
+    this.filePath = '',
     required this.fileSize,
     required this.direction,
     this.status = TransferStatus.pending,
@@ -37,6 +38,7 @@ class FileTransfer {
     return FileTransfer(
       id: json['id'] ?? json['id'] as int,
       fileName: json['file_name'] ?? json['fileName'] as String,
+      filePath: json['file_path'] ?? json['filePath'] as String? ?? '',
       fileSize: (json['file_size'] ?? json['fileSize']) as int,
       direction: json['direction'] == 'upload' ? TransferDirection.upload : TransferDirection.download,
       status: TransferStatus.values.firstWhere((s) => s.name == (json['status'] ?? 'pending'), orElse: () => TransferStatus.pending),
@@ -65,12 +67,13 @@ class FileTransferService {
       'direction': 'upload',
     });
     final transfer = FileTransfer.fromJson(res);
+    transfer.status = TransferStatus.transferring;
     final client = http.Client();
     _activeClients[transfer.id] = client;
 
     try {
       final request = http.MultipartRequest('POST', Uri.parse('${AppConfig.apiBaseUrl}/files/${transfer.id}/upload'));
-      request.headers.addAll({'Authorization': 'Bearer ${await _api.token ?? ''}'});
+      request.headers.addAll({'Authorization': 'Bearer ${_api.token ?? ''}'});
       request.files.add(await http.MultipartFile.fromPath('file', file.path));
       final stream = await client.send(request);
       final total = stat.size;
@@ -108,6 +111,7 @@ class FileTransferService {
       'direction': 'download',
     });
     final transfer = FileTransfer.fromJson(res);
+    transfer.status = TransferStatus.transferring;
     final client = http.Client();
     _activeClients[transfer.id] = client;
 
@@ -115,7 +119,7 @@ class FileTransferService {
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/$fileName');
       final request = http.Request('GET', Uri.parse('${AppConfig.apiBaseUrl}/files/${transfer.id}/download'));
-      request.headers.addAll({'Authorization': 'Bearer ${await _api.token ?? ''}'});
+      request.headers.addAll({'Authorization': 'Bearer ${_api.token ?? ''}'});
       final streamed = await client.send(request);
       final sink = file.openWrite();
       int transferred = 0;

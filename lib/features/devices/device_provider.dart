@@ -32,15 +32,21 @@ class DeviceProvider with ChangeNotifier {
   final ApiClient _api = ApiClient();
 
   List<Device> _devices = [];
+  bool _loading = false;
   List<Device> get devices => List.unmodifiable(_devices);
+  bool get loading => _loading;
 
   Future<void> loadDevices() async {
+    _loading = true;
+    notifyListeners();
     try {
       final list = await _api.listDevices();
       _devices = list.map((d) => Device.fromJson(d as Map<String, dynamic>)).toList();
-      notifyListeners();
     } on ApiException catch (e) {
       debugPrint('Load devices failed: $e');
+    } finally {
+      _loading = false;
+      notifyListeners();
     }
   }
 
