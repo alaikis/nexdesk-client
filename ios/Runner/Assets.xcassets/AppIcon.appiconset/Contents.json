@@ -1,0 +1,74 @@
+{
+  "images": [
+    {
+      "filename": "icon_20x20@2x.png",
+      "size": "20x20",
+      "scale": "2x",
+      "idiom": "iphone"
+    },
+    {
+      "filename": "icon_20x20@3x.png",
+      "size": "20x20",
+      "scale": "3x",
+      "idiom": "iphone"
+    },
+    {
+      "filename": "icon_29x29@2x.png",
+      "size": "29x29",
+      "scale": "2x",
+      "idiom": "iphone"
+    },
+    {
+      "filename": "icon_29x29@3x.png",
+      "size": "29x29",
+      "scale": "3x",
+      "idiom": "iphone"
+    },
+    {
+      "filename": "icon_40x40@2x.png",
+      "size": "40x40",
+      "scale": "2x",
+      "idiom": "iphone"
+    },
+    {
+      "filename": "icon_40x40@3x.png",
+      "size": "40x40",
+      "scale": "3x",
+      "idiom": "iphone"
+    },
+    {
+      "filename": "icon_60x60@2x.png",
+      "size": "60x60",
+      "scale": "2x",
+      "idiom": "iphone"
+    },
+    {
+      "filename": "icon_60x60@3x.png",
+      "size": "60x60",
+      "scale": "3x",
+      "idiom": "iphone"
+    },
+    {
+      "filename": "icon_64x64@2x.png",
+      "size": "64x64",
+      "scale": "2x",
+      "idiom": "iphone"
+    },
+    {
+      "filename": "icon_76x76@2x.png",
+      "size": "76x76",
+      "scale": "2x",
+      "idiom": "iphone"
+    },
+    {
+      "filename": "icon_83.5x83.5@2x.png",
+      "size": "83.5x83.5",
+      "scale": "2x",
+      "idiom": "iphone"
+    }
+  ],
+  "info": {
+    "version": 1,
+    "author": "xcode"
+  }
+}

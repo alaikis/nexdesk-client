@@ -6,6 +6,7 @@ import '../../core/signaling_service.dart';
 import '../../core/storage_service.dart';
 import '../../config/app_config.dart';
 import '../../core/error_handler.dart';
+import '../../core/screen_capture_service.dart';
 import 'screen_selector.dart';
 import 'file_transfer_screen.dart';
 import 'clipboard_screen.dart';
@@ -55,6 +56,18 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     try {
       final token = await StorageService.getString('jwt_token') ?? '';
       final deviceId = await StorageService.getString('device_id') ?? '';
+
+      final granted = await ScreenCaptureService.requestPermission();
+      if (!granted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Screen capture permission denied')),
+          );
+        }
+        setState(() => _selectingScreens = true);
+        return;
+      }
+      await ScreenCaptureService.startService();
 
       _signaling = SignalingService(
         serverUrl: AppConfig.wsSignalUrl,

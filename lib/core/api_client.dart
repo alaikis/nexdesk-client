@@ -213,4 +213,8 @@ class ApiClient {
     final res = await get('/auth/2fa/status');
     return res['enabled'] == true;
   }
+
+  Future<void> cancelTransfer(int transferId) async {
+    await post('/files/$transferId/cancel', {});
+  }
 }
