@@ -71,6 +71,7 @@ class SignalingService {
   final String deviceId;
   final void Function(bool connected)? onConnectionChanged;
   final void Function(String sessionId)? onSessionResume;
+  final void Function(String sessionId)? onPasswordRequired;
   final void Function(int attempts)? onReconnectAttempts;
   final void Function(int attempts)? onReconnectFailed;
 
@@ -91,6 +92,7 @@ class SignalingService {
     required this.deviceId,
     this.onConnectionChanged,
     this.onSessionResume,
+    this.onPasswordRequired,
     this.onReconnectAttempts,
     this.onReconnectFailed,
   });
@@ -129,12 +131,17 @@ class SignalingService {
       final msg = SignalingMessage.fromJson(json);
       if (msg.type == SignalingMessageType.resumeSession && msg.sessionId != null) {
         final status = msg.payload['status'] as String?;
-      if (status == 'session_invalid') {
-        LogService().warning('Session invalid, clearing session');
-        _activeSessionId = null;
-        onSessionResume?.call('__session_invalid__');
+        if (status == 'session_invalid') {
+          LogService().warning('Session invalid, clearing session');
+          _activeSessionId = null;
+          onSessionResume?.call('__session_invalid__');
         } else {
           onSessionResume?.call(msg.sessionId!);
+        }
+      } else if (msg.type == SignalingMessageType.error) {
+        final error = msg.payload['error'] as String?;
+        if (error == 'password_required' && msg.sessionId != null) {
+          onPasswordRequired?.call(msg.sessionId!);
         }
       }
       _controller.add(msg);

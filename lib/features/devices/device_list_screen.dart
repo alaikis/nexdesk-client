@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../features/devices/device_provider.dart';
 import '../../features/auth/auth_provider.dart';
+import '../../features/session/session_provider.dart';
 import '../../core/error_handler.dart';
 
 class DeviceListScreen extends StatefulWidget {
@@ -31,6 +32,19 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
         SnackBar(content: Text(ok ? 'Magic packet sent' : 'Failed to wake device')),
       );
     }
+  }
+
+  Future<void> _startSession(String deviceId) async {
+    final sessionProvider = context.read<SessionProvider>();
+    final res = await sessionProvider.startSession(deviceId);
+    if (!mounted) return;
+    if (res == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to start session')),
+      );
+      return;
+    }
+    context.go('/session/${res.id}');
   }
 
   @override
@@ -97,6 +111,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                       ],
                     ],
                   ),
+                  onTap: () => _startSession(device.id),
                 ),
               );
             },

@@ -9,12 +9,14 @@ import '../../core/storage_service.dart';
 import '../../config/app_config.dart';
 import '../../core/error_handler.dart';
 import '../../core/screen_capture_service.dart';
+import '../../core/api_client.dart';
 import '../session/session_provider.dart';
 import 'screen_selector.dart';
 import 'file_transfer_screen.dart';
 import 'clipboard_screen.dart';
 import 'quality_settings_sheet.dart';
 import 'recording_screen.dart';
+import 'recording_list_screen.dart';
 
 class SessionScreen extends StatefulWidget {
   final String sessionId;
@@ -27,6 +29,7 @@ class SessionScreen extends StatefulWidget {
 class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   final WebRtcService _webrtc = WebRtcService();
   final ScreenService _screenService = ScreenService();
+  final ApiClient _api = ApiClient();
   SignalingService? _signaling;
 
   List<ScreenInfo> _screens = [];
@@ -93,6 +96,10 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
             }
           }
         },
+        onPasswordRequired: (sessionId) {
+          debugPrint('Password required for session $sessionId');
+          _promptForPassword(sessionId);
+        },
         onReconnectAttempts: (attempts) {
           if (!mounted) return;
           context.read<SessionProvider>().setReconnectionState(ReconnectionState.reconnecting, attempts: attempts);
@@ -133,6 +140,75 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     }
   }
 
+  Future<void> _promptForPassword(String sessionId) async {
+    final controller = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Session Password'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          decoration: const InputDecoration(hintText: 'Enter session password'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Join'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (password == null || password.isEmpty) {
+      GoRouter.of(context).go('/devices');
+      return;
+    }
+    _signaling?.send(SignalingMessage(
+      type: SignalingMessageType.resumeSession,
+      sessionId: sessionId,
+      payload: {'password': password},
+    ));
+  }
+
+  Future<void> _setSessionPassword() async {
+    final controller = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Set Session Password'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          decoration: const InputDecoration(hintText: 'Enter password (leave empty to remove)'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (password == null) return;
+    try {
+      await _api.setSessionPassword(widget.sessionId, password);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password updated')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to set password: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _retryConnection() async {
     context.read<SessionProvider>().setReconnectionState(ReconnectionState.connecting);
     await _signaling?.connect();
@@ -160,13 +236,23 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
             icon: const Icon(Icons.folder_open),
           ),
           IconButton(
+            onPressed: () => _showRecordings(),
+            tooltip: 'Recordings',
+            icon: const Icon(Icons.playlist_play),
+          ),
+          IconButton(
+            onPressed: _setSessionPassword,
+            tooltip: 'Password',
+            icon: const Icon(Icons.lock_outline),
+          ),
+          IconButton(
             onPressed: () => _showClipboard(),
             tooltip: 'Clipboard',
             icon: const Icon(Icons.content_paste),
           ),
           IconButton(
             onPressed: () => _showRecording(),
-            tooltip: 'Recording',
+            tooltip: 'Record',
             icon: const Icon(Icons.fiber_manual_record),
           ),
           IconButton(
@@ -332,6 +418,15 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       context,
       MaterialPageRoute(
         builder: (_) => ClipboardScreen(sessionId: widget.sessionId, deviceId: 0),
+      ),
+    );
+  }
+
+  void _showRecordings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RecordingListScreen(sessionId: widget.sessionId),
       ),
     );
   }

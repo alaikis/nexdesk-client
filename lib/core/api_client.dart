@@ -183,6 +183,21 @@ class ApiClient {
     return post('/sessions/$sessionId/recordings/stop', {});
   }
 
+  Future<List<dynamic>> listRecordings(String sessionId) async {
+    final res = await get('/sessions/$sessionId/recordings');
+    if (res['recordings'] is List) {
+      return res['recordings'] as List<dynamic>;
+    }
+    if (res['id'] != null) {
+      return [res];
+    }
+    return [];
+  }
+
+  Future<void> deleteRecording(int recordingId) async {
+    await delete('/recordings/$recordingId');
+  }
+
   Future<Map<String, dynamic>> setupTOTP() async {
     return post('/auth/2fa/setup', {});
   }
@@ -216,5 +231,13 @@ class ApiClient {
 
   Future<void> cancelTransfer(int transferId) async {
     await post('/files/$transferId/cancel', {});
+  }
+
+  Future<Map<String, dynamic>> getSession(String sessionId) async {
+    return get('/api/v1/sessions/$sessionId');
+  }
+
+  Future<void> setSessionPassword(String sessionId, String password) async {
+    await post('/api/v1/sessions/$sessionId/password', {'password': password});
   }
 }
