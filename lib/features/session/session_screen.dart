@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +12,8 @@ import '../../config/app_config.dart';
 import '../../core/error_handler.dart';
 import '../../core/screen_capture_service.dart';
 import '../../core/api_client.dart';
+import '../../core/input_relay_service.dart';
+import '../../core/quality_service.dart';
 import '../session/session_provider.dart';
 import 'screen_selector.dart';
 import 'file_transfer_screen.dart';
@@ -30,6 +34,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   final WebRtcService _webrtc = WebRtcService();
   final ScreenService _screenService = ScreenService();
   final ApiClient _api = ApiClient();
+  InputRelayService? _inputRelay;
   SignalingService? _signaling;
 
   List<ScreenInfo> _screens = [];
@@ -110,9 +115,17 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         },
       );
       await _signaling!.connect();
+      final controlleeId = context.read<SessionProvider>().activeSession?.controlleeDeviceId ?? '';
+      _inputRelay = InputRelayService(
+        signaling: _signaling!,
+        sessionId: widget.sessionId,
+        targetDeviceId: controlleeId,
+      );
+      final qualityProfile = await QualityService().getProfile(widget.sessionId);
       await _webrtc.initialize(
         role: SessionRole.controller,
         selectedScreenIds: _selectedScreenIds.toList(),
+        qualityProfile: qualityProfile,
         onLocalDescription: (desc) {
           _signaling?.send(SignalingMessage(
             type: SignalingMessageType.callOffer,
@@ -131,6 +144,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       );
 
       _webrtc.createOffer();
+      _inputRelay?.start();
     } catch (e) {
       // ignore: use_build_context_synchronously
       handleError(e, context: context);
@@ -217,6 +231,16 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   @visibleForTesting
   void simulateSessionStarted() {
     setState(() => _selectingScreens = false);
+  }
+
+  int _keyModifiers(KeyEvent event) {
+    int modifiers = 0;
+    final hw = HardwareKeyboard.instance;
+    if (hw.isShiftPressed) modifiers |= 0x01;
+    if (hw.isControlPressed) modifiers |= 0x02;
+    if (hw.isAltPressed) modifiers |= 0x04;
+    if (hw.isMetaPressed) modifiers |= 0x08;
+    return modifiers;
   }
 
   @override
@@ -369,25 +393,42 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
             ),
           ),
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(12),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 16 / 9,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: streams.length,
-            itemBuilder: (context, index) {
-              final stream = streams[index];
-              return Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E5EA)),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: RTCVideoView(stream.renderer),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              _inputRelay?.updateSize(Size(constraints.maxWidth, constraints.maxHeight));
+              return Listener(
+                onPointerDown: (e) => _inputRelay?.handlePointerEvent(e),
+                onPointerMove: (e) => _inputRelay?.handlePointerEvent(e),
+                onPointerUp: (e) => _inputRelay?.handlePointerEvent(e),
+                onPointerSignal: (e) {
+                  if (e is PointerScrollEvent) _inputRelay?.handlePointerEvent(e);
+                },
+                child: KeyboardListener(
+                  focusNode: FocusNode()..requestFocus(),
+                  onKeyEvent: (e) => _inputRelay?.handleKeyEvent(e, _keyModifiers(e)),
+                  child: GridView.builder(
+                    padding: const EdgeInsets.all(12),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 16 / 9,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: streams.length,
+                    itemBuilder: (context, index) {
+                      final stream = streams[index];
+                      return Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE5E5EA)),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: RTCVideoView(stream.renderer),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               );
             },
@@ -400,7 +441,10 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   void _showQualitySettings() {
     showModalBottomSheet(
       context: context,
-      builder: (_) => QualitySettingsSheet(sessionId: widget.sessionId),
+      builder: (_) => QualitySettingsSheet(
+        sessionId: widget.sessionId,
+        onProfileChanged: (profile) => _webrtc.updateQualityProfile(profile),
+      ),
     );
   }
 
@@ -442,6 +486,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   @override
   void dispose() {
+    _inputRelay?.stop();
     _webrtc.dispose();
     super.dispose();
   }

@@ -3,7 +3,8 @@ import '../../core/quality_service.dart';
 
 class QualitySettingsSheet extends StatefulWidget {
   final String sessionId;
-  const QualitySettingsSheet({super.key, required this.sessionId});
+  final Future<void> Function(QualityProfile)? onProfileChanged;
+  const QualitySettingsSheet({super.key, required this.sessionId, this.onProfileChanged});
 
   @override
   State<QualitySettingsSheet> createState() => _QualitySettingsSheetState();
@@ -21,6 +22,7 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
 
   Future<void> _changeProfile(QualityProfile profile) async {
     await _qualityService.setProfile(widget.sessionId, profile);
+    await widget.onProfileChanged?.call(profile);
     setState(() {
       _profileFuture = Future.value(profile);
     });

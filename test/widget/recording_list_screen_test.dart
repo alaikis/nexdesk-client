@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_app/features/session/recording_list_screen.dart';
-import 'package:flutter_app/core/session_recording.dart';
 
 void main() {
   group('RecordingListScreen', () {

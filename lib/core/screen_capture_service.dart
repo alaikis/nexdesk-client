@@ -27,4 +27,12 @@ class ScreenCaptureService {
       // no-op
     }
   }
+
+  static Future<void> injectInputEvent(Map<String, dynamic> event) async {
+    try {
+      await _channel.invokeMethod('injectInputEvent', event);
+    } on PlatformException catch (_) {
+      // no-op
+    }
+  }
 }

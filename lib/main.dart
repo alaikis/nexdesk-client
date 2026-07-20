@@ -10,6 +10,7 @@ import 'features/session/session_provider.dart';
 import 'platform/platform_service.dart';
 import 'core/crash_reporter.dart';
 import 'core/api_client.dart';
+import 'core/input_injector_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,13 @@ Future<void> main() async {
       child: const NexApp(),
     ),
   );
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final inputInjector = InputInjectorService();
+    final sessionProvider = SessionProvider();
+    await inputInjector.init(sessionProvider);
+    inputInjector.start();
+  });
 }
 
 Future<void> _checkForUpdates() async {

@@ -1,4 +1,5 @@
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'quality_service.dart';
 
 enum SessionRole {
   controller,
@@ -32,6 +33,7 @@ class WebRtcService {
     required Function(RTCSessionDescription) onLocalDescription,
     required Function(RTCIceCandidate) onIceCandidate,
     required Function(ScreenStream) onRemoteStream,
+    QualityProfile? qualityProfile,
   }) async {
     final configuration = <String, dynamic>{
       'iceServers': [
@@ -61,9 +63,27 @@ class WebRtcService {
       }
     };
 
+    if (qualityProfile != null) {
+      _applyQualityProfile(qualityProfile);
+    }
+
     if (role == SessionRole.controllee) {
       await _captureScreens(selectedScreenIds);
     }
+  }
+
+  void _applyQualityProfile(QualityProfile profile) {
+    final constraints = QualityService().getWebRtcConstraints(profile);
+    _pc?.setConfiguration({
+      'iceServers': [
+        {'urls': 'stun:stun.l.google.com:19302'},
+      ],
+      'video': constraints['video'],
+    });
+  }
+
+  Future<void> updateQualityProfile(QualityProfile profile) async {
+    _applyQualityProfile(profile);
   }
 
   Future<void> _captureScreens(List<int> selectedScreenIds) async {

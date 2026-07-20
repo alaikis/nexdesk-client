@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'api_client.dart';
 
@@ -41,9 +42,29 @@ class ClipboardService {
   ClipboardService._internal();
 
   final ApiClient _api = ApiClient();
+  Timer? _watchTimer;
+  String? _lastText;
 
   void startWatching(String sessionId, int deviceId, Function(ClipboardEvent) onEvent) {
-    // Platform channel required for native clipboard watching
+    _watchTimer?.cancel();
+    _watchTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      final data = await Clipboard.getData('text/plain');
+      final text = data?.text ?? '';
+      if (text.isEmpty || text == _lastText) return;
+      _lastText = text;
+      await _api.post('/sessions/$sessionId/clipboard', {
+        'device_id': deviceId,
+        'type': 'text',
+        'payload': text,
+        'direction': 'out',
+      });
+    });
+  }
+
+  void stopWatching() {
+    _watchTimer?.cancel();
+    _watchTimer = null;
+    _lastText = null;
   }
 
   Future<void> syncText(String sessionId, int deviceId, String text, {bool isOutbound = true}) async {

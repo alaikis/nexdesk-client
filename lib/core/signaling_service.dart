@@ -16,6 +16,7 @@ enum SignalingMessageType {
   callEnd,
   keyExchange,
   resumeSession,
+  inputEvent,
   error;
 
   factory SignalingMessageType.fromString(String value) {
@@ -72,6 +73,7 @@ class SignalingService {
   final void Function(bool connected)? onConnectionChanged;
   final void Function(String sessionId)? onSessionResume;
   final void Function(String sessionId)? onPasswordRequired;
+  final void Function(Map<String, dynamic> event)? onInputEvent;
   final void Function(int attempts)? onReconnectAttempts;
   final void Function(int attempts)? onReconnectFailed;
 
@@ -93,6 +95,7 @@ class SignalingService {
     this.onConnectionChanged,
     this.onSessionResume,
     this.onPasswordRequired,
+    this.onInputEvent,
     this.onReconnectAttempts,
     this.onReconnectFailed,
   });
@@ -142,6 +145,13 @@ class SignalingService {
         final error = msg.payload['error'] as String?;
         if (error == 'password_required' && msg.sessionId != null) {
           onPasswordRequired?.call(msg.sessionId!);
+        }
+      } else if (msg.type == SignalingMessageType.inputEvent) {
+        final events = msg.payload['events'];
+        if (events is List) {
+          for (final ev in events) {
+            onInputEvent?.call(ev as Map<String, dynamic>);
+          }
         }
       }
       _controller.add(msg);

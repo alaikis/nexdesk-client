@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/clipboard_service.dart';
 
@@ -14,11 +15,24 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
   final ClipboardService _clipboardService = ClipboardService();
   List<ClipboardEvent> _history = [];
   bool _loading = true;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadHistory();
+    _clipboardService.startWatching(widget.sessionId, widget.deviceId, (event) {
+      if (!mounted) return;
+      setState(() => _history.insert(0, event));
+    });
+    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) => _loadHistory());
+  }
+
+  @override
+  void dispose() {
+    _clipboardService.stopWatching();
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadHistory() async {
