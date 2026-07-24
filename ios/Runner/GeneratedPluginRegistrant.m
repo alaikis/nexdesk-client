@@ -42,6 +42,12 @@
 @import shared_preferences_foundation;
 #endif
 
+#if __has_include(<sodium_libs/SodiumLibsPlugin.h>)
+#import <sodium_libs/SodiumLibsPlugin.h>
+#else
+@import sodium_libs;
+#endif
+
 #if __has_include(<url_launcher_ios/URLLauncherPlugin.h>)
 #import <url_launcher_ios/URLLauncherPlugin.h>
 #else
@@ -57,6 +63,7 @@
   [FPPPackageInfoPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPPackageInfoPlusPlugin"]];
   [PermissionHandlerPlugin registerWithRegistrar:[registry registrarForPlugin:@"PermissionHandlerPlugin"]];
   [SharedPreferencesPlugin registerWithRegistrar:[registry registrarForPlugin:@"SharedPreferencesPlugin"]];
+  [SodiumLibsPlugin registerWithRegistrar:[registry registrarForPlugin:@"SodiumLibsPlugin"]];
   [URLLauncherPlugin registerWithRegistrar:[registry registrarForPlugin:@"URLLauncherPlugin"]];
 }
 

@@ -36,4 +36,19 @@ class StorageService {
     final val = await _secure.read(key: _prefix + key);
     return val != null;
   }
+
+  static Future<List<String>> getStringList(String key) async {
+    final raw = await _secure.read(key: _prefix + key);
+    if (raw == null) return [];
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      return list.cast<String>();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> setStringList(String key, List<String> value) async {
+    await _secure.write(key: _prefix + key, value: jsonEncode(value));
+  }
 }

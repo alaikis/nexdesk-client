@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'log_service.dart';
@@ -17,6 +18,7 @@ enum SignalingMessageType {
   keyExchange,
   resumeSession,
   inputEvent,
+  chatMessage,
   error;
 
   factory SignalingMessageType.fromString(String value) {
@@ -66,6 +68,29 @@ class SignalingMessage {
   }
 }
 
+/// Chat message model
+class ChatMessage {
+  final String from;
+  final String content;
+  final int timestamp;
+
+  ChatMessage({required this.from, required this.content, required this.timestamp});
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      from: json['from'] as String? ?? '',
+      content: json['content'] as String? ?? '',
+      timestamp: json['timestamp'] as int? ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'from': from,
+    'content': content,
+    'timestamp': timestamp,
+  };
+}
+
 class SignalingService {
   final String serverUrl;
   final String token;
@@ -74,6 +99,8 @@ class SignalingService {
   final void Function(String sessionId)? onSessionResume;
   final void Function(String sessionId)? onPasswordRequired;
   final void Function(Map<String, dynamic> event)? onInputEvent;
+  final void Function(Uint8List publicKey, String fromDevice)? onKeyExchange;
+  void Function(ChatMessage message)? onChatMessage;
   final void Function(int attempts)? onReconnectAttempts;
   final void Function(int attempts)? onReconnectFailed;
 
@@ -96,6 +123,8 @@ class SignalingService {
     this.onSessionResume,
     this.onPasswordRequired,
     this.onInputEvent,
+    this.onKeyExchange,
+    this.onChatMessage,
     this.onReconnectAttempts,
     this.onReconnectFailed,
   });
@@ -153,6 +182,24 @@ class SignalingService {
             onInputEvent?.call(ev as Map<String, dynamic>);
           }
         }
+      } else if (msg.type == SignalingMessageType.keyExchange) {
+        final pk = msg.payload['public_key'];
+        final fromDevice = msg.payload['from_device'] as String?;
+        if (pk is String && fromDevice != null) {
+          try {
+            final publicKey = base64Decode(pk);
+            onKeyExchange?.call(Uint8List.fromList(publicKey), fromDevice);
+          } catch (e) {
+            LogService().warning('Failed to decode key exchange public key: $e');
+          }
+        }
+      } else if (msg.type == SignalingMessageType.chatMessage) {
+        final from = msg.payload['from'] as String?;
+        final content = msg.payload['content'] as String?;
+        final timestamp = msg.payload['timestamp'] as int? ?? 0;
+        if (from != null && content != null) {
+          onChatMessage?.call(ChatMessage(from: from, content: content, timestamp: timestamp));
+        }
       }
       _controller.add(msg);
     } catch (e) {
@@ -202,6 +249,31 @@ class SignalingService {
     if (_channel != null && _connected) {
       _channel!.sink.add(jsonEncode(message.toJson()));
     }
+  }
+
+  /// Send E2EE public key to remote device
+  void sendKeyExchange(Uint8List publicKey, String toDevice) {
+    send(SignalingMessage(
+      type: SignalingMessageType.keyExchange,
+      to: toDevice,
+      payload: {
+        'public_key': base64Encode(publicKey),
+        'from_device': deviceId,
+      },
+    ));
+  }
+
+  /// Send chat message to remote device
+  void sendChatMessage(String toDevice, String content) {
+    send(SignalingMessage(
+      type: SignalingMessageType.chatMessage,
+      to: toDevice,
+      payload: {
+        'from': deviceId,
+        'content': content,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      },
+    ));
   }
 
   Future<void> disconnect() async {

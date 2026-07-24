@@ -296,6 +296,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.11.7"
+  freezed_annotation:
+    dependency: transitive
+    description:
+      name: freezed_annotation
+      sha256: "7294967ff0a6d98638e7acb774aac3af2550777accd8149c90af5b014e6d44d8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.0"
   go_router:
     dependency: "direct main"
     description:
@@ -368,6 +376,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.2"
+  json_annotation:
+    dependency: transitive
+    description:
+      name: json_annotation
+      sha256: "2a743920d81b7910627f68ee2c9ac1fc0bfee32b9fc3403587d7c6791ca12f80"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.12.0"
   leak_tracker:
     dependency: transitive
     description:
@@ -717,6 +733,22 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  sodium:
+    dependency: transitive
+    description:
+      name: sodium
+      sha256: "515b86c186f4caca49051caf858d878ca7cc4ff4542411e9febb50654eac8a62"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.4.6"
+  sodium_libs:
+    dependency: "direct main"
+    description:
+      name: sodium_libs
+      sha256: f3f9c516b4183226b7a08ca43a765ebc9e02cfd92e46e8a6cc490f98ffe73052
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.4.6+4"
   source_span:
     dependency: transitive
     description:

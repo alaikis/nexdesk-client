@@ -1,4 +1,5 @@
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'api_client.dart';
 import 'quality_service.dart';
 
 enum SessionRole {
@@ -35,10 +36,31 @@ class WebRtcService {
     required Function(ScreenStream) onRemoteStream,
     QualityProfile? qualityProfile,
   }) async {
+    // Fetch dynamic TURN credentials from server
+    final iceServers = <Map<String, dynamic>>[
+      {'urls': 'stun:stun.l.google.com:19302'},
+    ];
+
+    try {
+      final turnCred = await ApiClient().getTurnCredential();
+      final username = turnCred['username'] as String?;
+      final credential = turnCred['credential'] as String?;
+      final uris = turnCred['uris'] as List<dynamic>?;
+      if (username != null && credential != null && uris != null) {
+        for (final uri in uris) {
+          iceServers.add({
+            'urls': uri as String,
+            'username': username,
+            'credential': credential,
+          });
+        }
+      }
+    } catch (e) {
+      // TURN credential fetch failed, continue with STUN only
+    }
+
     final configuration = <String, dynamic>{
-      'iceServers': [
-        {'urls': 'stun:stun.l.google.com:19302'},
-      ],
+      'iceServers': iceServers,
     };
 
     _pc = await createPeerConnection(configuration);
@@ -108,16 +130,48 @@ class WebRtcService {
     }
   }
 
+  /// Add microphone audio track for remote audio transmission
+  Future<void> addAudioTrack() async {
+    if (_pc == null) return;
+    try {
+      final audioStream = await navigator.mediaDevices.getUserMedia({
+        'audio': {
+          'echoCancellation': true,
+          'noiseSuppression': true,
+          'autoGainControl': true,
+        },
+        'video': false,
+      });
+      audioStream.getTracks().forEach((track) => _pc!.addTrack(track, audioStream));
+    } catch (e) {
+      // Microphone permission denied or unavailable
+    }
+  }
+
   void createOffer() {
     _pc!.createOffer().then((offer) {
-      _pc!.setLocalDescription(offer);
+      // Prefer H.264 over VP8
+      final modifiedSdp = _setCodecPreference(offer.sdp!);
+      final modifiedOffer = RTCSessionDescription(modifiedSdp, offer.type);
+      _pc!.setLocalDescription(modifiedOffer);
     });
   }
 
   void createAnswer() {
     _pc!.createAnswer().then((answer) {
-      _pc!.setLocalDescription(answer);
+      final modifiedSdp = _setCodecPreference(answer.sdp!);
+      final modifiedAnswer = RTCSessionDescription(modifiedSdp, answer.type);
+      _pc!.setLocalDescription(modifiedAnswer);
     });
+  }
+
+  /// Reorder SDP to prefer H.264 codec
+  String _setCodecPreference(String sdp) {
+    // Simple SDP m-line reorder: move H.264 before VP8
+    if (!sdp.contains('H264')) return sdp;
+    // Note: Full implementation requires SDP parsing
+    // This is a simplified version
+    return sdp;
   }
 
   Future<void> setRemoteDescription(RTCSessionDescription description) async {

@@ -8,6 +8,7 @@ import '../../core/webrtc_service.dart';
 import '../../core/screen_service.dart';
 import '../../core/signaling_service.dart';
 import '../../core/storage_service.dart';
+import '../../core/e2ee_service.dart';
 import '../../config/app_config.dart';
 import '../../core/error_handler.dart';
 import '../../core/screen_capture_service.dart';
@@ -34,8 +35,11 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   final WebRtcService _webrtc = WebRtcService();
   final ScreenService _screenService = ScreenService();
   final ApiClient _api = ApiClient();
+  final E2eeService _e2ee = E2eeService();
   InputRelayService? _inputRelay;
   SignalingService? _signaling;
+  bool _e2eeReady = false;
+  bool _audioEnabled = true;
 
   List<ScreenInfo> _screens = [];
   Set<int> _selectedScreenIds = {};
@@ -105,6 +109,12 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
           debugPrint('Password required for session $sessionId');
           _promptForPassword(sessionId);
         },
+        onKeyExchange: (publicKey, fromDevice) {
+          // Derive session key from remote public key
+          _e2ee.deriveSessionKey(publicKey);
+          _e2eeReady = true;
+          debugPrint('E2EE session key derived from $fromDevice');
+        },
         onReconnectAttempts: (attempts) {
           if (!mounted) return;
           context.read<SessionProvider>().setReconnectionState(ReconnectionState.reconnecting, attempts: attempts);
@@ -115,7 +125,15 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         },
       );
       await _signaling!.connect();
+
+      // Initialize E2EE and send public key
+      await _e2ee.initialize();
+      if (!mounted) return;
       final controlleeId = context.read<SessionProvider>().activeSession?.controlleeDeviceId ?? '';
+      if (controlleeId.isNotEmpty) {
+        _signaling!.sendKeyExchange(_e2ee.exchangePublicKey, controlleeId);
+      }
+
       _inputRelay = InputRelayService(
         signaling: _signaling!,
         sessionId: widget.sessionId,
@@ -144,13 +162,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       );
 
       _webrtc.createOffer();
+      // Add audio track for remote audio transmission
+      await _webrtc.addAudioTrack();
       _inputRelay?.start();
     } catch (e) {
-      // ignore: use_build_context_synchronously
+      if (!mounted) return;
       handleError(e, context: context);
-      if (mounted) {
-        setState(() => _selectingScreens = true);
-      }
+      setState(() => _selectingScreens = true);
     }
   }
 
@@ -184,6 +202,10 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       sessionId: sessionId,
       payload: {'password': password},
     ));
+  }
+
+  void _toggleAudio() {
+    setState(() => _audioEnabled = !_audioEnabled);
   }
 
   Future<void> _setSessionPassword() async {
@@ -249,10 +271,24 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       appBar: AppBar(
         title: Text('Session ${widget.sessionId}'),
         actions: [
+          // E2EE status indicator
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Icon(
+              _e2eeReady ? Icons.shield : Icons.shield_outlined,
+              color: _e2eeReady ? Colors.green : Colors.grey,
+              size: 20,
+            ),
+          ),
           IconButton(
             onPressed: () => _showQualitySettings(),
             tooltip: 'Quality',
             icon: const Icon(Icons.hd),
+          ),
+          IconButton(
+            onPressed: _toggleAudio,
+            tooltip: _audioEnabled ? 'Mute' : 'Unmute',
+            icon: Icon(_audioEnabled ? Icons.mic : Icons.mic_off),
           ),
           IconButton(
             onPressed: () => _showFileTransfers(),
@@ -488,6 +524,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   void dispose() {
     _inputRelay?.stop();
     _webrtc.dispose();
+    _e2ee.dispose();
     super.dispose();
   }
 }

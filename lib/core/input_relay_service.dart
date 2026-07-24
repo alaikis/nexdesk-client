@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import './signaling_service.dart';
 
 class InputRelayService {
-  final SignalingService _signaling;
+  final SignalingService signaling;
   final String sessionId;
   final String targetDeviceId;
   final List<Map<String, dynamic>> _buffer = [];
@@ -14,10 +14,10 @@ class InputRelayService {
   Size? _widgetSize;
 
   InputRelayService({
-    required SignalingService signaling,
+    required this.signaling,
     required this.sessionId,
     required this.targetDeviceId,
-  }) : _signaling = signaling;
+  });
 
   void updateSize(Size size) {
     _widgetSize = size;
@@ -40,7 +40,7 @@ class InputRelayService {
     if (_buffer.isEmpty) return;
     final events = List<Map<String, dynamic>>.from(_buffer);
     _buffer.clear();
-    _signaling.send(SignalingMessage(
+    signaling.send(SignalingMessage(
       type: SignalingMessageType.inputEvent,
       to: targetDeviceId,
       sessionId: sessionId,

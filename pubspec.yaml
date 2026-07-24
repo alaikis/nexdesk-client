@@ -29,6 +29,7 @@ dependencies:
   # Crypto
   crypto: ^3.0.3
   pointycastle: ^3.7.0
+  sodium_libs: ^3.0.0
 
   # Storage
   shared_preferences: ^2.2.3

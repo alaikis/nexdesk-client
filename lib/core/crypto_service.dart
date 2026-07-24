@@ -1,3 +1,9 @@
+/// @deprecated Use E2eeService (libsodium) instead.
+/// This XOR-based "encryption" provides NO real security.
+/// Kept only for backward compatibility fallback.
+/// TODO: Remove in v1.0
+library;
+
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
