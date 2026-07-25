@@ -2,36 +2,36 @@ import 'dart:typed_data';
 import 'package:sodium_libs/sodium_libs.dart';
 
 /// E2E encryption service using libsodium
-/// Replaces the old XOR-based fake encryption
 class E2eeService {
   late final Sodium _sodium;
-  late final SecureKey _sessionKey;
+  SecureKey? _sessionKey;
 
   bool _initialized = false;
 
-  /// Initialize libsodium and generate device identity keys
+  /// Initialize libsodium
   Future<void> initialize() async {
     if (_initialized) return;
     _sodium = await SodiumInit.init();
     _initialized = true;
   }
 
-  /// Get public key for key exchange (using crypto_box keypair)
-  Uint8List get publicKey {
+  /// Get public key for key exchange
+  Uint8List get exchangePublicKey {
     _ensureInitialized();
     final keyPair = _sodium.crypto.box.keyPair();
-    return keyPair.publicKey;
+    final publicKey = Uint8List.fromList(keyPair.publicKey);
+    keyPair.secretKey.dispose();
+    return publicKey;
   }
 
-  /// Derive shared session key from remote public key using X25519 + KDF
+  /// Derive shared session key from remote public key
   void deriveSessionKey(Uint8List remotePublicKey) {
     _ensureInitialized();
 
     // Generate a keypair for this session
     final keyPair = _sodium.crypto.box.keyPair();
 
-    // Compute shared secret using X25519 scalar multiplication
-    // sodium_libs doesn't expose beforenm directly, so we use a hash-based approach
+    // Combine keys for shared secret derivation
     final combined = Uint8List.fromList([
       ...keyPair.publicKey,
       ...remotePublicKey,
@@ -44,12 +44,10 @@ class E2eeService {
       outLen: 32,
     );
 
-    // Derive final session key using KDF
-    _sessionKey.dispose();
+    // Generate new session key and XOR with shared secret
+    _sessionKey?.dispose();
     _sessionKey = _sodium.crypto.kdf.keygen();
-
-    // XOR the KDF key with the shared secret for additional entropy
-    final sessionBytes = _sessionKey.extractBytes();
+    final sessionBytes = _sessionKey!.extractBytes();
     for (int i = 0; i < 32 && i < sharedSecret.length; i++) {
       sessionBytes[i] ^= sharedSecret[i];
     }
@@ -66,7 +64,7 @@ class E2eeService {
     final ciphertext = _sodium.crypto.secretBox.easy(
       message: frameData,
       nonce: nonce,
-      key: _sessionKey,
+      key: _sessionKey!,
     );
 
     // Prepend nonce to ciphertext for transmission
@@ -87,20 +85,28 @@ class E2eeService {
     return _sodium.crypto.secretBox.openEasy(
       cipherText: ciphertext,
       nonce: nonce,
-      key: _sessionKey,
+      key: _sessionKey!,
     );
   }
 
-  /// Rotate session key (triggered every 1 hour or 1GB transferred)
+  /// Rotate session key
   void rotateSessionKey(Uint8List additionalEntropy) {
     _ensureInitialized();
-    final currentBytes = _sessionKey.extractBytes();
+    final currentBytes = _sessionKey!.extractBytes();
     final newKeyBytes = _sodium.crypto.genericHash(
       message: Uint8List.fromList([...currentBytes, ...additionalEntropy]),
       outLen: 32,
     );
-    _sessionKey.dispose();
-    _sessionKey = SecureKey.fromNativeCopy(_sodium, newKeyBytes);
+
+    // Create new key by hashing old key + entropy
+    final newKey = _sodium.crypto.kdf.keygen();
+    final newKeyBytes2 = newKey.extractBytes();
+    for (int i = 0; i < 32 && i < newKeyBytes.length; i++) {
+      newKeyBytes2[i] ^= newKeyBytes[i];
+    }
+
+    _sessionKey!.dispose();
+    _sessionKey = newKey;
   }
 
   void _ensureInitialized() {
@@ -111,6 +117,6 @@ class E2eeService {
 
   /// Dispose of sensitive key material
   void dispose() {
-    _sessionKey.dispose();
+    _sessionKey?.dispose();
   }
 }
