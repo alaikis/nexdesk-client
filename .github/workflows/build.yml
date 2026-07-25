@@ -8,7 +8,7 @@ on:
     branches: [main]
 
 env:
-  FLUTTER_VERSION: '3.24.0'
+  FLUTTER_VERSION: '3.27.0'
 
 jobs:
   # ============================================
@@ -34,17 +34,22 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       
+      - name: Flutter doctor
+        run: flutter doctor -v
+      
       - name: Get dependencies
         run: flutter pub get
       
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --verbose
+        continue-on-error: false
       
       - name: List APK output
-        run: ls -la build/app/outputs/flutter-apk/
+        run: ls -la build/app/outputs/flutter-apk/ || echo "No APK output"
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
@@ -66,14 +71,18 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       
+      - name: Flutter doctor
+        run: flutter doctor -v
+      
       - name: Get dependencies
         run: flutter pub get
       
       - name: Build iOS (no codesign)
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --verbose
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: ios-app
           path: build/ios/iphoneos/Runner.app
@@ -98,14 +107,18 @@ jobs:
       - name: Enable desktop
         run: flutter config --enable-macos-desktop
       
+      - name: Flutter doctor
+        run: flutter doctor -v
+      
       - name: Get dependencies
         run: flutter pub get
       
       - name: Build macOS
-        run: flutter build macos --release
+        run: flutter build macos --release --verbose
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: macos-app
           path: build/macos/Build/Products/Release/*.app
@@ -130,14 +143,18 @@ jobs:
       - name: Enable desktop
         run: flutter config --enable-windows-desktop
       
+      - name: Flutter doctor
+        run: flutter doctor -v
+      
       - name: Get dependencies
         run: flutter pub get
       
       - name: Build Windows
-        run: flutter build windows --release
+        run: flutter build windows --release --verbose
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: windows-portable
           path: build/windows/runner/Release/
@@ -174,11 +191,14 @@ jobs:
             libjpeg-dev \
             p7zip-full
       
+      - name: Flutter doctor
+        run: flutter doctor -v
+      
       - name: Get dependencies
         run: flutter pub get
       
       - name: Build Linux
-        run: flutter build linux --release
+        run: flutter build linux --release --verbose
       
       - name: Create archive
         run: |
@@ -187,6 +207,7 @@ jobs:
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: linux-portable
           path: build/nex-client-linux.zip
@@ -210,10 +231,11 @@ jobs:
       - name: List artifacts
         run: |
           echo "=== Artifacts ==="
-          ls -la artifacts/
-          find artifacts/ -type f
+          ls -la artifacts/ 2>/dev/null || echo "No artifacts directory"
+          find artifacts/ -type f 2>/dev/null || echo "No files found"
       
       - name: Create Release
+        if: hashFiles('artifacts/**') != ''
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
