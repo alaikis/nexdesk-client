@@ -22,6 +22,7 @@ import 'clipboard_screen.dart';
 import 'quality_settings_sheet.dart';
 import 'recording_screen.dart';
 import 'recording_list_screen.dart';
+import 'chat_panel.dart';
 
 class SessionScreen extends StatefulWidget {
   final String sessionId;
@@ -206,6 +207,31 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   void _toggleAudio() {
     setState(() => _audioEnabled = !_audioEnabled);
+    // Actually mute/unmute the audio track
+    for (final stream in _webrtc.remoteStreams) {
+      for (final track in stream.getAudioTracks()) {
+        track.enabled = _audioEnabled;
+      }
+    }
+  }
+
+  void _showChat() {
+    final sessionProvider = context.read<SessionProvider>();
+    final targetDeviceId = sessionProvider.activeSession?.controlleeDeviceId ?? '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (ctx, scrollController) => ChatPanel(
+          signaling: _signaling!,
+          targetDeviceId: targetDeviceId.toString(),
+        ),
+      ),
+    );
   }
 
   Future<void> _setSessionPassword() async {
@@ -304,6 +330,11 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
             onPressed: _setSessionPassword,
             tooltip: 'Password',
             icon: const Icon(Icons.lock_outline),
+          ),
+          IconButton(
+            onPressed: () => _showChat(),
+            tooltip: 'Chat',
+            icon: const Icon(Icons.chat_bubble_outline),
           ),
           IconButton(
             onPressed: () => _showClipboard(),

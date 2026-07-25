@@ -26,24 +26,20 @@ class E2eeService {
   Uint8List get identityPublicKey => _identityKeyPair.publicKey;
   Uint8List get exchangePublicKey => _x25519KeyPair.publicKey;
 
-  /// Derive shared session key from remote public key
+  /// Derive shared session key from remote public key using X25519 DH
   void deriveSessionKey(Uint8List remotePublicKey) {
-    // Derive a shared secret using genericHash
-    final sharedSecret = _sodium.crypto.genericHash(
-      message: Uint8List.fromList([
-        ..._x25519KeyPair.publicKey,
-        ...remotePublicKey,
-        ..._x25519KeyPair.secretKey.extractBytes(),
-      ]),
-      outLen: 32,
+    // Use X25519 Diffie-Hellman to derive a shared secret
+    final sharedSecret = _sodium.crypto.box.beforenm(
+      publicKey: remotePublicKey,
+      secretKey: _x25519KeyPair.secretKey,
     );
     _sessionKey?.dispose();
-    _sessionKey = _sodium.crypto.kdf.keygen();
-    // Derive key by hashing the shared secret into the key
-    final keyBytes = _sessionKey!.extractBytes();
-    for (var i = 0; i < 32; i++) {
-      keyBytes[i] = sharedSecret[i];
-    }
+    // Derive a proper session key from the shared secret using KDF
+    _sessionKey = _sodium.crypto.kdf.deriveFromKey(
+      subKeyId: 1,
+      context: "e2ee00",
+      masterKey: sharedSecret,
+    );
   }
 
   /// Encrypt a media frame using ChaCha20-Poly1305
@@ -99,17 +95,14 @@ class E2eeService {
   /// Rotate session key (triggered every 1 hour or 1GB transferred)
   void rotateSessionKey(Uint8List additionalEntropy) {
     _ensureInitialized();
-    final currentBytes = _sessionKey!.extractBytes();
-    final newBytes = _sodium.crypto.genericHash(
-      message: Uint8List.fromList([...currentBytes, ...additionalEntropy]),
-      outLen: 32,
+    final currentKey = _sessionKey!;
+    final newKey = _sodium.crypto.kdf.deriveFromKey(
+      subKeyId: DateTime.now().millisecondsSinceEpoch ~/ 3600000, // hour-based rotation
+      context: "e2ee01",
+      masterKey: currentKey,
     );
-    _sessionKey!.dispose();
-    _sessionKey = _sodium.crypto.kdf.keygen();
-    final keyBytes = _sessionKey!.extractBytes();
-    for (var i = 0; i < 32; i++) {
-      keyBytes[i] = newBytes[i];
-    }
+    currentKey.dispose();
+    _sessionKey = newKey;
   }
 
   void _ensureInitialized() {
