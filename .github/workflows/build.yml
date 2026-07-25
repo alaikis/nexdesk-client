@@ -9,27 +9,14 @@ on:
 
 env:
   FLUTTER_VERSION: '3.24.0'
-  APP_NAME: nex
 
 jobs:
   # ============================================
   # Android Build
   # ============================================
   build-android:
-    name: Android (${{ matrix.target }})
+    name: Android
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [apk, appbundle]
-        include:
-          - target: apk
-            build_cmd: flutter build apk --release
-            artifact_name: app-release.apk
-            output_path: build/app/outputs/flutter-apk/
-          - target: appbundle
-            build_cmd: flutter build appbundle --release
-            artifact_name: app-release.aab
-            output_path: build/app/outputs/bundle/release/
     
     steps:
       - name: Checkout code
@@ -50,14 +37,14 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
       
-      - name: Build ${{ matrix.target }}
-        run: ${{ matrix.build_cmd }}
+      - name: Build APK
+        run: flutter build apk --release
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-${{ matrix.target }}
-          path: ${{ matrix.output_path }}${{ matrix.artifact_name }}
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
   # ============================================
   # iOS Build
@@ -79,26 +66,14 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
       
-      - name: Install CocoaPods
-        run: cd ios && pod install && cd ..
-      
       - name: Build iOS (no codesign)
         run: flutter build ios --release --no-codesign
-      
-      - name: Create IPA
-        run: |
-          mkdir -p build/ios/ipa
-          cd build/ios/iphoneos
-          mkdir -p Payload
-          cp -r Runner.app Payload/
-          zip -r ../../ipa/ipa Payload
-          rm -rf Payload
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios-ipa
-          path: build/ios/ipa/ipa
+          name: ios-app
+          path: build/ios/iphoneos/Runner.app
 
   # ============================================
   # macOS Build
@@ -126,31 +101,11 @@ jobs:
       - name: Build macOS
         run: flutter build macos --release
       
-      - name: Create DMG
-        run: |
-          brew install create-dmg
-          create-dmg \
-            --volname "NEX Installer" \
-            --window-pos 200 120 \
-            --window-size 600 400 \
-            --icon-size 100 \
-            --app-drop-link 425 190 \
-            "build/macos/NEX.dmg" \
-            "build/macos/Build/Products/Release/NEX.app"
-        continue-on-error: true
-      
-      - name: Upload app
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-app
-          path: build/macos/Build/Products/Release/NEX.app
-      
-      - name: Upload DMG
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-dmg
-          path: build/macos/NEX.dmg
-        if: success()
+          path: build/macos/Build/Products/Release/*.app
 
   # ============================================
   # Windows Build
@@ -178,44 +133,18 @@ jobs:
       - name: Build Windows
         run: flutter build windows --release
       
-      - name: Create MSIX
-        run: |
-          flutter pub add msix --dev
-          flutter pub run msix:create
-        continue-on-error: true
-      
-      - name: Upload MSIX
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-msix
-          path: build/windows/runner/Release/*.msix
-      
-      - name: Upload portable
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-portable
           path: build/windows/runner/Release/
 
   # ============================================
-  # Linux Build (Multi-Format)
+  # Linux Build
   # ============================================
   build-linux:
-    name: Linux (${{ matrix.format }})
+    name: Linux
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        format: [appimage, deb, rpm, snap, flatpak]
-        include:
-          - format: appimage
-            build_cmd: github
-          - format: deb
-            build_cmd: github
-          - format: rpm
-            build_cmd: github
-          - format: snap
-            build_cmd: github
-          - format: flatpak
-            build_cmd: github
     
     steps:
       - name: Checkout code
@@ -240,8 +169,7 @@ jobs:
             libxext-dev \
             libxtst-dev \
             libjpeg-dev \
-            cmake \
-            unzip
+            p7zip-full
       
       - name: Get dependencies
         run: flutter pub get
@@ -249,26 +177,19 @@ jobs:
       - name: Build Linux
         run: flutter build linux --release
       
-      - name: Install linuxdeploy
+      - name: Create archive
         run: |
-          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          chmod +x linuxdeploy-x86_64.AppImage
-          sudo mv linuxdeploy-x86_64.AppImage /usr/local/bin/linuxdeploy
+          cd build/linux/x64/release/bundle
+          7z a ../../../nex-client-linux.zip .
       
-      - name: Build ${{ matrix.format }}
-        run: |
-          chmod +x build_linux.sh
-          ./build_linux.sh ${{ matrix.format }}
-        continue-on-error: true
-      
-      - name: Upload artifacts
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ matrix.format }}
-          path: dist/linux/*
+          name: linux-portable
+          path: build/nex-client-linux.zip
 
   # ============================================
-  # Release Job (creates GitHub Release)
+  # Release Job
   # ============================================
   release:
     name: Create Release
@@ -282,15 +203,12 @@ jobs:
         with:
           path: artifacts
       
-      - name: Display structure
-        run: ls -R artifacts
-      
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
           draft: false
-          prerelease: false
+          prerelease: true
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
