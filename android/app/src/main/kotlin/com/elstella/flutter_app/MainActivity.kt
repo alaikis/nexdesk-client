@@ -3,109 +3,100 @@ package com.elstella.flutter_app
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.PixelFormat
+import android.hardware.display.DisplayManager
+import android.hardware.display.VirtualDisplay
+import android.media.Image
+import android.media.ImageReader
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
 import android.os.Build
-import android.os.IBinder
-import android.os.SystemClock
-import android.provider.Settings
+import android.os.Handler
+import android.os.Looper
+import android.util.Base64
+import android.util.DisplayMetrics
 import android.util.Log
-import android.view.KeyEvent
-import android.view.MotionEvent
-import android.view.inputmethod.InputMethodManager
+import android.view.Surface
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import android.view.InputDevice
-import android.view.View
-import android.graphics.Point
-import android.view.Display
-import android.app.Service
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import androidx.core.app.NotificationCompat
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
 
 class MainActivity : FlutterActivity() {
     private val TAG = "MainActivity"
     private val CHANNEL = "nex.flutter/screen_capture"
+    private val REQUEST_SCREEN_CAPTURE = 1001
+
+    private var mediaProjection: MediaProjection? = null
+    private var virtualDisplay: VirtualDisplay? = null
+    private var imageReader: ImageReader? = null
+    private var screenWidth = 0
+    private var screenHeight = 0
+    private var screenDensity = 0
+    private var resultPending: MethodChannel.Result? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var channel: MethodChannel? = null
+    private var isCapturing = false
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+
+        channel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "requestPermission" -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
-                        try {
-                            val intent = mediaProjectionManager.createScreenCaptureIntent()
-                            if (intent != null) {
-                                startActivityForResult(intent, REQUEST_SCREEN_CAPTURE)
-                                result.success(true)
-                            } else {
-                                result.success(false)
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to create screen capture intent", e)
-                            result.success(false)
-                        }
-                    } else {
-                        result.success(true)
-                    }
+                    resultPending = result
+                    val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                    val intent = mediaProjectionManager.createScreenCaptureIntent()
+                    startActivityForResult(intent, REQUEST_SCREEN_CAPTURE)
                 }
-                "startService" -> {
-                    val serviceIntent = Intent(this, ScreenCaptureService::class.java)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        startForegroundService(serviceIntent)
-                    } else {
-                        startService(serviceIntent)
-                    }
+                "startCapture" -> {
+                    val width = call.argument<Int>("width") ?: 1280
+                    val height = call.argument<Int>("height") ?: 720
+                    val dpi = call.argument<Int>("dpi") ?: 160
+                    startCapture(width, height, dpi)
                     result.success(true)
                 }
-                "stopService" -> {
-                    val serviceIntent = Intent(this, ScreenCaptureService::class.java)
-                    stopService(serviceIntent)
+                "stopCapture" -> {
+                    stopCapture()
                     result.success(true)
+                }
+                "getScreenSize" -> {
+                    val metrics = DisplayMetrics()
+                    windowManager.defaultDisplay.getMetrics(metrics)
+                    result.success(mapOf(
+                        "width" to metrics.widthPixels,
+                        "height" to metrics.heightPixels,
+                        "dpi" to metrics.densityDpi
+                    ))
                 }
                 else -> result.notImplemented()
             }
         }
 
+        // Input injection channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "nex.flutter/input_injector").setMethodCallHandler { call, result ->
             when (call.method) {
                 "injectMouseEvent" -> {
-                    val xPercent = call.argument<Double>("x") ?: 0.0
-                    val yPercent = call.argument<Double>("y") ?: 0.0
+                    val x = call.argument<Double>("x") ?: 0.0
+                    val y = call.argument<Double>("y") ?: 0.0
                     val button = call.argument<Int>("button") ?: 0
                     val action = call.argument<Int>("action") ?: 0
                     val display = windowManager.defaultDisplay
-                    val size = Point()
+                    val size = android.graphics.Point()
                     display.getSize(size)
-                    val x = (xPercent * size.x).toInt()
-                    val y = (yPercent * size.y).toInt()
-                    val eventTime = SystemClock.uptimeMillis()
-                    val event = when (action) {
-                        1 -> MotionEvent.obtain(eventTime, eventTime, MotionEvent.ACTION_DOWN, x.toFloat(), y.toFloat(), 0)
-                        0 -> MotionEvent.obtain(eventTime, eventTime, MotionEvent.ACTION_UP, x.toFloat(), y.toFloat(), 0)
-                        else -> MotionEvent.obtain(eventTime, eventTime, MotionEvent.ACTION_MOVE, x.toFloat(), y.toFloat(), 0)
-                    }
-                    event.source = InputDevice.SOURCE_TOUCHSCREEN
-                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                    imm.dispatchTouchEvent(event)
-                    event.recycle()
+                    injectMouseEvent((x * size.x).toInt(), (y * size.y).toInt(), button, action)
                     result.success(true)
                 }
                 "injectKeyEvent" -> {
                     val keyCode = call.argument<Int>("keyCode") ?: 0
                     val action = call.argument<Int>("action") ?: 1
                     val modifiers = call.argument<Int>("modifiers") ?: 0
-                    val eventTime = SystemClock.uptimeMillis()
-                    if (action == 1) {
-                        val downEvent = KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, keyCode, 0, modifiers)
-                        Instrumentation().sendKeySync(downEvent)
-                    } else {
-                        val upEvent = KeyEvent(eventTime, eventTime, KeyEvent.ACTION_UP, keyCode, 0, modifiers)
-                        Instrumentation().sendKeySync(upEvent)
-                    }
+                    injectKeyEvent(keyCode, action, modifiers)
                     result.success(true)
                 }
                 else -> result.notImplemented()
@@ -113,16 +104,153 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun startCapture(width: Int, height: Int, dpi: Int) {
+        if (isCapturing) return
+
+        val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        val metrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(metrics)
+        screenWidth = metrics.widthPixels
+        screenHeight = metrics.heightPixels
+        screenDensity = metrics.densityDpi
+
+        imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 2)
+        imageReader?.setOnImageAvailableListener({ reader ->
+            var image: Image? = null
+            try {
+                image = reader.acquireLatestImage()
+                if (image != null && isCapturing) {
+                    val planes = image.planes
+                    val buffer = planes[0].buffer
+                    val pixelStride = planes[0].pixelStride
+                    val rowStride = planes[0].rowStride
+                    val rowPadding = rowStride - pixelStride * screenWidth
+
+                    // Create bitmap
+                    val bitmap = Bitmap.createBitmap(
+                        screenWidth + rowPadding / pixelStride,
+                        screenHeight,
+                        Bitmap.Config.ARGB_8888
+                    )
+                    bitmap.copyPixelsFromBuffer(buffer)
+
+                    // Scale to target size
+                    val scaledBitmap = Bitmap.createScaledBitmap(bitmap, width, height, true)
+                    bitmap.recycle()
+
+                    // Convert to JPEG bytes
+                    val stream = ByteArrayOutputStream()
+                    scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 80, stream)
+                    val bytes = stream.toByteArray()
+                    scaledBitmap.recycle()
+
+                    // Send frame to Flutter via MethodChannel
+                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    mainHandler.post {
+                        channel?.invokeMethod("onFrame", mapOf(
+                            "data" to base64,
+                            "width" to width,
+                            "height" to height,
+                            "timestamp" to System.currentTimeMillis()
+                        ))
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error processing frame", e)
+            } finally {
+                image?.close()
+            }
+        }, mainHandler)
+
+        // Need MediaProjection - request permission first
+        resultPending = null
+        val intent = mediaProjectionManager.createScreenCaptureIntent()
+        startActivityForResult(intent, REQUEST_SCREEN_CAPTURE)
+    }
+
+    private fun stopCapture() {
+        isCapturing = false
+        virtualDisplay?.release()
+        virtualDisplay = null
+        imageReader?.close()
+        imageReader = null
+        mediaProjection?.stop()
+        mediaProjection = null
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_SCREEN_CAPTURE) {
-            if (resultCode != Activity.RESULT_OK) {
-                Log.w(TAG, "Screen capture permission denied")
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
+
+                // Create VirtualDisplay
+                val surface = imageReader?.surface
+                if (surface != null && mediaProjection != null) {
+                    virtualDisplay = mediaProjection?.createVirtualDisplay(
+                        "nex_screen_capture",
+                        screenWidth,
+                        screenHeight,
+                        screenDensity,
+                        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                        surface,
+                        null,
+                        mainHandler
+                    )
+                    isCapturing = true
+                    resultPending?.success(true)
+                } else {
+                    resultPending?.success(false)
+                }
+            } else {
+                resultPending?.success(false)
             }
+            resultPending = null
         }
     }
 
-    companion object {
-        private const val REQUEST_SCREEN_CAPTURE = 1001
+    private fun injectMouseEvent(x: Int, y: Int, button: Int, action: Int) {
+        // Note: On Android Q+, this requires INJECT_EVENTS permission (system app)
+        // or AccessibilityService for broader compatibility
+        try {
+            val eventTime = android.os.SystemClock.uptimeMillis()
+            val motionEvent = android.view.MotionEvent.obtain(
+                eventTime, eventTime,
+                when (action) {
+                    0 -> android.view.MotionEvent.ACTION_UP
+                    1 -> android.view.MotionEvent.ACTION_DOWN
+                    else -> android.view.MotionEvent.ACTION_MOVE
+                },
+                x.toFloat(), y.toFloat(), 0
+            )
+            motionEvent.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+            // This requires INJECT_EVENTS permission
+            // For production, use AccessibilityService instead
+            window.injectMotionEvent(motionEvent)
+            motionEvent.recycle()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to inject mouse event", e)
+        }
+    }
+
+    private fun injectKeyEvent(keyCode: Int, action: Int, modifiers: Int) {
+        try {
+            val eventTime = android.os.SystemClock.uptimeMillis()
+            val keyEvent = android.view.KeyEvent(
+                eventTime, eventTime,
+                if (action == 1) android.view.KeyEvent.ACTION_DOWN else android.view.KeyEvent.ACTION_UP,
+                keyCode, 0, modifiers
+            )
+            // This requires INJECT_EVENTS permission
+            window.injectKeyEvent(keyEvent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to inject key event", e)
+        }
+    }
+
+    override fun onDestroy() {
+        stopCapture()
+        super.onDestroy()
     }
 }
