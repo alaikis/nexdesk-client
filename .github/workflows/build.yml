@@ -7,9 +7,6 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  FLUTTER_VERSION: '3.27.0'
-
 jobs:
   # ============================================
   # Android Build
@@ -31,7 +28,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       
       - name: Flutter doctor
@@ -41,15 +37,10 @@ jobs:
         run: flutter pub get
       
       - name: Build APK
-        run: flutter build apk --release --verbose
-        continue-on-error: false
-      
-      - name: List APK output
-        run: ls -la build/app/outputs/flutter-apk/ || echo "No APK output"
+        run: flutter build apk --release
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
@@ -68,7 +59,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       
       - name: Flutter doctor
@@ -78,11 +68,10 @@ jobs:
         run: flutter pub get
       
       - name: Build iOS (no codesign)
-        run: flutter build ios --release --no-codesign --verbose
+        run: flutter build ios --release --no-codesign
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: ios-app
           path: build/ios/iphoneos/Runner.app
@@ -101,7 +90,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       
       - name: Enable desktop
@@ -114,11 +102,10 @@ jobs:
         run: flutter pub get
       
       - name: Build macOS
-        run: flutter build macos --release --verbose
+        run: flutter build macos --release
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: macos-app
           path: build/macos/Build/Products/Release/*.app
@@ -137,7 +124,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       
       - name: Enable desktop
@@ -150,11 +136,10 @@ jobs:
         run: flutter pub get
       
       - name: Build Windows
-        run: flutter build windows --release --verbose
+        run: flutter build windows --release
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: windows-portable
           path: build/windows/runner/Release/
@@ -173,7 +158,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       
       - name: Enable desktop
@@ -198,7 +182,7 @@ jobs:
         run: flutter pub get
       
       - name: Build Linux
-        run: flutter build linux --release --verbose
+        run: flutter build linux --release
       
       - name: Create archive
         run: |
@@ -207,7 +191,6 @@ jobs:
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: linux-portable
           path: build/nex-client-linux.zip
