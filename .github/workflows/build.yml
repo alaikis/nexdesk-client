@@ -2,7 +2,8 @@ name: Build
 
 on:
   push:
-    tags: ['v*']
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -14,11 +15,18 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - uses: subosito/flutter-action@v2
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - run: flutter pub get
-      - run: flutter build apk --release
+      - name: Check Flutter
+        run: |
+          flutter --version
+          flutter doctor
+      - name: Get dependencies
+        run: flutter pub get
+      - name: Build APK
+        run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
           name: android
@@ -28,11 +36,18 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - run: flutter pub get
-      - run: flutter build ios --release --no-codesign
+      - name: Check Flutter
+        run: |
+          flutter --version
+          flutter doctor
+      - name: Get dependencies
+        run: flutter pub get
+      - name: Build iOS
+        run: flutter build ios --release --no-codesign
       - uses: actions/upload-artifact@v4
         with:
           name: ios
@@ -42,12 +57,20 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - run: flutter config --enable-macos-desktop
-      - run: flutter pub get
-      - run: flutter build macos --release
+      - name: Check Flutter
+        run: |
+          flutter --version
+          flutter doctor
+      - name: Enable desktop
+        run: flutter config --enable-macos-desktop
+      - name: Get dependencies
+        run: flutter pub get
+      - name: Build macOS
+        run: flutter build macos --release
       - uses: actions/upload-artifact@v4
         with:
           name: macos
@@ -57,12 +80,20 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - run: flutter config --enable-windows-desktop
-      - run: flutter pub get
-      - run: flutter build windows --release
+      - name: Check Flutter
+        run: |
+          flutter --version
+          flutter doctor
+      - name: Enable desktop
+        run: flutter config --enable-windows-desktop
+      - name: Get dependencies
+        run: flutter pub get
+      - name: Build Windows
+        run: flutter build windows --release
       - uses: actions/upload-artifact@v4
         with:
           name: windows
@@ -72,15 +103,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - run: flutter config --enable-linux-desktop
-      - run: |
+      - name: Check Flutter
+        run: |
+          flutter --version
+          flutter doctor
+      - name: Enable desktop
+        run: flutter config --enable-linux-desktop
+      - name: Install dependencies
+        run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev
-      - run: flutter pub get
-      - run: flutter build linux --release
+      - name: Get dependencies
+        run: flutter pub get
+      - name: Build Linux
+        run: flutter build linux --release
       - uses: actions/upload-artifact@v4
         with:
           name: linux
