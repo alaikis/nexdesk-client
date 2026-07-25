@@ -23,4 +23,24 @@ add_definitions(-DAPPLICATION_ID="${APPLICATION_ID}")
 target_link_libraries(${BINARY_NAME} PRIVATE flutter)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
 
+# Add X11 and XTest libraries for screen capture and input injection
+find_package(X11 REQUIRED)
+if(X11_FOUND)
+  target_include_directories(${BINARY_NAME} PRIVATE ${X11_INCLUDE_DIR})
+  target_link_libraries(${BINARY_NAME} PRIVATE ${X11_LIBRARIES})
+endif()
+if(X11_Xext_FOUND)
+  target_link_libraries(${BINARY_NAME} PRIVATE ${X11_Xext_LIB})
+endif()
+if(X11_Xtest_FOUND)
+  target_link_libraries(${BINARY_NAME} PRIVATE ${X11_Xtest_LIB})
+endif()
+
+# Add libjpeg for JPEG encoding
+find_package(JPEG REQUIRED)
+if(JPEG_FOUND)
+  target_include_directories(${BINARY_NAME} PRIVATE ${JPEG_INCLUDE_DIR})
+  target_link_libraries(${BINARY_NAME} PRIVATE ${JPEG_LIBRARIES})
+endif()
+
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")

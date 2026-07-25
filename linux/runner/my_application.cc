@@ -4,11 +4,14 @@
 #include <gdk/gdkx.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/XShm.h>
+#include <X11/extensions/XTest.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #endif
 
 #include "flutter/generated_plugin_registrant.h"
+#include <jpeglib.h>
+#include <setjmp.h>
 
 struct _MyApplication {
   GtkApplication parent_instance;
@@ -25,44 +28,148 @@ static bool g_capturing = false;
 static FlMethodChannel* g_capture_channel = nullptr;
 static FlMethodChannel* g_input_channel = nullptr;
 static guint g_capture_timer = 0;
+static int g_screen_width = 0;
+static int g_screen_height = 0;
+
+// JPEG error handler
+struct my_error_mgr {
+  struct jpeg_error_mgr pub;
+  jmp_buf setjmp_buffer;
+};
+
+static void my_error_exit(j_common_ptr cinfo) {
+  struct my_error_mgr* myerr = (struct my_error_mgr*)cinfo->err;
+  longjmp(myerr->setjmp_buffer, 1);
+}
+
+// Encode RGB to JPEG
+static uint8_t* encode_jpeg(uint8_t* rgb, int width, int height, int quality, unsigned long* out_size) {
+  struct jpeg_compress_struct cinfo;
+  struct my_error_mgr jerr;
+  JSAMPROW row_pointer[1];
+  uint8_t* out_buffer = nullptr;
+
+  cinfo.err = jpeg_std_error(&jerr.pub);
+  jerr.pub.error_exit = my_error_exit;
+
+  if (setjmp(jerr.setjmp_buffer)) {
+    jpeg_destroy_compress(&cinfo);
+    return nullptr;
+  }
+
+  jpeg_create_compress(&cinfo);
+
+  out_buffer = nullptr;
+  jpeg_mem_dest(&cinfo, &out_buffer, out_size);
+
+  cinfo.image_width = width;
+  cinfo.image_height = height;
+  cinfo.input_components = 3;
+  cinfo.in_color_space = JCS_RGB;
+
+  jpeg_set_defaults(&cinfo);
+  jpeg_set_quality(&cinfo, quality, TRUE);
+  jpeg_start_compress(&cinfo, TRUE);
+
+  while (cinfo.next_scanline < cinfo.image_height) {
+    row_pointer[0] = &rgb[cinfo.next_scanline * width * 3];
+    jpeg_write_scanlines(&cinfo, row_pointer, 1);
+  }
+
+  jpeg_finish_compress(&cinfo);
+  jpeg_destroy_compress(&cinfo);
+
+  return out_buffer;
+}
 
 static void capture_frame() {
   if (!g_capturing || !g_display) return;
 
-  Window root;
-  int x, y;
-  unsigned int width, height, border, depth;
-  XGetGeometry(g_display, g_root_window, &root, &x, &y, &width, &height, &border, &depth);
-
   // Capture screen using XShm
-  XShmGetImage(g_display, g_root_window, g_shm_info.shmaddr, 0, 0, AllPlanes);
+  XShmGetImage(g_display, g_root_window, g_shm_info.shminfo.shmaddr, 0, 0, AllPlanes);
 
-  // Convert to JPEG and send to Flutter (simplified - just send raw dimensions)
-  // In production, you'd convert to JPEG/PNG and send base64
-  g_autoptr(FlValue) result = fl_value_new_map();
-  fl_value_set_string_take(result, "width", fl_value_new_int(width));
-  fl_value_set_string_take(result, "height", fl_value_new_int(height));
-  fl_value_set_string_take(result, "timestamp", fl_value_new_int(g_get_monotonic_time() / 1000));
+  // Convert XImage to RGB
+  XImage* img = g_shm_info.shminfo.shmaddr;
+  int width = img->width;
+  int height = img->height;
 
-  fl_method_channel_invoke_method(g_capture_channel, "onFrame", result, nullptr, nullptr, nullptr);
+  uint8_t* rgb = (uint8_t*)malloc(width * height * 3);
+  if (!rgb) return;
+
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      unsigned long pixel = XGetPixel(img, x, y);
+      rgb[(y * width + x) * 3 + 0] = (pixel >> 16) & 0xFF; // R
+      rgb[(y * width + x) * 3 + 1] = (pixel >> 8) & 0xFF;  // G
+      rgb[(y * width + x) * 3 + 2] = pixel & 0xFF;         // B
+    }
+  }
+
+  // Encode to JPEG
+  unsigned long jpeg_size = 0;
+  uint8_t* jpeg_data = encode_jpeg(rgb, width, height, 80, &jpeg_size);
+  free(rgb);
+
+  if (jpeg_data) {
+    // Base64 encode
+    static const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    int base64_len = 4 * ((jpeg_size + 2) / 3);
+    char* base64 = (char*)malloc(base64_len + 1);
+    if (base64) {
+      int i = 0, j = 0;
+      unsigned char char_array_3[3], char_array_4[4];
+      while (jpeg_size--) {
+        char_array_3[i++] = *(jpeg_data++);
+        if (i == 3) {
+          char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
+          char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
+          char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
+          char_array_4[3] = char_array_3[2] & 0x3f;
+          for (i = 0; i < 4; i++) base64[j++] = base64_chars[char_array_4[i]];
+          i = 0;
+        }
+      }
+      if (i) {
+        for (int k = i; k < 3; k++) char_array_3[k] = '\0';
+        char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
+        char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
+        char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
+        for (int k = 0; k < i + 1; k++) base64[j++] = base64_chars[char_array_4[k]];
+        while (i++ < 3) base64[j++] = '=';
+      }
+      base64[j] = '\0';
+
+      // Send frame to Flutter
+      g_autoptr(FlValue) result = fl_value_new_map();
+      fl_value_set_string_take(result, "data", fl_value_new_string(base64));
+      fl_value_set_string_take(result, "width", fl_value_new_int(width));
+      fl_value_set_string_take(result, "height", fl_value_new_int(height));
+      fl_value_set_string_take(result, "timestamp", fl_value_new_int(g_get_monotonic_time() / 1000));
+
+      fl_method_channel_invoke_method(g_capture_channel, "onFrame", result, nullptr, nullptr, nullptr);
+      free(base64);
+    }
+    free(jpeg_data);
+  }
 }
 
-static void init_x11() {
+static bool init_x11() {
   g_display = XOpenDisplay(nullptr);
-  if (!g_display) return;
+  if (!g_display) return false;
 
   g_root_window = DefaultRootWindow(g_display);
+  int screen = DefaultScreen(g_display);
+  g_screen_width = DisplayWidth(g_display, screen);
+  g_screen_height = DisplayHeight(g_display, screen);
 
   // Setup XShm
-  int screen = DefaultScreen(g_display);
-  XVisualInfo vis;
-  XMatchVisualInfo(g_display, screen, 24, TrueColor, &vis);
+  g_shm_info.shmid = shmget(IPC_PRIVATE, g_screen_width * g_screen_height * 4, IPC_CREAT | 0777);
+  if (g_shm_info.shmid == -1) return false;
 
-  g_shm_info.shmid = shmget(IPC_PRIVATE, DisplayWidth(g_display, screen) * DisplayHeight(g_display, screen)  * 4, IPC_CREAT | 0777);
   g_shm_info.shmaddr = (char*)shmat(g_shm_info.shmid, 0, 0);
   g_shm_info.readOnly = False;
 
-  XShmAttach(g_display, &g_shm_info);
+  return XShmAttach(g_display, &g_shm_info);
 }
 
 // Called when first Flutter frame received.
