@@ -1,229 +1,104 @@
-name: Build & Release
+name: Build
 
 on:
   push:
-    branches: [main]
     tags: ['v*']
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  # ============================================
-  # Android Build
-  # ============================================
   build-android:
-    name: Android
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
           java-version: '17'
-      
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+          distribution: 'temurin'
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      
-      - name: Flutter doctor
-        run: flutter doctor -v
-      
-      - name: Get dependencies
-        run: flutter pub get
-      
-      - name: Build APK
-        run: flutter build apk --release
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: android
           path: build/app/outputs/flutter-apk/app-release.apk
 
-  # ============================================
-  # iOS Build
-  # ============================================
   build-ios:
-    name: iOS
     runs-on: macos-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      
-      - name: Flutter doctor
-        run: flutter doctor -v
-      
-      - name: Get dependencies
-        run: flutter pub get
-      
-      - name: Build iOS (no codesign)
-        run: flutter build ios --release --no-codesign
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign
+      - uses: actions/upload-artifact@v4
         with:
-          name: ios-app
+          name: ios
           path: build/ios/iphoneos/Runner.app
 
-  # ============================================
-  # macOS Build
-  # ============================================
   build-macos:
-    name: macOS
     runs-on: macos-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      
-      - name: Enable desktop
-        run: flutter config --enable-macos-desktop
-      
-      - name: Flutter doctor
-        run: flutter doctor -v
-      
-      - name: Get dependencies
-        run: flutter pub get
-      
-      - name: Build macOS
-        run: flutter build macos --release
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - run: flutter config --enable-macos-desktop
+      - run: flutter pub get
+      - run: flutter build macos --release
+      - uses: actions/upload-artifact@v4
         with:
-          name: macos-app
+          name: macos
           path: build/macos/Build/Products/Release/*.app
 
-  # ============================================
-  # Windows Build
-  # ============================================
   build-windows:
-    name: Windows
     runs-on: windows-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      
-      - name: Enable desktop
-        run: flutter config --enable-windows-desktop
-      
-      - name: Flutter doctor
-        run: flutter doctor -v
-      
-      - name: Get dependencies
-        run: flutter pub get
-      
-      - name: Build Windows
-        run: flutter build windows --release
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - uses: actions/upload-artifact@v4
         with:
-          name: windows-portable
+          name: windows
           path: build/windows/runner/Release/
 
-  # ============================================
-  # Linux Build
-  # ============================================
   build-linux:
-    name: Linux
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      
-      - name: Enable desktop
-        run: flutter config --enable-linux-desktop
-      
-      - name: Install dependencies
-        run: |
+      - run: flutter config --enable-linux-desktop
+      - run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            ninja-build \
-            libgtk-3-dev \
-            libx11-dev \
-            libxext-dev \
-            libxtst-dev \
-            libjpeg-dev \
-            p7zip-full
-      
-      - name: Flutter doctor
-        run: flutter doctor -v
-      
-      - name: Get dependencies
-        run: flutter pub get
-      
-      - name: Build Linux
-        run: flutter build linux --release
-      
-      - name: Create archive
-        run: |
-          cd build/linux/x64/release/bundle
-          7z a ../../../nex-client-linux.zip .
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev
+      - run: flutter pub get
+      - run: flutter build linux --release
+      - uses: actions/upload-artifact@v4
         with:
-          name: linux-portable
-          path: build/nex-client-linux.zip
+          name: linux
+          path: build/linux/x64/release/bundle/
 
-  # ============================================
-  # Release Job
-  # ============================================
   release:
-    name: Create Release
     needs: [build-android, build-ios, build-macos, build-windows, build-linux]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
-    
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
-      
-      - name: List artifacts
-        run: |
-          echo "=== Artifacts ==="
-          ls -la artifacts/ 2>/dev/null || echo "No artifacts directory"
-          find artifacts/ -type f 2>/dev/null || echo "No files found"
-      
-      - name: Create Release
-        if: hashFiles('artifacts/**') != ''
-        uses: softprops/action-gh-release@v2
+      - run: ls -la artifacts/
+      - uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
-          draft: false
           prerelease: true
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
