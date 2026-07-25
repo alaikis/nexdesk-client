@@ -22,23 +22,9 @@ android {
         versionName = flutter.versionName
     }
 
-    signingConfigs {
-        register("release") {
-            val keystoreProperties = java.util.Properties()
-            val keystorePropertiesFile = rootProject.file("keystore.properties")
-            if (keystorePropertiesFile.exists()) {
-                keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
-            }
-            keyAlias = keystoreProperties["keyAlias"] as String? ?: "debug"
-            keyPassword = keystoreProperties["keyPassword"] as String? ?: ""
-            storeFile = keystoreProperties["storeFile"] as String? ?: file("debug.keystore")
-            storePassword = keystoreProperties["storePassword"] as String? ?: ""
-        }
-    }
-
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
