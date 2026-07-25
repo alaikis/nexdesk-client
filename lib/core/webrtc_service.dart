@@ -19,6 +19,12 @@ class ScreenStream {
     required this.screenName,
     required this.renderer,
   });
+
+  /// Get audio tracks from the underlying MediaStream
+  List<MediaStreamTrack> getAudioTracks() => stream.getAudioTracks();
+
+  /// Get video tracks from the underlying MediaStream
+  List<MediaStreamTrack> getVideoTracks() => stream.getVideoTracks();
 }
 
 class WebRtcService {
