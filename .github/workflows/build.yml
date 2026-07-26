@@ -23,10 +23,10 @@ jobs:
         continue-on-error: true
       - run: cat build.log
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
-          name: linux-build-log
-          path: build.log
+          name: linux-bundle
+          path: build/linux/x64/release/bundle/
 
   build-android:
     name: Android
@@ -45,10 +45,10 @@ jobs:
         continue-on-error: true
       - run: cat build.log
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
-          name: android-build-log
-          path: build.log
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
   build-ios:
     name: iOS
@@ -63,10 +63,10 @@ jobs:
         continue-on-error: true
       - run: cat build.log
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
-          name: ios-build-log
-          path: build.log
+          name: ios-app
+          path: build/ios/iphoneos/Runner.app
 
   build-macos:
     name: macOS
@@ -82,10 +82,10 @@ jobs:
         continue-on-error: true
       - run: cat build.log
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
-          name: macos-build-log
-          path: build.log
+          name: macos-app
+          path: build/macos/Build/Products/Release/*.app
 
   build-windows:
     name: Windows
@@ -97,11 +97,39 @@ jobs:
           channel: stable
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
-      - run: flutter build windows --release 2>&1 | tee build.log
+      - name: Build Windows
+        run: flutter build windows --release 2>&1 | tee build.log
         continue-on-error: true
+        env:
+          CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
       - run: cat build.log
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
-          name: windows-build-log
-          path: build.log
+          name: windows-portable
+          path: build/windows/runner/Release/
+
+  release:
+    name: Create Release
+    needs: [build-linux, build-android, build-ios, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      
+      - name: Display artifacts
+        run: ls -la artifacts/
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          draft: false
+          prerelease: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
