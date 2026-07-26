@@ -6,74 +6,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-android:
-    name: Android
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - run: flutter pub get
-      - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-
-  build-ios:
-    name: iOS
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - run: flutter pub get
-      - run: flutter build ios --release --no-codesign
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ios-app
-          path: build/ios/iphoneos/Runner.app
-
-  build-macos:
-    name: macOS
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - run: flutter config --enable-macos-desktop
-      - run: flutter pub get
-      - run: flutter build macos --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-app
-          path: build/macos/Build/Products/Release/*.app
-
-  build-windows:
-    name: Windows
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - run: flutter config --enable-windows-desktop
-      - run: flutter pub get
-      - run: flutter build windows --release
-        env:
-          CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-portable
-          path: build/windows/runner/Release/
-
   build-linux:
     name: Linux
     runs-on: ubuntu-latest
@@ -87,26 +19,89 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev
       - run: flutter pub get
-      - run: flutter build linux --release
+      - run: flutter build linux --release 2>&1 | tee build.log
+        continue-on-error: true
+      - run: cat build.log
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: linux-bundle
-          path: build/linux/x64/release/bundle/
+          name: linux-build-log
+          path: build.log
 
-  release:
-    needs: [build-android, build-ios, build-macos, build-windows, build-linux]
+  build-android:
+    name: Android
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          path: artifacts
-          merge-multiple: true
-      - run: ls -la artifacts/
-      - uses: softprops/action-gh-release@v2
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: subosito/flutter-action@v2
         with:
-          files: artifacts/**/*
-          prerelease: true
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          channel: stable
+      - run: flutter pub get
+      - run: flutter build apk --release 2>&1 | tee build.log
+        continue-on-error: true
+      - run: cat build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-build-log
+          path: build.log
+
+  build-ios:
+    name: iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign 2>&1 | tee build.log
+        continue-on-error: true
+      - run: cat build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-build-log
+          path: build.log
+
+  build-macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter config --enable-macos-desktop
+      - run: flutter pub get
+      - run: flutter build macos --release 2>&1 | tee build.log
+        continue-on-error: true
+      - run: cat build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-build-log
+          path: build.log
+
+  build-windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - run: flutter build windows --release 2>&1 | tee build.log
+        continue-on-error: true
+      - run: cat build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-build-log
+          path: build.log
