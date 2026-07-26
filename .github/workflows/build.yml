@@ -6,9 +6,6 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
-env:
-  VERSION: ${{ github.ref_name }}
-
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -21,17 +18,6 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev
       - run: flutter pub get
       - run: flutter build linux --release
-        continue-on-error: true
-      - name: Package
-        if: success()
-        run: |
-          cd build/linux/x64/release/bundle
-          tar -czf ../../../nex-linux-amd64-ubuntu2204.tar.gz .
-      - uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: linux-amd64-ubuntu2204
-          path: build/nex-linux-amd64-ubuntu2204.tar.gz
 
   build-android:
     runs-on: ubuntu-latest
@@ -46,15 +32,6 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: flutter build apk --release
-        continue-on-error: true
-      - name: Package
-        if: success()
-        run: mv build/app/outputs/flutter-apk/app-release.apk build/nex-android-arm64-api34.apk
-      - uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: android-arm64-api34
-          path: build/nex-android-arm64-api34.apk
 
   build-ios:
     runs-on: macos-14
@@ -65,19 +42,6 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: flutter build ios --release --no-codesign
-        continue-on-error: true
-      - name: Package
-        if: success()
-        run: |
-          mkdir -p build/ios/ipa/Payload
-          cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
-          cd build/ios/ipa
-          zip -r ../../nex-ios-arm64-ios17.zip Payload
-      - uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: ios-arm64-ios17
-          path: build/nex-ios-arm64-ios17.zip
 
   build-macos:
     runs-on: macos-14
@@ -89,17 +53,6 @@ jobs:
       - run: flutter config --enable-macos-desktop
       - run: flutter pub get
       - run: flutter build macos --release
-        continue-on-error: true
-      - name: Package
-        if: success()
-        run: |
-          cd build/macos/Build/Products/Release
-          zip -r ../../../nex-macos-universal-ventura.zip *.app
-      - uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: macos-universal-ventura
-          path: build/nex-macos-universal-ventura.zip
 
   build-windows:
     runs-on: windows-latest
@@ -111,20 +64,8 @@ jobs:
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
       - run: flutter build windows --release
-        continue-on-error: true
         env:
           CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
-      - name: Package
-        if: success()
-        shell: bash
-        run: |
-          cd build/windows/x64/Release
-          7z a ../../../nex-windows-x64-win11.zip .
-      - uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: windows-x64-win11
-          path: build/nex-windows-x64-win11.zip
 
   release:
     name: Create Release
@@ -134,31 +75,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          merge-multiple: true
-      - name: List artifacts
-        run: ls -la artifacts/ || echo "No artifacts"
       - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: true
+          generate_release_notes: true
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Try to create release (may fail if exists, that's ok)
-          gh release create "${{ github.ref_name }}" \
-            --title "NEX ${{ github.ref_name }}" \
-            --notes "Release ${{ github.ref_name }}" \
-            --prerelease 2>/dev/null || echo "Release may already exist"
-          
-          # Upload all files
-          for f in artifacts/*; do
-            if [ -f "$f" ]; then
-              echo "Uploading $(basename $f)..."
-              gh release upload "${{ github.ref_name }}" "$f" --clobber
-            fi
-          done
-          
-          # Show final assets
-          echo "=== Release Assets ==="
-          gh release view "${{ github.ref_name }}" 2>/dev/null || echo "Could not view release"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
