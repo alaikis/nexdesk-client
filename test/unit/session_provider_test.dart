@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_app/features/session/session_provider.dart';
+import 'package:nex/features/session/session_provider.dart';
 
 void main() {
   group('Session', () {

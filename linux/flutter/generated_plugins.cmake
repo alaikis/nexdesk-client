@@ -3,10 +3,9 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  bitsdojo_window_linux
   flutter_secure_storage_linux
   flutter_webrtc
-  screen_retriever
+  screen_retriever_linux
   sodium_libs
   url_launcher_linux
   window_manager

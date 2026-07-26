@@ -3,11 +3,10 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  bitsdojo_window_windows
   flutter_secure_storage_windows
   flutter_webrtc
   permission_handler_windows
-  screen_retriever
+  screen_retriever_windows
   sodium_libs
   url_launcher_windows
   window_manager

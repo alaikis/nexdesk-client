@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_app/core/signaling_service.dart';
+import 'package:nex/core/signaling_service.dart';
 
 void main() {
   group('SignalingMessage', () {

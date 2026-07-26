@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_app/core/crypto_service.dart';
+import 'package:nex/core/crypto_service.dart';
 
 void main() {
   group('CryptoService', () {

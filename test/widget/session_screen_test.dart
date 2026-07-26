@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_app/features/session/session_screen.dart';
+import 'package:nex/features/session/session_screen.dart';
 
 void main() {
   group('SessionScreen', () {

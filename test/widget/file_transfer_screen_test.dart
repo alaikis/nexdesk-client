@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_app/features/session/file_transfer_screen.dart';
+import 'package:nex/features/session/file_transfer_screen.dart';
 
 void main() {
   group('FileTransferScreen', () {
