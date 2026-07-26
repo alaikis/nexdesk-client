@@ -167,22 +167,24 @@ jobs:
           merge-multiple: true
       - name: List artifacts
         run: |
-          echo "=== After download ==="
+          echo "=== Current directory ==="
+          pwd
+          echo "=== Artifacts directory ==="
           ls -la artifacts/ 2>/dev/null || echo "No artifacts dir"
-          echo "=== Files ==="
-          find artifacts/ -type f 2>/dev/null | head -20
-          echo "=== File sizes ==="
-          du -sh artifacts/* 2>/dev/null || echo "No files"
+          echo "=== All files with full paths ==="
+          find "$(pwd)/artifacts" -type f 2>/dev/null | while read f; do
+            echo "  $f ($(stat -c%s "$f") bytes)"
+          done
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/nex-linux-x64.tar.gz
-            artifacts/nex-android.apk
-            artifacts/nex-ios.zip
-            artifacts/nex-macos.zip
-            artifacts/nex-windows.zip
+            ${{ github.workspace }}/artifacts/nex-linux-x64.tar.gz
+            ${{ github.workspace }}/artifacts/nex-android.apk
+            ${{ github.workspace }}/artifacts/nex-ios.zip
+            ${{ github.workspace }}/artifacts/nex-macos.zip
+            ${{ github.workspace }}/artifacts/nex-windows.zip
           draft: false
           prerelease: true
           generate_release_notes: true
