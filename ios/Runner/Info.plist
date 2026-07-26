@@ -3,7 +3,7 @@
 <plist version="1.0">
 	<dict>
 		<key>CFBundleDevelopmentRegion</key>
-		<string>en</string>
+		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>
@@ -32,6 +32,15 @@
 		<string>NEX needs camera access for video streaming during remote sessions.</string>
 		<key>NSMicrophoneUsageDescription</key>
 		<string>NEX needs microphone access for audio during remote sessions.</string>
+		<key>NSBluetoothAlwaysUsageDescription</key>
+		<string>NEX uses Bluetooth for WebRTC connectivity.</string>
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>NEX needs local network access for device discovery and connection.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>audio</string>
+			<string>voip</string>
+		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
 	</dict>

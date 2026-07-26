@@ -2,12 +2,12 @@ name: Build
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
   workflow_dispatch:
 
 jobs:
   build-android:
+    name: Android
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,117 +15,82 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Check Flutter
-        run: |
-          flutter --version
-          flutter doctor
-      - name: Get dependencies
-        run: flutter pub get
-      - name: Build APK
-        run: flutter build apk --release
+      - run: flutter pub get
+      - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
-          name: android
+          name: android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
   build-ios:
+    name: iOS
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Check Flutter
-        run: |
-          flutter --version
-          flutter doctor
-      - name: Get dependencies
-        run: flutter pub get
-      - name: Build iOS
-        run: flutter build ios --release --no-codesign
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign
       - uses: actions/upload-artifact@v4
         with:
-          name: ios
+          name: ios-app
           path: build/ios/iphoneos/Runner.app
 
   build-macos:
+    name: macOS
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Check Flutter
-        run: |
-          flutter --version
-          flutter doctor
-      - name: Enable desktop
-        run: flutter config --enable-macos-desktop
-      - name: Get dependencies
-        run: flutter pub get
-      - name: Build macOS
-        run: flutter build macos --release
+      - run: flutter config --enable-macos-desktop
+      - run: flutter pub get
+      - run: flutter build macos --release
       - uses: actions/upload-artifact@v4
         with:
-          name: macos
+          name: macos-app
           path: build/macos/Build/Products/Release/*.app
 
   build-windows:
+    name: Windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Check Flutter
-        run: |
-          flutter --version
-          flutter doctor
-      - name: Enable desktop
-        run: flutter config --enable-windows-desktop
-      - name: Get dependencies
-        run: flutter pub get
-      - name: Build Windows
-        run: flutter build windows --release
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - run: flutter build windows --release
         env:
           CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
       - uses: actions/upload-artifact@v4
         with:
-          name: windows
+          name: windows-portable
           path: build/windows/runner/Release/
 
   build-linux:
+    name: Linux
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Check Flutter
-        run: |
-          flutter --version
-          flutter doctor
-      - name: Enable desktop
-        run: flutter config --enable-linux-desktop
-      - name: Install dependencies
-        run: |
+      - run: flutter config --enable-linux-desktop
+      - run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev libjsoncpp-dev
-      - name: Get dependencies
-        run: flutter pub get
-      - name: Build Linux
-        run: flutter build linux --release
+          sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev
+      - run: flutter pub get
+      - run: flutter build linux --release
       - uses: actions/upload-artifact@v4
         with:
-          name: linux
+          name: linux-bundle
           path: build/linux/x64/release/bundle/
 
   release:
@@ -142,5 +107,6 @@ jobs:
         with:
           files: artifacts/**/*
           prerelease: true
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
