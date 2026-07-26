@@ -167,11 +167,14 @@ jobs:
           merge-multiple: true
       - name: List artifacts
         run: |
-          echo "=== Artifacts directory ==="
-          ls -la artifacts/ || echo "No artifacts directory"
-          echo "=== All files ==="
-          find artifacts/ -type f 2>/dev/null || echo "No files found"
+          echo "=== After download ==="
+          ls -la artifacts/ 2>/dev/null || echo "No artifacts dir"
+          echo "=== Files ==="
+          find artifacts/ -type f 2>/dev/null | head -20
+          echo "=== File sizes ==="
+          du -sh artifacts/* 2>/dev/null || echo "No files"
       - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -185,3 +188,7 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Show release info
+        run: |
+          echo "Release URL: ${{ steps.create_release.outputs.url }}"
+          echo "Upload URL: ${{ steps.create_release.outputs.upload_url }}"
