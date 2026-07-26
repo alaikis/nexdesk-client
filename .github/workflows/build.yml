@@ -118,17 +118,29 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
-      - name: List
-        run: find artifacts/ -type f 2>/dev/null | head -20
+      - name: List artifacts
+        run: |
+          echo "=== Artifacts ==="
+          find artifacts/ -type f 2>/dev/null | while read f; do
+            echo "  $f ($(stat -c%s "$f") bytes)"
+          done
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "=== Creating release ==="
           gh release create "${{ github.ref_name }}" \
             --title "NEX ${{ github.ref_name }}" \
             --notes "Release ${{ github.ref_name }}" \
-            --prerelease 2>/dev/null || true
+            --prerelease 2>&1 || echo "CREATE_FAILED"
+          
+          echo "=== Uploading files ==="
           for f in artifacts/*; do
-            [ -f "$f" ] && gh release upload "${{ github.ref_name }}" "$f" --clobber
+            if [ -f "$f" ]; then
+              echo "Uploading $(basename $f)..."
+              gh release upload "${{ github.ref_name }}" "$f" --clobber 2>&1 || echo "UPLOAD_FAILED: $f"
+            fi
           done
-          gh release view "${{ github.ref_name }}" --json assets 2>/dev/null | head -20
+          
+          echo "=== Release info ==="
+          gh release view "${{ github.ref_name }}" 2>&1 || echo "VIEW_FAILED"
