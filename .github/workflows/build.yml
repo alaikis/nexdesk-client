@@ -6,6 +6,9 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+env:
+  VERSION: ${{ github.ref_name }}
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -19,6 +22,12 @@ jobs:
       - run: flutter pub get
       - run: flutter build linux --release
         continue-on-error: true
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nex-linux-amd64-ubuntu2204
+          path: build/linux/x64/release/bundle/
 
   build-android:
     runs-on: ubuntu-latest
@@ -34,6 +43,12 @@ jobs:
       - run: flutter pub get
       - run: flutter build apk --release
         continue-on-error: true
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nex-android-arm64-api34
+          path: build/app/outputs/flutter-apk/app-release.apk
 
   build-ios:
     runs-on: macos-14
@@ -45,6 +60,12 @@ jobs:
       - run: flutter pub get
       - run: flutter build ios --release --no-codesign
         continue-on-error: true
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nex-ios-arm64-ios17
+          path: build/ios/iphoneos/Runner.app
 
   build-macos:
     runs-on: macos-14
@@ -57,6 +78,12 @@ jobs:
       - run: flutter pub get
       - run: flutter build macos --release
         continue-on-error: true
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nex-macos-universal-ventura
+          path: build/macos/Build/Products/Release/*.app
 
   build-windows:
     runs-on: windows-latest
@@ -71,6 +98,12 @@ jobs:
         continue-on-error: true
         env:
           CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nex-windows-x64-win11
+          path: build/windows/runner/Release/
 
   release:
     name: Create Release
@@ -80,11 +113,22 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
-          draft: false
-          prerelease: true
-          generate_release_notes: true
+          path: artifacts
+          merge-multiple: true
+      - name: List
+        run: find artifacts/ -type f 2>/dev/null | head -20
+      - name: Create Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "NEX ${{ github.ref_name }}" \
+            --notes "Release ${{ github.ref_name }}" \
+            --prerelease 2>/dev/null || true
+          for f in artifacts/*; do
+            [ -f "$f" ] && gh release upload "${{ github.ref_name }}" "$f" --clobber
+          done
+          gh release view "${{ github.ref_name }}" --json assets 2>/dev/null | head -20
