@@ -18,7 +18,7 @@ dependencies:
   go_router: ^14.2.7
 
   # WebRTC
-  flutter_webrtc: ^0.11.7
+  flutter_webrtc: ^1.1.0
 
   # Signaling
   web_socket_channel: ^2.4.0
