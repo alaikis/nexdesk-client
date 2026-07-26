@@ -15,18 +15,18 @@ jobs:
         with:
           channel: stable
       - run: flutter config --enable-linux-desktop
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev
       - run: flutter pub get
-      - run: flutter build linux --release 2>&1 | tee build.log
-        continue-on-error: true
-      - run: cat build.log
+      - run: flutter build linux --release
+      - name: Package
+        run: |
+          cd build/linux/x64/release/bundle
+          tar -czf ../../../nix-${{ github.ref_name }}-linux-x64.tar.gz .
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: linux-bundle
-          path: build/linux/x64/release/bundle/
+          name: linux-package
+          path: build/nix-*.tar.gz
 
   build-android:
     name: Android
@@ -41,14 +41,13 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: flutter build apk --release 2>&1 | tee build.log
-        continue-on-error: true
-      - run: cat build.log
+      - run: flutter build apk --release
+      - run: mv build/app/outputs/flutter-apk/app-release.apk build/nex-${{ github.ref_name }}-android.apk
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: android-package
+          path: build/nex-*.apk
 
   build-ios:
     name: iOS
@@ -59,14 +58,16 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: flutter build ios --release --no-codesign 2>&1 | tee build.log
-        continue-on-error: true
-      - run: cat build.log
+      - run: flutter build ios --release --no-codesign
+      - name: Package
+        run: |
+          cd build/ios/iphoneos
+          zip -r ../../nex-${{ github.ref_name }}-ios.zip Runner.app
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: ios-app
-          path: build/ios/iphoneos/Runner.app
+          name: ios-package
+          path: build/nex-*.zip
 
   build-macos:
     name: macOS
@@ -78,14 +79,16 @@ jobs:
           channel: stable
       - run: flutter config --enable-macos-desktop
       - run: flutter pub get
-      - run: flutter build macos --release 2>&1 | tee build.log
-        continue-on-error: true
-      - run: cat build.log
+      - run: flutter build macos --release
+      - name: Package
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r ../../../nex-${{ github.ref_name }}-macos.zip *.app
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: macos-app
-          path: build/macos/Build/Products/Release/*.app
+          name: macos-package
+          path: build/nex-*.zip
 
   build-windows:
     name: Windows
@@ -97,17 +100,20 @@ jobs:
           channel: stable
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
-      - name: Build Windows
-        run: flutter build windows --release 2>&1 | tee build.log
-        continue-on-error: true
+      - name: Build
+        run: flutter build windows --release
         env:
           CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
-      - run: cat build.log
+      - name: Package
+        run: |
+          cd build/windows/x64/Release
+          7z a ../../../nex-${{ github.ref_name }}-windows.zip .
+        shell: bash
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: windows-portable
-          path: build/windows/runner/Release/
+          name: windows-package
+          path: build/nex-*.zip
 
   release:
     name: Create Release
@@ -122,10 +128,7 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
-      
-      - name: Display artifacts
-        run: ls -la artifacts/
-      
+      - run: ls -la artifacts/
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
