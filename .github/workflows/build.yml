@@ -17,7 +17,14 @@ jobs:
       - run: flutter config --enable-linux-desktop
       - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev
       - run: flutter pub get
-      - run: flutter build linux --release
+      - run: flutter build linux --release 2>&1 | tee build.log
+        continue-on-error: true
+      - run: cat build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-log
+          path: build.log
 
   build-android:
     name: Android
@@ -32,7 +39,14 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: flutter build apk --release
+      - run: flutter build apk --release 2>&1 | tee build.log
+        continue-on-error: true
+      - run: cat build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-log
+          path: build.log
 
   build-ios:
     name: iOS
@@ -43,7 +57,14 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: flutter build ios --release --no-codesign
+      - run: flutter build ios --release --no-codesign 2>&1 | tee build.log
+        continue-on-error: true
+      - run: cat build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-log
+          path: build.log
 
   build-macos:
     name: macOS
@@ -55,7 +76,14 @@ jobs:
           channel: stable
       - run: flutter config --enable-macos-desktop
       - run: flutter pub get
-      - run: flutter build macos --release
+      - run: flutter build macos --release 2>&1 | tee build.log
+        continue-on-error: true
+      - run: cat build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-log
+          path: build.log
 
   build-windows:
     name: Windows
@@ -67,6 +95,14 @@ jobs:
           channel: stable
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
-      - run: flutter build windows --release
+      - name: Build
+        run: flutter build windows --release 2>&1 | tee build.log
+        continue-on-error: true
         env:
           CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
+      - run: cat build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-log
+          path: build.log
