@@ -5,10 +5,20 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+env:
+  VERSION: ${{ github.ref_name }}
+
 jobs:
   build-linux:
-    name: Linux
+    name: Linux (${{ matrix.distro }}-${{ matrix.arch }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - distro: ubuntu2204
+            arch: amd64
+          - distro: ubuntu2404
+            arch: amd64
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -19,10 +29,30 @@ jobs:
       - run: flutter pub get
       - run: flutter build linux --release
         continue-on-error: true
+      - name: Package tarball
+        if: success()
+        run: |
+          PKG="nex-${{ env.VERSION }}-linux-${{ matrix.arch }}-${{ matrix.distro }}"
+          cd build/linux/x64/release/bundle
+          tar -czf "../../../${PKG}.tar.gz" .
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: linux-${{ matrix.distro }}-${{ matrix.arch }}
+          path: build/nex-*.tar.gz
 
   build-android:
-    name: Android
+    name: Android (${{ matrix.arch }}-api${{ matrix.api }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: arm64-v8a
+            api: 34
+          - arch: armeabi-v7a
+            api: 30
+          - arch: x86_64
+            api: 34
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -33,12 +63,27 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: flutter build apk --release
+      - run: flutter build apk --release --target-platform android-${{ matrix.arch }}
         continue-on-error: true
+      - name: Package APK
+        if: success()
+        run: |
+          PKG="nex-${{ env.VERSION }}-android-${{ matrix.arch }}-api${{ matrix.api }}"
+          mv build/app/outputs/flutter-apk/app-release.apk "build/${PKG}.apk"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: android-${{ matrix.arch }}
+          path: build/nex-*.apk
 
   build-ios:
-    name: iOS
+    name: iOS (${${{ matrix.arch }}}-ios${{ matrix.osver }})
     runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            osver: "17"
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -47,10 +92,29 @@ jobs:
       - run: flutter pub get
       - run: flutter build ios --release --no-codesign
         continue-on-error: true
+      - name: Package IPA
+        if: success()
+        run: |
+          PKG="nex-${{ env.VERSION }}-ios-${{ matrix.arch }}-ios${{ matrix.osver }}"
+          mkdir -p build/ios/ipa/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa
+          zip -r "../../${PKG}.ipa" Payload
+          rm -rf Payload
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ios-${{ matrix.arch }}
+          path: build/nex-*.ipa
 
   build-macos:
-    name: macOS
+    name: macOS (${{ matrix.arch }}-${{ matrix.osver }})
     runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - arch: universal
+            osver: "ventura"
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -60,10 +124,34 @@ jobs:
       - run: flutter pub get
       - run: flutter build macos --release
         continue-on-error: true
+      - name: Package DMG
+        if: success()
+        run: |
+          PKG="nex-${{ env.VERSION }}-macos-${{ matrix.arch }}-${{ matrix.osver }}"
+          brew install create-dmg || true
+          create-dmg \
+            --volname "NEX Installer" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --app-drop-link 425 190 \
+            "build/${PKG}.dmg" \
+            "build/macos/Build/Products/Release/NEX.app" || \
+          (cd build/macos/Build/Products/Release && zip -r "../../../${PKG}.zip" *.app)
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: macos-${{ matrix.arch }}
+          path: build/nex-*.dmg build/nex-*.zip
 
   build-windows:
-    name: Windows
+    name: Windows (${{ matrix.arch }}-${{ matrix.osver }})
     runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            osver: "11"
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -71,10 +159,57 @@ jobs:
           channel: stable
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
-      - run: flutter build windows --release
+      - name: Build
+        run: flutter build windows --release
         continue-on-error: true
         env:
           CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
+      - name: Package ZIP
+        if: success()
+        shell: bash
+        run: |
+          PKG="nex-${{ env.VERSION }}-windows-${{ matrix.arch }}-win${{ matrix.osver }}"
+          cd build/windows/x64/Release
+          7z a "../../../${PKG}-portable.zip" .
+      - name: Create Installer (Inno Setup)
+        if: success()
+        run: |
+          PKG="nex-${{ env.VERSION }}-windows-${{ matrix.arch }}-win${{ matrix.osver }}"
+          # Install Inno Setup
+          choco install innosetup -y
+          # Create installer script
+          cat > install.iss << EOF
+[Setup]
+AppName=NEX Remote Desktop
+AppVersion=${{ env.Version }}
+DefaultDirName={pf}\NEX
+DefaultGroupName=NEX
+OutputBaseFilename=${{ env.VERSION }}-windows-${{ matrix.arch }}-win${{ matrix.osver }}-installer
+Compression=lzma2
+SolidCompression=yes
+OutputDir=build
+
+[Files]
+Source: "build\windows\x64\Release\*"; DestDir: "{app}"; Flags: recursesubdirs
+
+[Icons]
+Name: "{group}\NEX"; Filename: "{app}\flutter_app.exe"
+Name: "{group}\Uninstall NEX"; Filename: "{uninstallexe}"
+EOF
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' install.iss
+        continue-on-error: true
+      - name: Move installer
+        if: success()
+        shell: bash
+        run: |
+          mv build/*-installer.exe build/nex-${{ env.VERSION }}-windows-${{ matrix.arch }}-win${{ matrix.osver }}-installer.exe 2>/dev/null || echo "Installer not created, using ZIP only"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: windows-${{ matrix.arch }}
+          path: |
+            build/nex-*.zip
+            build/nex-*-installer.exe
 
   release:
     name: Create Release
@@ -84,9 +219,16 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - run: ls -la artifacts/
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          files: artifacts/**/*
           draft: false
           prerelease: true
           generate_release_notes: true
