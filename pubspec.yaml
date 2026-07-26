@@ -1,7 +1,7 @@
 name: flutter_app
 description: NEX Remote Desktop Client
 publish_to: 'none'
-version: 0.1.0-alpha.10
+version: 0.1.0-alpha.11
 
 environment:
   sdk: ^3.12.2
@@ -18,7 +18,7 @@ dependencies:
   go_router: ^14.2.7
 
   # WebRTC
-  flutter_webrtc: ^0.11.0
+  flutter_webrtc: ^1.1.0
 
   # Signaling
   web_socket_channel: ^2.4.0
