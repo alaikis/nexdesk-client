@@ -19,14 +19,12 @@ jobs:
       - run: flutter pub get
       - run: flutter build linux --release
         continue-on-error: true
-      - name: Package and Upload
+      - name: Package
         run: |
-          if [ -d build/linux/x64/release/bundle ]; then
-            cd build/linux/x64/release/bundle
-            tar -czf ../../../nex-linux-x64.tar.gz .
-          fi
+          cd build/linux/x64/release/bundle
+          tar -czf ../../../nex-linux-x64.tar.gz .
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
           name: nex-linux-x64
           path: build/nex-linux-x64.tar.gz
@@ -46,7 +44,7 @@ jobs:
       - run: flutter build apk --release
         continue-on-error: true
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
           name: nex-android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
@@ -61,16 +59,14 @@ jobs:
       - run: flutter pub get
       - run: flutter build ios --release --no-codesign
         continue-on-error: true
-      - name: Package and Upload
+      - name: Package
         run: |
-          if [ -d build/ios/iphoneos/Runner.app ]; then
-            mkdir -p build/ios/ipa/Payload
-            cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
-            cd build/ios/ipa
-            zip -r ../../nex-ios.zip Payload
-          fi
+          mkdir -p build/ios/ipa/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa
+          zip -r ../../nex-ios.zip Payload
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
           name: nex-ios
           path: build/nex-ios.zip
@@ -86,14 +82,12 @@ jobs:
       - run: flutter pub get
       - run: flutter build macos --release
         continue-on-error: true
-      - name: Package and Upload
+      - name: Package
         run: |
-          if ls build/macos/Build/Products/Release/*.app 1>/dev/null 2>&1; then
-            cd build/macos/Build/Products/Release
-            zip -r ../../../nex-macos.zip *.app
-          fi
+          cd build/macos/Build/Products/Release
+          zip -r ../../../nex-macos.zip *.app
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
           name: nex-macos
           path: build/nex-macos.zip
@@ -111,15 +105,13 @@ jobs:
         continue-on-error: true
         env:
           CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
-      - name: Package and Upload
+      - name: Package
         shell: bash
         run: |
-          if [ -d build/windows/x64/Release ]; then
-            cd build/windows/x64/Release
-            7z a ../../../nex-windows.zip .
-          fi
+          cd build/windows/x64/Release
+          7z a ../../../nex-windows.zip .
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
           name: nex-windows
           path: build/nex-windows.zip
@@ -135,15 +127,33 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
-          merge-multiple: true
-      - run: ls -la artifacts/ || echo "No artifacts"
+          path: release-assets
+          pattern: nex-*
+      - name: List downloaded files
+        run: |
+          echo "=== Downloaded files ==="
+          find release-assets/ -type f 2>/dev/null | while read f; do
+            echo "  $f ($(stat -c%s "$f") bytes)"
+          done
       - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/*
-          draft: false
-          prerelease: true
-          generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create release (ignore error if exists)
+          gh release create "${{ github.ref_name }}" \
+            --title "NEX ${{ github.ref_name }}" \
+            --notes "Release ${{ github.ref_name }}" \
+            --prerelease 2>/dev/null || true
+          
+          # Upload all files
+          echo "=== Uploading files ==="
+          for f in release-assets/*; do
+            if [ -f "$f" ]; then
+              echo "Uploading $(basename $f)..."
+              gh release upload "${{ github.ref_name }}" "$f" --clobber
+            fi
+          done
+          
+          # Show final assets
+          echo "=== Final Release Assets ==="
+          gh release view "${{ github.ref_name }}" --json assets --jq '.assets[].name' 2>/dev/null || echo "Could not view release"
