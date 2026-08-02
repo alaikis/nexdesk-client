@@ -8,6 +8,9 @@ on:
 
 env:
   FLUTTER_VERSION: '3.22'
+  # 使用 gh-proxy 代理 pub.dev
+  PUB_HOSTED_URL: https://gh-proxy.com/https://pub.dev
+  FLUTTER_STORAGE_BASE_URL: https://gh-proxy.com/https://storage.googleapis.com
 
 jobs:
   build-linux:
@@ -21,10 +24,10 @@ jobs:
           channel: stable
       - run: flutter config --enable-linux-desktop
       - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev
-      - name: Get dependencies with mirror
+      - name: Get dependencies
         run: |
-          export PUB_HOSTED_URL=https://pub.flutter-io.cn
-          export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+          echo "PUB_HOSTED_URL=$PUB_HOSTED_URL"
+          echo "FLUTTER_STORAGE_BASE_URL=$FLUTTER_STORAGE_BASE_URL"
           flutter pub get
       - run: flutter build linux --release
       - name: Package Linux
@@ -50,11 +53,8 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
-      - name: Get dependencies with mirror
-        run: |
-          export PUB_HOSTED_URL=https://pub.flutter-io.cn
-          export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
-          flutter pub get
+      - name: Get dependencies
+        run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
@@ -71,11 +71,8 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter config --enable-macos-desktop
-      - name: Get dependencies with mirror
-        run: |
-          export PUB_HOSTED_URL=https://pub.flutter-io.cn
-          export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
-          flutter pub get
+      - name: Get dependencies
+        run: flutter pub get
       - run: flutter build macos --release
       - name: Package macOS
         run: |
@@ -96,11 +93,8 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter config --enable-windows-desktop
-      - name: Get dependencies with mirror
-        run: |
-          $env:PUB_HOSTED_URL = "https://pub.flutter-io.cn"
-          $env:FLUTTER_STORAGE_BASE_URL = "https://storage.flutter-io.cn"
-          flutter pub get
+      - name: Get dependencies
+        run: flutter pub get
       - run: flutter build windows --release
         env:
           CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
