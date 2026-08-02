@@ -8,8 +8,6 @@ on:
 
 env:
   FLUTTER_VERSION: '3.22'
-  PUB_HOSTED_URL: https://pub.flutter-io.cn
-  FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
 
 jobs:
   build-linux:
@@ -23,18 +21,8 @@ jobs:
           channel: stable
       - run: flutter config --enable-linux-desktop
       - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev
-      - name: Cache pub cache
-        uses: actions/cache@v4
-        with:
-          path: /home/runner/.pub-cache
-          key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-cache-
       - name: Get dependencies
-        run: |
-          echo "PUB_HOSTED_URL=$PUB_HOSTED_URL"
-          echo "FLUTTER_STORAGE_BASE_URL=$FLUTTER_STORAGE_BASE_URL"
-          flutter pub get
+        run: flutter pub get
       - run: flutter build linux --release
       - name: Package Linux
         run: |
@@ -59,13 +47,6 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
-      - name: Cache pub cache
-        uses: actions/cache@v4
-        with:
-          path: /home/runner/.pub-cache
-          key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-cache-
       - name: Get dependencies
         run: flutter pub get
       - run: flutter build apk --release
@@ -84,13 +65,6 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter config --enable-macos-desktop
-      - name: Cache pub cache
-        uses: actions/cache@v4
-        with:
-          path: /Users/runner/.pub-cache
-          key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-cache-
       - name: Get dependencies
         run: flutter pub get
       - run: flutter build macos --release
@@ -113,13 +87,6 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter config --enable-windows-desktop
-      - name: Cache pub cache
-        uses: actions/cache@v4
-        with:
-          path: C:\Users\runner\.pub-cache
-          key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-cache-
       - name: Get dependencies
         run: flutter pub get
       - run: flutter build windows --release
