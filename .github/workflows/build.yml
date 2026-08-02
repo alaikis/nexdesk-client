@@ -8,6 +8,10 @@ on:
 
 env:
   FLUTTER_VERSION: '3.22'
+  PUB_HOSTED_URL: https://pub.flutter-io.cn
+  FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+  # GitHub 代理 (用于下载 libwebrtc 等)
+  GH_PROXY: https://gh-proxy.com
 
 jobs:
   build-linux:
@@ -21,8 +25,17 @@ jobs:
           channel: stable
       - run: flutter config --enable-linux-desktop
       - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev
+      - name: Configure proxy for pub.dev
+        run: |
+          export HTTP_PROXY=${{ env.GH_PROXY }}
+          export HTTPS_PROXY=${{ env.GH_PROXY }}
+          echo "PUB_HOSTED_URL=$PUB_HOSTED_URL"
+          echo "FLUTTER_STORAGE_BASE_URL=$FLUTTER_STORAGE_BASE_URL"
       - name: Get dependencies
-        run: flutter pub get
+        run: |
+          export HTTP_PROXY=${{ env.GH_PROXY }}
+          export HTTPS_PROXY=${{ env.GH_PROXY }}
+          flutter pub get
       - run: flutter build linux --release
       - name: Package Linux
         run: |
@@ -47,8 +60,15 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
+      - name: Configure proxy for pub.dev
+        run: |
+          export HTTP_PROXY=${{ env.GH_PROXY }}
+          export HTTPS_PROXY=${{ env.GH_PROXY }}
       - name: Get dependencies
-        run: flutter pub get
+        run: |
+          export HTTP_PROXY=${{ env.GH_PROXY }}
+          export HTTPS_PROXY=${{ env.GH_PROXY }}
+          flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
@@ -65,8 +85,15 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter config --enable-macos-desktop
+      - name: Configure proxy for pub.dev
+        run: |
+          export HTTP_PROXY=${{ env.GH_PROXY }}
+          export HTTPS_PROXY=${{ env.GH_PROXY }}
       - name: Get dependencies
-        run: flutter pub get
+        run: |
+          export HTTP_PROXY=${{ env.GH_PROXY }}
+          export HTTPS_PROXY=${{ env.GH_PROXY }}
+          flutter pub get
       - run: flutter build macos --release
       - name: Package macOS
         run: |
@@ -87,8 +114,15 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter config --enable-windows-desktop
+      - name: Configure proxy for pub.dev
+        run: |
+          $env:HTTP_PROXY = "${{ env.GH_PROXY }}"
+          $env:HTTPS_PROXY = "${{ env.GH_PROXY }}"
       - name: Get dependencies
-        run: flutter pub get
+        run: |
+          $env:HTTP_PROXY = "${{ env.GH_PROXY }}"
+          $env:HTTPS_PROXY = "${{ env.GH_PROXY }}"
+          flutter pub get
       - run: flutter build windows --release
         env:
           CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
