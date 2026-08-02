@@ -10,7 +10,6 @@ env:
   FLUTTER_VERSION: '3.22'
   PUB_HOSTED_URL: https://pub.flutter-io.cn
   FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
-  DAGGER_HANDLE: pub.dev
 
 jobs:
   build-linux:
@@ -30,11 +29,25 @@ jobs:
             echo "Attempt $i to get dependencies..."
             flutter pub get && break || sleep 10
           done
-      - name: Download libwebrtc
+      - name: Download and extract libwebrtc
         run: |
-          mkdir -p linux/flutter/ephemeral/.plugin_symlinks/flutter_webrtc/third_party/downloads
-          curl -L "https://github.com/webrtc-sdk/libwebrtc/releases/download/libwebrtc.m144.7559.09/libwebrtc-linux-x64-release.zip" -o linux/flutter/ephemeral/.plugin_symlinks/flutter_webrtc/third_party/downloads/libwebrtc-linux-x64-release.zip
-          ls -lh linux/flutter/ephemeral/.plugin_symlinks/flutter_webrtc/third_party/downloads/
+          WEBRTC_DIR="linux/flutter/ephemeral/.plugin_symlinks/flutter_webrtc/third_party"
+          mkdir -p "$WEBRTC_DIR/downloads"
+          cd "$WEBRTC_DIR/downloads"
+          curl -L "https://github.com/webrtc-sdk/libwebrtc/releases/download/libwebrtc.m144.7559.09/libwebrtc-linux-x64-release.zip" -o libwebrtc.zip
+          echo "Downloaded libwebrtc.zip: $(ls -lh libwebrtc.zip)"
+          unzip -o libwebrtc.zip
+          echo "Extracted files:"
+          ls -lh "$WEBRTC_DIR/libwebrtc/lib/"
+          file "$WEBRTC_DIR/libwebrtc/lib/libwebrtc.so"
+      - name: Check build files
+        run: |
+          echo "=== Build directory ==="
+          ls -la build/linux/x64/release/ 2>/dev/null || echo "No build dir yet"
+          echo "=== Plugin symlinks ==="
+          ls -la linux/flutter/ephemeral/.plugin_symlinks/ 2>/dev/null || echo "No symlinks"
+          echo "=== libwebrtc ==="
+          ls -la linux/flutter/ephemeral/.plugin_symlinks/flutter_webrtc/third_party/libwebrtc/lib/ 2>/dev/null || echo "No libwebrtc"
       - run: flutter build linux --release
       - name: Package Linux
         run: |
