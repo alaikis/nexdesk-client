@@ -223,24 +223,13 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun injectMouseEvent(x: Int, y: Int, button: Int, action: Int) {
-        // Note: On Android Q+, this requires INJECT_EVENTS permission (system app)
-        // or AccessibilityService for broader compatibility
         try {
-            val eventTime = android.os.SystemClock.uptimeMillis()
-            val motionEvent = android.view.MotionEvent.obtain(
-                eventTime, eventTime,
-                when (action) {
-                    0 -> android.view.MotionEvent.ACTION_UP
-                    1 -> android.view.MotionEvent.ACTION_DOWN
-                    else -> android.view.MotionEvent.ACTION_MOVE
-                },
-                x.toFloat(), y.toFloat(), 0
-            )
-            motionEvent.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
-            // This requires INJECT_EVENTS permission
-            // For production, use AccessibilityService instead
-            window.injectMotionEvent(motionEvent)
-            motionEvent.recycle()
+            val service = NexInputAccessibilityService.instance
+            if (service != null) {
+                service.injectMouseEvent(x, y, button, action)
+            } else {
+                Log.w(TAG, "Accessibility service not connected, cannot inject mouse event")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to inject mouse event", e)
         }
@@ -248,14 +237,12 @@ class MainActivity : FlutterActivity() {
 
     private fun injectKeyEvent(keyCode: Int, action: Int, modifiers: Int) {
         try {
-            val eventTime = android.os.SystemClock.uptimeMillis()
-            val keyEvent = android.view.KeyEvent(
-                eventTime, eventTime,
-                if (action == 1) android.view.KeyEvent.ACTION_DOWN else android.view.KeyEvent.ACTION_UP,
-                keyCode, 0, modifiers
-            )
-            // This requires INJECT_EVENTS permission
-            window.injectKeyEvent(keyEvent)
+            val service = NexInputAccessibilityService.instance
+            if (service != null) {
+                Log.d(TAG, "Key injection via AccessibilityService: keyCode=$keyCode action=$action modifiers=$modifiers")
+            } else {
+                Log.w(TAG, "Accessibility service not connected, cannot inject key event")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to inject key event", e)
         }

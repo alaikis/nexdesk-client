@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">NEX remote desktop input injection service. This service allows the app to inject touch and keyboard events for remote control.</string>
+</resources>

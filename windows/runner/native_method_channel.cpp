@@ -11,6 +11,7 @@
 #include <mutex>
 #include <map>
 #include <memory>
+#include <string>
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -223,6 +224,159 @@ void CleanupCapture(ScreenCaptureState& state) {
 }  // namespace
 
 void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
-  // Method channel registration would go here in a full implementation.
-  // For now, the Dart side falls back to platform-specific plugin implementations.
+  // Screen capture channel
+  {
+    flutter::MethodChannel channel(
+        controller->engine()->messenger(),
+        "nex.flutter/screen_capture_windows",
+        &flutter::StandardMessageCodec::GetInstance());
+    channel.SetMethodCallHandler([](const flutter::MethodCall<flutter::EncodableValue>& call,
+                                    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+      if (call.method_name() == "enumerateDisplays") {
+        // Return basic display info; full enumeration requires DXGI adapter walking.
+        result->Success(flutter::EncodableValue(std::vector<flutter::EncodableValue>{
+            flutter::EncodableValue(flutter::EncodableMap{
+                {"index", flutter::EncodableValue(0)},
+                {"name", flutter::EncodableValue("Primary Display")},
+                {"width", flutter::EncodableValue(GetSystemMetrics(SM_CXSCREEN))},
+                {"height", flutter::EncodableValue(GetSystemMetrics(SM_CYSCREEN))},
+            })}));
+      } else if (call.method_name() == "startCapture") {
+        std::lock_guard<std::mutex> lock(g_capture_mutex);
+        int displayIndex = 0;
+        if (call.arguments() && call.arguments()->IsMap()) {
+          const auto& args = call.arguments()->MapValue();
+          auto it = args.find("displayIndex");
+          if (it != args.end()) displayIndex = std::get<int>(it->second);
+        }
+        ScreenCaptureState state;
+        if (InitDXGICapture(displayIndex, state)) {
+          int id = g_next_capture_id++;
+          g_captures[id] = state;
+          result->Success(flutter::EncodableValue(id));
+        } else {
+          result->Success(flutter::EncodableValue(-1));
+        }
+      } else if (call.method_name() == "stopCapture") {
+        std::lock_guard<std::mutex> lock(g_capture_mutex);
+        int textureId = -1;
+        if (call.arguments() && call.arguments()->IsMap()) {
+          const auto& args = call.arguments()->MapValue();
+          auto it = args.find("textureId");
+          if (it != args.end()) textureId = std::get<int>(it->second);
+        }
+        auto it = g_captures.find(textureId);
+        if (it != g_captures.end()) {
+          CleanupCapture(it->second);
+          g_captures.erase(it);
+        }
+        result->Success(flutter::EncodableValue(true));
+      } else if (call.method_name() == "getFrame") {
+        std::lock_guard<std::mutex> lock(g_capture_mutex);
+        int textureId = -1;
+        if (call.arguments() && call.arguments()->IsMap()) {
+          const auto& args = call.arguments()->MapValue();
+          auto it = args.find("textureId");
+          if (it != args.end()) textureId = std::get<int>(it->second);
+        }
+        auto it = g_captures.find(textureId);
+        if (it != g_captures.end()) {
+          std::vector<uint8_t> pixels;
+          if (CaptureFrame(it->second, pixels)) {
+            result->Success(flutter::EncodableValue(flutter::EncodableList(
+                pixels.begin(), pixels.end())));
+            return;
+          }
+        }
+        result->Success(flutter::EncodableValue(flutter::EncodableList()));
+      } else if (call.method_name() == "isSupported") {
+        result->Success(flutter::EncodableValue(true));
+      } else {
+        result->NotImplemented();
+      }
+    });
+  }
+
+  // Input injection channel
+  {
+    flutter::MethodChannel channel(
+        controller->engine()->messenger(),
+        "nex.flutter/input_inject_windows",
+        &flutter::StandardMessageCodec::GetInstance());
+    channel.SetMethodCallHandler([](const flutter::MethodCall<flutter::EncodableValue>& call,
+                                    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+      if (call.method_name() == "injectMouseMove") {
+        int x = 0, y = 0;
+        bool absolute = true;
+        if (call.arguments() && call.arguments()->IsMap()) {
+          const auto& args = call.arguments()->MapValue();
+          auto itx = args.find("x");
+          auto ity = args.find("y");
+          auto ita = args.find("absolute");
+          if (itx != args.end()) x = std::get<int>(itx->second);
+          if (ity != args.end()) y = std::get<int>(ity->second);
+          if (ita != args.end()) absolute = std::get<bool>(ita->second);
+        }
+        InjectMouseMove(x, y, absolute);
+        result->Success(flutter::EncodableValue(true));
+      } else if (call.method_name() == "injectMouseButton") {
+        int button = 0;
+        bool down = false;
+        if (call.arguments() && call.arguments()->IsMap()) {
+          const auto& args = call.arguments()->MapValue();
+          auto itb = args.find("button");
+          auto itd = args.find("down");
+          if (itb != args.end()) button = std::get<int>(itb->second);
+          if (itd != args.end()) down = std::get<bool>(itd->second);
+        }
+        InjectMouseButton(button, down);
+        result->Success(flutter::EncodableValue(true));
+      } else if (call.method_name() == "injectMouseWheel") {
+        int delta = 0;
+        if (call.arguments() && call.arguments()->IsMap()) {
+          const auto& args = call.arguments()->MapValue();
+          auto it = args.find("delta");
+          if (it != args.end()) delta = std::get<int>(it->second);
+        }
+        InjectMouseWheel(delta);
+        result->Success(flutter::EncodableValue(true));
+      } else if (call.method_name() == "injectKey") {
+        int scanCode = 0;
+        bool down = true;
+        bool extended = false;
+        if (call.arguments() && call.arguments()->IsMap()) {
+          const auto& args = call.arguments()->MapValue();
+          auto itk = args.find("scanCode");
+          auto itd = args.find("down");
+          auto ite = args.find("extended");
+          if (itk != args.end()) scanCode = std::get<int>(itk->second);
+          if (itd != args.end()) down = std::get<bool>(itd->second);
+          if (ite != args.end()) extended = std::get<bool>(ite->second);
+        }
+        InjectKey(scanCode, down, extended);
+        result->Success(flutter::EncodableValue(true));
+      } else if (call.method_name() == "injectUnicode") {
+        std::string text;
+        if (call.arguments() && call.arguments()->IsMap()) {
+          const auto& args = call.arguments()->MapValue();
+          auto it = args.find("text");
+          if (it != args.end()) text = std::get<std::string>(it->second);
+        }
+        if (!text.empty()) {
+          int len = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
+          if (len > 0) {
+            std::wstring wtext(len, 0);
+            MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, &wtext[0], len);
+            InjectUnicode(wtext);
+          }
+        }
+        result->Success(flutter::EncodableValue(true));
+      } else if (call.method_name() == "setModifiers") {
+        // Modifier state is handled at Dart layer by sending individual key events.
+        result->Success(flutter::EncodableValue(true));
+      } else {
+        result->NotImplemented();
+      }
+    });
+  }
 }

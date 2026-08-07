@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/api_client.dart';
+import '../../core/storage_service.dart';
 
 enum ReconnectionState { connecting, connected, reconnecting, failed }
 
@@ -34,9 +35,22 @@ class Session with ChangeNotifier {
       relayUsed: json['relay_used'] as bool? ?? false,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'controller_device_id': controllerDeviceId,
+      'controllee_device_id': controlleeDeviceId,
+      'started_at': startedAt,
+      if (endedAt != null) 'ended_at': endedAt,
+      'status': status,
+      'relay_used': relayUsed,
+    };
+  }
 }
 
 class SessionProvider with ChangeNotifier {
+  static const _storageKey = 'nex_active_session';
   final ApiClient _api = ApiClient();
 
   Session? _activeSession;
@@ -50,6 +64,34 @@ class SessionProvider with ChangeNotifier {
   int get reconnectAttempts => _reconnectAttempts;
   String? get activeSessionId => _activeSession?.id;
 
+  SessionProvider() {
+    _loadPersistedSession();
+  }
+
+  Future<void> _loadPersistedSession() async {
+    try {
+      final raw = await StorageService.getString(_storageKey);
+      if (raw == null) return;
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      _activeSession = Session.fromJson(json);
+      notifyListeners();
+    } catch (_) {
+      // Ignore corrupt storage
+    }
+  }
+
+  Future<void> _persistSession() async {
+    if (_activeSession == null) {
+      await StorageService.delete(_storageKey);
+      return;
+    }
+    try {
+      await StorageService.setString(_storageKey, jsonEncode(_activeSession!.toJson()));
+    } catch (_) {
+      // Swallow storage errors
+    }
+  }
+
   void setReconnectionState(ReconnectionState state, {int attempts = 0}) {
     _reconnectionState = state;
     _reconnectAttempts = attempts;
@@ -58,6 +100,7 @@ class SessionProvider with ChangeNotifier {
 
   void setActiveSession(Session? session) {
     _activeSession = session;
+    _persistSession();
     notifyListeners();
   }
 
@@ -65,6 +108,7 @@ class SessionProvider with ChangeNotifier {
     try {
       final res = await _api.createSession(controlleeDeviceId);
       _activeSession = Session.fromJson(res);
+      await _persistSession();
       notifyListeners();
       return _activeSession;
     } on ApiException catch (e) {
@@ -77,6 +121,7 @@ class SessionProvider with ChangeNotifier {
     try {
       await _api.post('/sessions/$sessionId/end', {});
       _activeSession = null;
+      await _persistSession();
       notifyListeners();
     } on ApiException catch (e) {
       debugPrint('End session failed: $e');
