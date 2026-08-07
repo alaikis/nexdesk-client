@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/auth/auth_screen.dart';
+import 'features/auth/two_factor_screen.dart';
 import 'features/devices/device_list_screen.dart';
 import 'features/session/session_screen.dart';
 import 'features/settings/settings_screen.dart';
@@ -17,7 +18,7 @@ class NexApp extends StatelessWidget {
       redirect: (context, state) {
         final auth = context.read<AuthProvider>();
         final loggedIn = auth.isLoggedIn;
-        final loggingIn = state.matchedLocation == '/login';
+        final loggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/2fa';
 
         if (!loggedIn && !loggingIn) return '/login';
         if (loggedIn && loggingIn) return '/devices';
@@ -31,6 +32,10 @@ class NexApp extends StatelessWidget {
         GoRoute(
           path: '/register',
           builder: (context, state) => const AuthScreen(mode: AuthMode.register),
+        ),
+        GoRoute(
+          path: '/2fa',
+          builder: (context, state) => const TwoFactorScreen(),
         ),
         GoRoute(
           path: '/devices',

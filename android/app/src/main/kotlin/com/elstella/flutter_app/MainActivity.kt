@@ -38,9 +38,12 @@ class MainActivity : FlutterActivity() {
     private var screenHeight = 0
     private var screenDensity = 0
     private var resultPending: MethodChannel.Result? = null
+    private var pendingStartArgs: Map<String, Int>? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var channel: MethodChannel? = null
     private var isCapturing = false
+    private var mediaProjectionResultCode = 0
+    private var mediaProjectionData: Intent? = null
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -50,6 +53,7 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "requestPermission" -> {
                     resultPending = result
+                    pendingStartArgs = null
                     val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                     val intent = mediaProjectionManager.createScreenCaptureIntent()
                     startActivityForResult(intent, REQUEST_SCREEN_CAPTURE)
@@ -58,8 +62,15 @@ class MainActivity : FlutterActivity() {
                     val width = call.argument<Int>("width") ?: 1280
                     val height = call.argument<Int>("height") ?: 720
                     val dpi = call.argument<Int>("dpi") ?: 160
-                    startCapture(width, height, dpi)
-                    result.success(true)
+                    if (mediaProjection != null && mediaProjectionData != null) {
+                        startCapture(width, height, dpi)
+                        result.success(true)
+                    } else {
+                        pendingStartArgs = mapOf("width" to width, "height" to height, "dpi" to dpi)
+                        val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                        val intent = mediaProjectionManager.createScreenCaptureIntent()
+                        startActivityForResult(intent, REQUEST_SCREEN_CAPTURE)
+                    }
                 }
                 "stopCapture" -> {
                     stopCapture()
@@ -78,7 +89,7 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        // Input injection channel
+        // Input injection channel via AccessibilityService
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "nex.flutter/input_injector").setMethodCallHandler { call, result ->
             when (call.method) {
                 "injectMouseEvent" -> {
@@ -106,8 +117,8 @@ class MainActivity : FlutterActivity() {
 
     private fun startCapture(width: Int, height: Int, dpi: Int) {
         if (isCapturing) return
+        if (mediaProjection == null) return
 
-        val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val metrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(metrics)
         screenWidth = metrics.widthPixels
@@ -126,7 +137,6 @@ class MainActivity : FlutterActivity() {
                     val rowStride = planes[0].rowStride
                     val rowPadding = rowStride - pixelStride * screenWidth
 
-                    // Create bitmap
                     val bitmap = Bitmap.createBitmap(
                         screenWidth + rowPadding / pixelStride,
                         screenHeight,
@@ -134,17 +144,14 @@ class MainActivity : FlutterActivity() {
                     )
                     bitmap.copyPixelsFromBuffer(buffer)
 
-                    // Scale to target size
                     val scaledBitmap = Bitmap.createScaledBitmap(bitmap, width, height, true)
                     bitmap.recycle()
 
-                    // Convert to JPEG bytes
                     val stream = ByteArrayOutputStream()
                     scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 80, stream)
                     val bytes = stream.toByteArray()
                     scaledBitmap.recycle()
 
-                    // Send frame to Flutter via MethodChannel
                     val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
                     mainHandler.post {
                         channel?.invokeMethod("onFrame", mapOf(
@@ -162,10 +169,20 @@ class MainActivity : FlutterActivity() {
             }
         }, mainHandler)
 
-        // Need MediaProjection - request permission first
-        resultPending = null
-        val intent = mediaProjectionManager.createScreenCaptureIntent()
-        startActivityForResult(intent, REQUEST_SCREEN_CAPTURE)
+        val surface = imageReader?.surface
+        if (surface != null && mediaProjection != null) {
+            virtualDisplay = mediaProjection?.createVirtualDisplay(
+                "nex_screen_capture",
+                screenWidth,
+                screenHeight,
+                screenDensity,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                surface,
+                null,
+                mainHandler
+            )
+            isCapturing = true
+        }
     }
 
     private fun stopCapture() {
@@ -182,28 +199,23 @@ class MainActivity : FlutterActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_SCREEN_CAPTURE) {
             if (resultCode == Activity.RESULT_OK && data != null) {
+                mediaProjectionResultCode = resultCode
+                mediaProjectionData = data
                 val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                 mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
 
-                // Create VirtualDisplay
-                val surface = imageReader?.surface
-                if (surface != null && mediaProjection != null) {
-                    virtualDisplay = mediaProjection?.createVirtualDisplay(
-                        "nex_screen_capture",
-                        screenWidth,
-                        screenHeight,
-                        screenDensity,
-                        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                        surface,
-                        null,
-                        mainHandler
-                    )
-                    isCapturing = true
+                if (pendingStartArgs != null) {
+                    val args = pendingStartArgs!!
+                    pendingStartArgs = null
+                    startCapture(args["width"]!!, args["height"]!!, args["dpi"]!!)
                     resultPending?.success(true)
                 } else {
-                    resultPending?.success(false)
+                    resultPending?.success(true)
                 }
             } else {
+                mediaProjection = null
+                mediaProjectionData = null
+                pendingStartArgs = null
                 resultPending?.success(false)
             }
             resultPending = null

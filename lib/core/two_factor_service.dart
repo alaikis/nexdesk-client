@@ -19,13 +19,13 @@ class TwoFactorService {
     return res['key'] as String? ?? res['otpauth_url'] as String?;
   }
 
-  Future<bool> enableTOTP(String code) async {
-    final res = await _api.post('/auth/2fa/enable', {'code': code});
+  Future<bool> enableTOTP() async {
+    final res = await _api.post('/auth/2fa/enable', {});
     return res['enabled'] == true || res['ok'] == true;
   }
 
-  Future<bool> disableTOTP(String code) async {
-    final res = await _api.post('/auth/2fa/disable', {'code': code});
+  Future<bool> disableTOTP() async {
+    final res = await _api.post('/auth/2fa/disable', {});
     return res['ok'] == true;
   }
 

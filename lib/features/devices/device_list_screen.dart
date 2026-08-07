@@ -14,18 +14,19 @@ class DeviceListScreen extends StatefulWidget {
 }
 
 class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
-  final DeviceProvider _deviceProvider = DeviceProvider();
   bool _waking = false;
 
   @override
   void initState() {
     super.initState();
-    _deviceProvider.loadDevices();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<DeviceProvider>().loadDevices();
+    });
   }
 
   Future<void> _wakeDevice(String deviceId) async {
     setState(() => _waking = true);
-    final ok = await _deviceProvider.wakeDevice(deviceId);
+    final ok = await context.read<DeviceProvider>().wakeDevice(deviceId);
     if (mounted) {
       setState(() => _waking = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -70,10 +71,10 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
         ],
       ),
       body: ListenableBuilder(
-        listenable: _deviceProvider,
+        listenable: context.read<DeviceProvider>(),
         builder: (context, _) {
-          final devices = _deviceProvider.devices;
-          if (_deviceProvider.loading) {
+          final devices = context.read<DeviceProvider>().devices;
+          if (context.read<DeviceProvider>().loading) {
             return const Center(child: CircularProgressIndicator());
           }
           if (devices.isEmpty) {

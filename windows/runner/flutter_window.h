@@ -6,6 +6,7 @@
 
 #include <memory>
 
+#include "native_method_channel.h"
 #include "win32_window.h"
 
 // A window that does nothing but host a Flutter view.

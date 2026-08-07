@@ -24,12 +24,14 @@ class ClipboardEvent {
   });
 
   factory ClipboardEvent.fromJson(Map<String, dynamic> json) {
+    final rawDeviceId = json['device_id'] ?? json['deviceId'];
+    final deviceId = rawDeviceId is int ? rawDeviceId : int.tryParse(rawDeviceId.toString()) ?? 0;
     return ClipboardEvent(
-      id: json['id'] ?? json['id'] as int,
-      sessionId: json['session_id'] ?? json['sessionId'] as int,
-      deviceId: json['device_id'] ?? json['deviceId'] as int,
+      id: (json['id'] ?? 0) as int,
+      sessionId: (json['session_id'] ?? json['sessionId'] ?? 0) as int,
+      deviceId: deviceId,
       type: ClipboardType.values.firstWhere((t) => t.name == (json['type'] ?? 'text'), orElse: () => ClipboardType.text),
-      payload: json['payload'] as String?,
+      payload: json['content'] as String? ?? json['payload'] as String?,
       direction: json['direction'] as String? ?? 'in',
       createdAt: DateTime.tryParse(json['created_at'] ?? json['createdAt'] ?? '') ?? DateTime.now(),
     );
@@ -53,10 +55,8 @@ class ClipboardService {
       if (text.isEmpty || text == _lastText) return;
       _lastText = text;
       await _api.post('/sessions/$sessionId/clipboard', {
-        'device_id': deviceId,
+        'content': text,
         'type': 'text',
-        'payload': text,
-        'direction': 'out',
       });
     });
   }
@@ -69,10 +69,8 @@ class ClipboardService {
 
   Future<void> syncText(String sessionId, int deviceId, String text, {bool isOutbound = true}) async {
     await _api.post('/sessions/$sessionId/clipboard', {
-      'device_id': deviceId,
+      'content': text,
       'type': 'text',
-      'payload': text,
-      'direction': isOutbound ? 'out' : 'in',
     });
   }
 
@@ -91,7 +89,7 @@ class ClipboardService {
 
   Future<List<ClipboardEvent>> getHistory(String sessionId, {int limit = 50}) async {
     final res = await _api.get('/sessions/$sessionId/clipboard');
-    final list = res['events'] as List<dynamic>? ?? [];
+    final list = res['clipboard'] as List<dynamic>? ?? [];
     return list.map((e) => ClipboardEvent.fromJson(e as Map<String, dynamic>)).toList();
   }
 }

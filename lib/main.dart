@@ -34,14 +34,17 @@ Future<void> main() async {
   final auth = AuthProvider();
   await auth.init();
 
+  final deviceProvider = DeviceProvider()..loadDevices();
+  final sessionProvider = SessionProvider();
+
   await _checkForUpdates();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: auth),
-        ChangeNotifierProvider(create: (_) => DeviceProvider()..loadDevices()),
-        ChangeNotifierProvider(create: (_) => SessionProvider()),
+        ChangeNotifierProvider.value(value: deviceProvider),
+        ChangeNotifierProvider.value(value: sessionProvider),
       ],
       child: const NexApp(),
     ),
@@ -49,7 +52,6 @@ Future<void> main() async {
 
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     final inputInjector = InputInjectorService();
-    final sessionProvider = SessionProvider();
     await inputInjector.init(sessionProvider);
     inputInjector.start();
   });

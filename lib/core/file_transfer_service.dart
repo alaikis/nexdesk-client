@@ -35,14 +35,20 @@ class FileTransfer {
   });
 
   factory FileTransfer.fromJson(Map<String, dynamic> json) {
+    final rawId = json['id'];
+    final id = rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0;
+    final rawFileSize = json['file_size'] ?? json['fileSize'];
+    final fileSize = rawFileSize is int ? rawFileSize : int.tryParse(rawFileSize.toString()) ?? 0;
+    final rawTransferred = json['transferred'];
+    final transferred = rawTransferred is int ? rawTransferred : int.tryParse(rawTransferred.toString()) ?? 0;
     return FileTransfer(
-      id: json['id'] ?? json['id'] as int,
-      fileName: json['file_name'] ?? json['fileName'] as String,
-      filePath: json['file_path'] ?? json['filePath'] as String? ?? '',
-      fileSize: (json['file_size'] ?? json['fileSize']) as int,
+      id: id,
+      fileName: (json['file_name'] ?? json['fileName'] ?? '') as String,
+      filePath: (json['file_path'] ?? json['filePath'] ?? '') as String? ?? '',
+      fileSize: fileSize,
       direction: json['direction'] == 'upload' ? TransferDirection.upload : TransferDirection.download,
       status: TransferStatus.values.firstWhere((s) => s.name == (json['status'] ?? 'pending'), orElse: () => TransferStatus.pending),
-      transferred: json['transferred'] ?? 0,
+      transferred: transferred,
       checksum: json['checksum'] as String?,
       errorMessage: json['error_message'] as String?,
     );

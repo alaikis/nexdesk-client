@@ -45,9 +45,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
   }
 
   Future<void> _enable() async {
-    final code = await _promptCode('Enter 6-digit code');
-    if (code == null) return;
-    final ok = await _service.enableTOTP(code);
+    final ok = await _service.enableTOTP();
     if (!mounted) return;
     if (ok) {
       setState(() => _enabled = true);
@@ -62,9 +60,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
   }
 
   Future<void> _disable() async {
-    final code = await _promptCode('Enter 6-digit code to disable');
-    if (code == null) return;
-    final ok = await _service.disableTOTP(code);
+    final ok = await _service.disableTOTP();
     if (!mounted) return;
     if (ok) {
       setState(() => _enabled = false);
@@ -76,27 +72,6 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
         const SnackBar(content: Text('Failed to disable 2FA')),
       );
     }
-  }
-
-  Future<String?> _promptCode(String title) async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          maxLength: 6,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Code'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('OK')),
-        ],
-      ),
-    );
-    return result;
   }
 
   @override

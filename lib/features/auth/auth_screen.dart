@@ -133,6 +133,8 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
 
     if (ok) {
       context.go('/devices');
+    } else if (auth.requires2FA) {
+      context.go('/2fa');
     } else {
       final message = auth.lastError ?? (isLogin ? 'Login failed' : 'Registration failed');
       ScaffoldMessenger.of(context).showSnackBar(

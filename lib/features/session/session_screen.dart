@@ -132,7 +132,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       if (!mounted) return;
       final controlleeId = context.read<SessionProvider>().activeSession?.controlleeDeviceId ?? '';
       if (controlleeId.isNotEmpty) {
-        _signaling!.sendKeyExchange(_e2ee.exchangePublicKey, controlleeId);
+        _signaling!.sendKeyExchange(_e2ee.publicKey, controlleeId);
       }
 
       _inputRelay = InputRelayService(
@@ -149,12 +149,14 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
           _signaling?.send(SignalingMessage(
             type: SignalingMessageType.callOffer,
             sessionId: widget.sessionId,
+            payload: {'sdp': desc.sdp, 'type': desc.type},
           ));
         },
         onIceCandidate: (candidate) {
           _signaling?.send(SignalingMessage(
             type: SignalingMessageType.ice,
             sessionId: widget.sessionId,
+            payload: {'candidate': candidate.candidate, 'sdpMid': candidate.sdpMid, 'sdpMLineIndex': candidate.sdpMLineIndex},
           ));
         },
         onRemoteStream: (stream) {

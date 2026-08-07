@@ -22,11 +22,43 @@ class ApiClient {
   ApiClient.test(this._client);
 
   String? _token;
+  String? _refreshToken;
 
   String? get token => _token;
+  String? get refreshToken => _refreshToken;
 
   Future<void> init() async {
     _token = await StorageService.getString('jwt_token');
+    _refreshToken = await StorageService.getString('jwt_refresh_token');
+  }
+
+  Future<void> _saveAuth(String? token, String? refresh) async {
+    _token = token;
+    _refreshToken = refresh;
+    if (token != null) {
+      await StorageService.setString('jwt_token', token);
+    } else {
+      await StorageService.delete('jwt_token');
+    }
+    if (refresh != null) {
+      await StorageService.setString('jwt_refresh_token', refresh);
+    } else {
+      await StorageService.delete('jwt_refresh_token');
+    }
+  }
+
+  Future<bool> _tryRefreshToken() async {
+    if (_refreshToken == null) return false;
+    try {
+      final res = await _request('POST', '/auth/refresh', body: {'refresh_token': _refreshToken});
+      final newToken = res['token'] as String?;
+      final newRefresh = res['refresh_token'] as String? ?? _refreshToken;
+      if (newToken != null) {
+        await _saveAuth(newToken, newRefresh);
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   Future<Map<String, dynamic>> get(String path) async {
@@ -55,6 +87,9 @@ class ApiClient {
     if (_token != null) {
       headers['Authorization'] = 'Bearer $_token';
     }
+    if (_refreshToken != null) {
+      headers['X-Refresh-Token'] = _refreshToken!;
+    }
 
     late http.Response response;
     final client = _client ?? http.Client();
@@ -76,9 +111,45 @@ class ApiClient {
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      final refreshed = response.headers['x-access-token'];
+      if (refreshed != null && refreshed.isNotEmpty) {
+        _token = refreshed;
+        await StorageService.setString('jwt_token', refreshed);
+      }
       LogService().debug('HTTP $method $path -> ${response.statusCode}');
       if (response.body.isEmpty) return {};
       return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    if (response.statusCode == 401 && _refreshToken != null) {
+      if (await _tryRefreshToken()) {
+        final uri = Uri.parse('${AppConfig.apiBaseUrl}$path');
+        final newHeaders = <String, String>{'Content-Type': 'application/json'};
+        if (_token != null) newHeaders['Authorization'] = 'Bearer $_token';
+        if (_refreshToken != null) newHeaders['X-Refresh-Token'] = _refreshToken!;
+        final client2 = _client ?? http.Client();
+        http.Response retryResponse;
+        switch (method) {
+          case 'GET':
+            retryResponse = await client2.get(uri, headers: newHeaders);
+            break;
+          case 'POST':
+            retryResponse = await client2.post(uri, headers: newHeaders, body: _encode(body));
+            break;
+          case 'PATCH':
+            retryResponse = await client2.patch(uri, headers: newHeaders, body: _encode(body));
+            break;
+          case 'DELETE':
+            retryResponse = await client2.delete(uri, headers: newHeaders);
+            break;
+          default:
+            throw ArgumentError('Unsupported method: $method');
+        }
+        if (retryResponse.statusCode >= 200 && retryResponse.statusCode < 300) {
+          if (retryResponse.body.isEmpty) return {};
+          return jsonDecode(retryResponse.body) as Map<String, dynamic>;
+        }
+      }
+      await _saveAuth(null, null);
     }
     LogService().warning('HTTP $method $path -> ${response.statusCode}: ${response.body}');
     String? msg;
@@ -99,11 +170,17 @@ class ApiClient {
     required String password,
     required String name,
   }) async {
-    return post('/auth/register', {
+    final res = await post('/auth/register', {
       'email': email,
       'password': password,
       'name': name,
     });
+    final token = res['token'] as String?;
+    final refresh = res['refresh_token'] as String?;
+    if (token != null) {
+      await _saveAuth(token, refresh);
+    }
+    return res;
   }
 
   Future<Map<String, dynamic>> login({
@@ -114,16 +191,16 @@ class ApiClient {
       'email': email,
       'password': password,
     });
-    _token = res['token'] as String?;
-    if (_token != null) {
-      await StorageService.setString('jwt_token', _token!);
+    final token = res['token'] as String?;
+    final refresh = res['refresh_token'] as String?;
+    if (token != null) {
+      await _saveAuth(token, refresh);
     }
     return res;
   }
 
   Future<void> logout() async {
-    await StorageService.delete('jwt_token');
-    _token = null;
+    await _saveAuth(null, null);
   }
 
   Future<Map<String, dynamic>> registerDevice({
@@ -150,6 +227,24 @@ class ApiClient {
 
   Future<void> heartbeat(String deviceId) async {
     await post('/devices/$deviceId/heartbeat', {});
+  }
+
+  Future<List<dynamic>> searchDevices(String query) async {
+    final res = await get('/devices/search?q=${Uri.encodeQueryComponent(query)}');
+    return res['devices'] as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getDevice(String deviceId) async {
+    return get('/devices/$deviceId');
+  }
+
+  Future<Map<String, dynamic>> toggleFavorite(String deviceId) async {
+    return patch('/devices/$deviceId/favorite', {});
+  }
+
+  Future<List<dynamic>> getFavorites() async {
+    final res = await get('/devices/favorites');
+    return res['devices'] as List<dynamic>;
   }
 
   Future<Map<String, dynamic>> createSession(String controlleeDeviceId) async {
@@ -207,20 +302,21 @@ class ApiClient {
       'temp_token': tempToken,
       'code': code,
     });
-    _token = res['token'] as String?;
-    if (_token != null) {
-      await StorageService.setString('jwt_token', _token!);
+    final token = res['token'] as String?;
+    final refresh = res['refresh_token'] as String?;
+    if (token != null) {
+      await _saveAuth(token, refresh);
     }
-    return _token != null;
+    return token != null;
   }
 
-  Future<bool> enableTOTP(String code) async {
-    final res = await post('/auth/2fa/enable', {'code': code});
-    return res['ok'] == true;
+  Future<bool> enableTOTP() async {
+    final res = await post('/auth/2fa/enable', {});
+    return res['enabled'] == true || res['ok'] == true;
   }
 
-  Future<bool> disableTOTP(String code) async {
-    final res = await post('/auth/2fa/disable', {'code': code});
+  Future<bool> disableTOTP() async {
+    final res = await post('/auth/2fa/disable', {});
     return res['ok'] == true;
   }
 
@@ -234,10 +330,15 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> getSession(String sessionId) async {
-    return get('/api/v1/sessions/$sessionId');
+    return get('/sessions/$sessionId');
+  }
+
+  Future<List<dynamic>> getSessionMessages(String sessionId) async {
+    final res = await get('/sessions/$sessionId/messages');
+    return res['messages'] as List<dynamic>;
   }
 
   Future<void> setSessionPassword(String sessionId, String password) async {
-    await post('/api/v1/sessions/$sessionId/password', {'password': password});
+    await post('/sessions/$sessionId/password', {'password': password});
   }
 }
