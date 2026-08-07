@@ -12,6 +12,7 @@ class InputRelayService {
   Timer? _flushTimer;
   bool _enabled = false;
   Size? _widgetSize;
+  bool _imeActive = false;
 
   InputRelayService({
     required this.signaling,
@@ -95,6 +96,19 @@ class InputRelayService {
       'kind': kind,
       'keyCode': event.physicalKey.usbHidUsage & 0xFFFF,
       'modifiers': modifiers,
+      'imeActive': _imeActive,
     });
   }
+
+  void setImeActive(bool active) {
+    _imeActive = active;
+    signaling.send(SignalingMessage(
+      type: SignalingMessageType.inputEvent,
+      to: targetDeviceId,
+      sessionId: sessionId,
+      payload: {'events': [{'kind': 'imeState', 'imeActive': active}]},
+    ));
+  }
+
+  bool get imeActive => _imeActive;
 }

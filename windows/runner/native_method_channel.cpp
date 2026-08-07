@@ -30,6 +30,8 @@ struct ScreenCaptureState {
   int height = 0;
   int displayIndex = 0;
   bool active = false;
+  std::vector<uint8_t> previousFrame;
+  bool hasPreviousFrame = false;
 };
 
 std::mutex g_capture_mutex;
@@ -201,6 +203,63 @@ bool CaptureFrame(ScreenCaptureState& state, std::vector<uint8_t>& outPixels) {
   return true;
 }
 
+bool CaptureDirtyRects(ScreenCaptureState& state, std::vector<uint8_t>& outPixels, std::vector<int>& dirtyRects) {
+  std::vector<uint8_t> currentFrame;
+  if (!CaptureFrame(state, currentFrame)) {
+    return false;
+  }
+
+  if (!state.hasPreviousFrame) {
+    state.previousFrame = std::move(currentFrame);
+    state.hasPreviousFrame = true;
+    outPixels = state.previousFrame;
+    dirtyRects.push_back(0);
+    dirtyRects.push_back(0);
+    dirtyRects.push_back(state.width);
+    dirtyRects.push_back(state.height);
+    return true;
+  }
+
+  const int width = state.width;
+  const int height = state.height;
+  const int stride = width * 4;
+
+  dirtyRects.clear();
+  for (int y = 0; y < height; y++) {
+    const uint8_t* currRow = currentFrame.data() + y * stride;
+    const uint8_t* prevRow = state.previousFrame.data() + y * stride;
+    int rectStart = -1;
+    for (int x = 0; x < width; x++) {
+      bool changed = memcmp(currRow + x * 4, prevRow + x * 4, 4) != 0;
+      if (changed && rectStart == -1) {
+        rectStart = x;
+      } else if (!changed && rectStart != -1) {
+        dirtyRects.push_back(rectStart);
+        dirtyRects.push_back(y);
+        dirtyRects.push_back(x - rectStart);
+        dirtyRects.push_back(1);
+        rectStart = -1;
+      }
+    }
+    if (rectStart != -1) {
+      dirtyRects.push_back(rectStart);
+      dirtyRects.push_back(y);
+      dirtyRects.push_back(width - rectStart);
+      dirtyRects.push_back(1);
+    }
+  }
+
+  state.previousFrame = std::move(currentFrame);
+
+  if (dirtyRects.empty()) {
+    outPixels.clear();
+    return true;
+  }
+
+  outPixels = state.previousFrame;
+  return true;
+}
+
 void CleanupCapture(ScreenCaptureState& state) {
   if (state.stagingTexture) {
     state.stagingTexture->Release();
@@ -218,6 +277,8 @@ void CleanupCapture(ScreenCaptureState& state) {
     state.device->Release();
     state.device = nullptr;
   }
+  state.previousFrame.clear();
+  state.hasPreviousFrame = false;
   state.active = false;
 }
 
@@ -289,6 +350,29 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
           }
         }
         result->Success(flutter::EncodableValue(flutter::EncodableList()));
+      } else if (call.method_name() == "getDirtyFrame") {
+        std::lock_guard<std::mutex> lock(g_capture_mutex);
+        int textureId = -1;
+        if (call.arguments() && call.arguments()->IsMap()) {
+          const auto& args = call.arguments()->MapValue();
+          auto it = args.find("textureId");
+          if (it != args.end()) textureId = std::get<int>(it->second);
+        }
+        auto it = g_captures.find(textureId);
+        if (it != g_captures.end()) {
+          std::vector<uint8_t> pixels;
+          std::vector<int> dirtyRects;
+          if (CaptureDirtyRects(it->second, pixels, dirtyRects)) {
+            flutter::EncodableMap response;
+            response["pixels"] = flutter::EncodableValue(flutter::EncodableList(
+                pixels.begin(), pixels.end()));
+            response["dirtyRects"] = flutter::EncodableValue(flutter::EncodableList(
+                dirtyRects.begin(), dirtyRects.end()));
+            result->Success(flutter::EncodableValue(response));
+            return;
+          }
+        }
+        result->Success(flutter::EncodableValue(flutter::EncodableMap()));
       } else if (call.method_name() == "isSupported") {
         result->Success(flutter::EncodableValue(true));
       } else {

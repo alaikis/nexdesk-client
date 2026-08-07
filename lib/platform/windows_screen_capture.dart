@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/services.dart';
 
 /// Windows desktop screen capture via DXGI Desktop Duplication
@@ -26,9 +27,23 @@ class WindowsScreenCapture {
 
   /// Get the latest frame as raw pixels (for WebRTC encoding)
   static Future<Uint8List?> getFrame(int textureId) async {
-    return await _channel.invokeMethod<Uint8List?>('getFrame', {
+    final result = await _channel.invokeMethod<Uint8List>('getFrame', {
       'textureId': textureId,
     });
+    return result;
+  }
+
+  /// Get dirty rectangles since last frame
+  /// Returns map with 'pixels' (full frame) and 'dirtyRects' (x,y,w,h list)
+  static Future<Map<String, dynamic>?> getDirtyFrame(int textureId) async {
+    final result = await _channel.invokeMethod<Map<dynamic, dynamic>>('getDirtyFrame', {
+      'textureId': textureId,
+    });
+    if (result == null) return null;
+    return {
+      'pixels': result['pixels'] as Uint8List?,
+      'dirtyRects': (result['dirtyRects'] as List<dynamic>?)?.cast<int>() ?? [],
+    };
   }
 
   /// Check if screen capture is supported

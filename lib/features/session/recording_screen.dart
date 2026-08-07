@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../core/api_client.dart';
+import '../../core/local_recording_service.dart';
 
 class RecordingScreen extends StatefulWidget {
   final String sessionId;
@@ -11,10 +11,18 @@ class RecordingScreen extends StatefulWidget {
 }
 
 class _RecordingScreenState extends State<RecordingScreen> {
-  final ApiClient _api = ApiClient();
+  final LocalRecordingService _recordingService = LocalRecordingService();
   bool _recording = false;
   int _duration = 0;
   Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _recordingService.onRecordingStopped = () {
+      if (mounted) setState(() => _recording = false);
+    };
+  }
 
   @override
   void dispose() {
@@ -23,19 +31,28 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   Future<void> _startRecording() async {
-    await _api.startRecording(widget.sessionId);
-    if (!mounted) return;
-    setState(() {
-      _recording = true;
-    });
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (mounted) setState(() => _duration++);
-    });
+    try {
+      await _recordingService.startRecording(widget.sessionId);
+      if (!mounted) return;
+      setState(() {
+        _recording = true;
+        _duration = 0;
+      });
+      _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+        if (mounted) setState(() => _duration++);
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Recording failed: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _stopRecording() async {
     _timer?.cancel();
-    await _api.stopRecording(widget.sessionId);
+    await _recordingService.stopRecording();
     if (!mounted) return;
     setState(() {
       _recording = false;
