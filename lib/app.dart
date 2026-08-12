@@ -11,9 +11,12 @@ import 'features/settings/settings_screen.dart';
 class NexApp extends StatelessWidget {
   const NexApp({super.key});
 
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     final router = GoRouter(
+      navigatorKey: NexApp.navigatorKey,
       initialLocation: '/devices',
       redirect: (context, state) {
         final auth = context.read<AuthProvider>();
@@ -167,6 +170,74 @@ class NexApp extends StatelessWidget {
           foregroundColor: Color(0xFFF5F5F7),
           elevation: 0,
           centerTitle: false,
+          titleTextStyle: TextStyle(
+            color: Color(0xFFF5F5F7),
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        textTheme: const TextTheme(
+          headlineLarge: TextStyle(
+            color: Color(0xFFF5F5F7),
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+          ),
+          headlineMedium: TextStyle(
+            color: Color(0xFFF5F5F7),
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+          bodyLarge: TextStyle(
+            color: Color(0xFFEBEBF5),
+            fontSize: 15,
+            height: 1.4,
+          ),
+          bodyMedium: TextStyle(
+            color: Color(0xFF8E8E93),
+            fontSize: 13,
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0A84FF),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFF0A84FF),
+            side: const BorderSide(color: Color(0xFF0A84FF)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF1C1C1E),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF0A84FF), width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
       ),
       themeMode: ThemeMode.system,

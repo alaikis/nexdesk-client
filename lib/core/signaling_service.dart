@@ -281,6 +281,5 @@ class SignalingService {
     _reconnectTimer?.cancel();
     _channel?.sink.close(status.goingAway);
     _connected = false;
-    await _controller.close();
   }
 }

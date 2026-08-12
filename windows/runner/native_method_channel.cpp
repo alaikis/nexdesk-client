@@ -2,6 +2,7 @@
 
 #include <flutter/flutter_view_controller.h>
 #include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
 #include <flutter/standard_message_codec.h>
 
 #include <windows.h>
@@ -285,12 +286,14 @@ void CleanupCapture(ScreenCaptureState& state) {
 }  // namespace
 
 void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
+  const flutter::StandardMethodCodec* codec = &flutter::StandardMethodCodec::GetInstance();
+  auto messenger = controller->engine()->messenger();
   // Screen capture channel
   {
-    flutter::MethodChannel channel(
-        controller->engine()->messenger(),
+    flutter::MethodChannel<flutter::EncodableValue> channel(
+        messenger,
         "nex.flutter/screen_capture_windows",
-        &flutter::StandardMessageCodec::GetInstance());
+        static_cast<const flutter::MethodCodec<flutter::EncodableValue>*>(codec));
     channel.SetMethodCallHandler([](const flutter::MethodCall<flutter::EncodableValue>& call,
                                     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
       if (call.method_name() == "enumerateDisplays") {
@@ -305,10 +308,10 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
       } else if (call.method_name() == "startCapture") {
         std::lock_guard<std::mutex> lock(g_capture_mutex);
         int displayIndex = 0;
-        if (call.arguments() && call.arguments()->IsMap()) {
-          const auto& args = call.arguments()->MapValue();
-          auto it = args.find("displayIndex");
-          if (it != args.end()) displayIndex = std::get<int>(it->second);
+        if (call.arguments() && std::holds_alternative<flutter::EncodableMap>(*call.arguments())) {
+          const auto& args = std::get<flutter::EncodableMap>(*call.arguments());
+          auto it = args.find(flutter::EncodableValue("displayIndex"));
+          if (it != args.end()) displayIndex = std::get<int32_t>(it->second);
         }
         ScreenCaptureState state;
         if (InitDXGICapture(displayIndex, state)) {
@@ -321,10 +324,10 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
       } else if (call.method_name() == "stopCapture") {
         std::lock_guard<std::mutex> lock(g_capture_mutex);
         int textureId = -1;
-        if (call.arguments() && call.arguments()->IsMap()) {
-          const auto& args = call.arguments()->MapValue();
-          auto it = args.find("textureId");
-          if (it != args.end()) textureId = std::get<int>(it->second);
+        if (call.arguments() && std::holds_alternative<flutter::EncodableMap>(*call.arguments())) {
+          const auto& args = std::get<flutter::EncodableMap>(*call.arguments());
+          auto it = args.find(flutter::EncodableValue("textureId"));
+          if (it != args.end()) textureId = std::get<int32_t>(it->second);
         }
         auto it = g_captures.find(textureId);
         if (it != g_captures.end()) {
@@ -335,10 +338,10 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
       } else if (call.method_name() == "getFrame") {
         std::lock_guard<std::mutex> lock(g_capture_mutex);
         int textureId = -1;
-        if (call.arguments() && call.arguments()->IsMap()) {
-          const auto& args = call.arguments()->MapValue();
-          auto it = args.find("textureId");
-          if (it != args.end()) textureId = std::get<int>(it->second);
+        if (call.arguments() && std::holds_alternative<flutter::EncodableMap>(*call.arguments())) {
+          const auto& args = std::get<flutter::EncodableMap>(*call.arguments());
+          auto it = args.find(flutter::EncodableValue("textureId"));
+          if (it != args.end()) textureId = std::get<int32_t>(it->second);
         }
         auto it = g_captures.find(textureId);
         if (it != g_captures.end()) {
@@ -353,10 +356,10 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
       } else if (call.method_name() == "getDirtyFrame") {
         std::lock_guard<std::mutex> lock(g_capture_mutex);
         int textureId = -1;
-        if (call.arguments() && call.arguments()->IsMap()) {
-          const auto& args = call.arguments()->MapValue();
-          auto it = args.find("textureId");
-          if (it != args.end()) textureId = std::get<int>(it->second);
+        if (call.arguments() && std::holds_alternative<flutter::EncodableMap>(*call.arguments())) {
+          const auto& args = std::get<flutter::EncodableMap>(*call.arguments());
+          auto it = args.find(flutter::EncodableValue("textureId"));
+          if (it != args.end()) textureId = std::get<int32_t>(it->second);
         }
         auto it = g_captures.find(textureId);
         if (it != g_captures.end()) {
@@ -383,22 +386,22 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
 
   // Input injection channel
   {
-    flutter::MethodChannel channel(
-        controller->engine()->messenger(),
-        "nex.flutter/input_inject_windows",
-        &flutter::StandardMessageCodec::GetInstance());
+    flutter::MethodChannel<flutter::EncodableValue> channel(
+        messenger,
+        "nex.flutter/remote_input_windows",
+        static_cast<const flutter::MethodCodec<flutter::EncodableValue>*>(codec));
     channel.SetMethodCallHandler([](const flutter::MethodCall<flutter::EncodableValue>& call,
                                     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
       if (call.method_name() == "injectMouseMove") {
         int x = 0, y = 0;
         bool absolute = true;
-        if (call.arguments() && call.arguments()->IsMap()) {
-          const auto& args = call.arguments()->MapValue();
-          auto itx = args.find("x");
-          auto ity = args.find("y");
-          auto ita = args.find("absolute");
-          if (itx != args.end()) x = std::get<int>(itx->second);
-          if (ity != args.end()) y = std::get<int>(ity->second);
+        if (call.arguments() && std::holds_alternative<flutter::EncodableMap>(*call.arguments())) {
+          const auto& args = std::get<flutter::EncodableMap>(*call.arguments());
+          auto itx = args.find(flutter::EncodableValue("x"));
+          auto ity = args.find(flutter::EncodableValue("y"));
+          auto ita = args.find(flutter::EncodableValue("absolute"));
+          if (itx != args.end()) x = std::get<int32_t>(itx->second);
+          if (ity != args.end()) y = std::get<int32_t>(ity->second);
           if (ita != args.end()) absolute = std::get<bool>(ita->second);
         }
         InjectMouseMove(x, y, absolute);
@@ -406,21 +409,21 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
       } else if (call.method_name() == "injectMouseButton") {
         int button = 0;
         bool down = false;
-        if (call.arguments() && call.arguments()->IsMap()) {
-          const auto& args = call.arguments()->MapValue();
-          auto itb = args.find("button");
-          auto itd = args.find("down");
-          if (itb != args.end()) button = std::get<int>(itb->second);
+        if (call.arguments() && std::holds_alternative<flutter::EncodableMap>(*call.arguments())) {
+          const auto& args = std::get<flutter::EncodableMap>(*call.arguments());
+          auto itb = args.find(flutter::EncodableValue("button"));
+          auto itd = args.find(flutter::EncodableValue("down"));
+          if (itb != args.end()) button = std::get<int32_t>(itb->second);
           if (itd != args.end()) down = std::get<bool>(itd->second);
         }
         InjectMouseButton(button, down);
         result->Success(flutter::EncodableValue(true));
       } else if (call.method_name() == "injectMouseWheel") {
         int delta = 0;
-        if (call.arguments() && call.arguments()->IsMap()) {
-          const auto& args = call.arguments()->MapValue();
-          auto it = args.find("delta");
-          if (it != args.end()) delta = std::get<int>(it->second);
+        if (call.arguments() && std::holds_alternative<flutter::EncodableMap>(*call.arguments())) {
+          const auto& args = std::get<flutter::EncodableMap>(*call.arguments());
+          auto it = args.find(flutter::EncodableValue("delta"));
+          if (it != args.end()) delta = std::get<int32_t>(it->second);
         }
         InjectMouseWheel(delta);
         result->Success(flutter::EncodableValue(true));
@@ -428,12 +431,12 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
         int scanCode = 0;
         bool down = true;
         bool extended = false;
-        if (call.arguments() && call.arguments()->IsMap()) {
-          const auto& args = call.arguments()->MapValue();
-          auto itk = args.find("scanCode");
-          auto itd = args.find("down");
-          auto ite = args.find("extended");
-          if (itk != args.end()) scanCode = std::get<int>(itk->second);
+        if (call.arguments() && std::holds_alternative<flutter::EncodableMap>(*call.arguments())) {
+          const auto& args = std::get<flutter::EncodableMap>(*call.arguments());
+          auto itk = args.find(flutter::EncodableValue("scanCode"));
+          auto itd = args.find(flutter::EncodableValue("down"));
+          auto ite = args.find(flutter::EncodableValue("extended"));
+          if (itk != args.end()) scanCode = std::get<int32_t>(itk->second);
           if (itd != args.end()) down = std::get<bool>(itd->second);
           if (ite != args.end()) extended = std::get<bool>(ite->second);
         }
@@ -441,9 +444,9 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
         result->Success(flutter::EncodableValue(true));
       } else if (call.method_name() == "injectUnicode") {
         std::string text;
-        if (call.arguments() && call.arguments()->IsMap()) {
-          const auto& args = call.arguments()->MapValue();
-          auto it = args.find("text");
+        if (call.arguments() && std::holds_alternative<flutter::EncodableMap>(*call.arguments())) {
+          const auto& args = std::get<flutter::EncodableMap>(*call.arguments());
+          auto it = args.find(flutter::EncodableValue("text"));
           if (it != args.end()) text = std::get<std::string>(it->second);
         }
         if (!text.empty()) {

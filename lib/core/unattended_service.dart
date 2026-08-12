@@ -1,5 +1,7 @@
 import 'storage_service.dart';
 
+import 'secure_storage_service.dart';
+
 /// 无人值守访问服务
 /// 注意：完整实现需要各平台原生代码（Windows 服务/注册表、macOS LaunchAgent、Linux systemd）
 /// 此处提供基础架构和设置 UI 接入
@@ -17,11 +19,11 @@ class UnattendedService {
   }
 
   Future<String?> getPassword() async {
-    return await StorageService.getString(_passwordKey);
+    return await SecureStorageService.getString(_passwordKey);
   }
 
   Future<void> setPassword(String password) async {
-    await StorageService.setString(_passwordKey, password);
+    await SecureStorageService.setString(_passwordKey, password);
   }
 
   /// 注册系统服务（需在各平台原生代码中实现）

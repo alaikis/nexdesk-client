@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -15,10 +13,9 @@ class LocalRecordingService {
 
   bool _recording = false;
   String? _currentPath;
-  String? _currentSessionId;
   Timer? _durationTimer;
   int _durationSec = 0;
-  final VoidCallback? onRecordingStopped;
+  VoidCallback? onRecordingStopped;
 
   bool get isRecording => _recording;
   String? get currentPath => _currentPath;
@@ -26,7 +23,6 @@ class LocalRecordingService {
 
   Future<void> startRecording(String sessionId) async {
     if (_recording) return;
-    _currentSessionId = sessionId;
 
     try {
       final dir = await getApplicationDocumentsDirectory();

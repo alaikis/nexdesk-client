@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/webrtc_service.dart';
 import '../../core/screen_service.dart';
 import '../../core/signaling_service.dart';
-import '../../core/storage_service.dart';
+import '../../core/secure_storage_service.dart';
 import '../../core/e2ee_service.dart';
 import '../../config/app_config.dart';
 import '../../core/error_handler.dart';
@@ -69,8 +69,8 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     setState(() => _selectingScreens = false);
 
     try {
-      final token = await StorageService.getString('jwt_token') ?? '';
-      final deviceId = await StorageService.getString('device_id') ?? '';
+      final token = await SecureStorageService.getString('jwt_token') ?? '';
+      final deviceId = await SecureStorageService.getString('device_id') ?? '';
 
       final granted = await ScreenCaptureService.requestPermission();
       if (!granted) {
@@ -177,34 +177,38 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   Future<void> _promptForPassword(String sessionId) async {
     final controller = TextEditingController();
-    final password = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Session Password'),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          decoration: const InputDecoration(hintText: 'Enter session password'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Join'),
+    try {
+      final password = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Session Password'),
+          content: TextField(
+            controller: controller,
+            obscureText: true,
+            decoration: const InputDecoration(hintText: 'Enter session password'),
           ),
-        ],
-      ),
-    );
-    if (!mounted) return;
-    if (password == null || password.isEmpty) {
-      GoRouter.of(context).go('/devices');
-      return;
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: const Text('Join'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (password == null || password.isEmpty) {
+        GoRouter.of(context).go('/devices');
+        return;
+      }
+      _signaling?.send(SignalingMessage(
+        type: SignalingMessageType.resumeSession,
+        sessionId: sessionId,
+        payload: {'password': password},
+      ));
+    } finally {
+      controller.dispose();
     }
-    _signaling?.send(SignalingMessage(
-      type: SignalingMessageType.resumeSession,
-      sessionId: sessionId,
-      payload: {'password': password},
-    ));
   }
 
   void _toggleAudio() {
@@ -238,38 +242,42 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   Future<void> _setSessionPassword() async {
     final controller = TextEditingController();
-    final password = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Set Session Password'),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          decoration: const InputDecoration(hintText: 'Enter password (leave empty to remove)'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    if (password == null) return;
     try {
-      await _api.setSessionPassword(widget.sessionId, password);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password updated')),
-        );
+      final password = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Set Session Password'),
+          content: TextField(
+            controller: controller,
+            obscureText: true,
+            decoration: const InputDecoration(hintText: 'Enter password (leave empty to remove)'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      );
+      if (password == null) return;
+      try {
+        await _api.setSessionPassword(widget.sessionId, password);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Password updated')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to set password: $e')),
+          );
+        }
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to set password: $e')),
-        );
-      }
+    } finally {
+      controller.dispose();
     }
   }
 
@@ -299,59 +307,88 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       appBar: AppBar(
         title: Text('Session ${widget.sessionId}'),
         actions: [
-          // E2EE status indicator
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Icon(
-              _e2eeReady ? Icons.shield : Icons.shield_outlined,
-              color: _e2eeReady ? Colors.green : Colors.grey,
-              size: 20,
+          Semantics(
+            label: _e2eeReady ? 'End-to-end encryption enabled' : 'End-to-end encryption disabled',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Icon(
+                _e2eeReady ? Icons.shield : Icons.shield_outlined,
+                color: _e2eeReady ? Colors.green : Colors.grey,
+                size: 20,
+              ),
             ),
           ),
-          IconButton(
-            onPressed: () => _showQualitySettings(),
-            tooltip: 'Quality',
-            icon: const Icon(Icons.hd),
+          Semantics(
+            label: 'Quality settings',
+            child: IconButton(
+              onPressed: () => _showQualitySettings(),
+              tooltip: 'Quality',
+              icon: const Icon(Icons.hd),
+            ),
           ),
-          IconButton(
-            onPressed: _toggleAudio,
-            tooltip: _audioEnabled ? 'Mute' : 'Unmute',
-            icon: Icon(_audioEnabled ? Icons.mic : Icons.mic_off),
+          Semantics(
+            label: _audioEnabled ? 'Mute audio' : 'Unmute audio',
+            child: IconButton(
+              onPressed: _toggleAudio,
+              tooltip: _audioEnabled ? 'Mute' : 'Unmute',
+              icon: Icon(_audioEnabled ? Icons.mic : Icons.mic_off),
+            ),
           ),
-          IconButton(
-            onPressed: () => _showFileTransfers(),
-            tooltip: 'Files',
-            icon: const Icon(Icons.folder_open),
+          Semantics(
+            label: 'File transfers',
+            child: IconButton(
+              onPressed: () => _showFileTransfers(),
+              tooltip: 'Files',
+              icon: const Icon(Icons.folder_open),
+            ),
           ),
-          IconButton(
-            onPressed: () => _showRecordings(),
-            tooltip: 'Recordings',
-            icon: const Icon(Icons.playlist_play),
+          Semantics(
+            label: 'Recordings',
+            child: IconButton(
+              onPressed: () => _showRecordings(),
+              tooltip: 'Recordings',
+              icon: const Icon(Icons.playlist_play),
+            ),
           ),
-          IconButton(
-            onPressed: _setSessionPassword,
-            tooltip: 'Password',
-            icon: const Icon(Icons.lock_outline),
+          Semantics(
+            label: 'Session password',
+            child: IconButton(
+              onPressed: _setSessionPassword,
+              tooltip: 'Password',
+              icon: const Icon(Icons.lock_outline),
+            ),
           ),
-          IconButton(
-            onPressed: () => _showChat(),
-            tooltip: 'Chat',
-            icon: const Icon(Icons.chat_bubble_outline),
+          Semantics(
+            label: 'Chat',
+            child: IconButton(
+              onPressed: () => _showChat(),
+              tooltip: 'Chat',
+              icon: const Icon(Icons.chat_bubble_outline),
+            ),
           ),
-          IconButton(
-            onPressed: () => _showClipboard(),
-            tooltip: 'Clipboard',
-            icon: const Icon(Icons.content_paste),
+          Semantics(
+            label: 'Clipboard',
+            child: IconButton(
+              onPressed: () => _showClipboard(),
+              tooltip: 'Clipboard',
+              icon: const Icon(Icons.content_paste),
+            ),
           ),
-          IconButton(
-            onPressed: () => _showRecording(),
-            tooltip: 'Record',
-            icon: const Icon(Icons.fiber_manual_record),
+          Semantics(
+            label: 'Start recording',
+            child: IconButton(
+              onPressed: () => _showRecording(),
+              tooltip: 'Record',
+              icon: const Icon(Icons.fiber_manual_record),
+            ),
           ),
-          IconButton(
-            onPressed: () => _webrtc.dispose(),
-            tooltip: 'Close',
-            icon: const Icon(Icons.close),
+          Semantics(
+            label: 'Close session',
+            child: IconButton(
+              onPressed: () => _webrtc.dispose(),
+              tooltip: 'Close',
+              icon: const Icon(Icons.close),
+            ),
           ),
         ],
       ),

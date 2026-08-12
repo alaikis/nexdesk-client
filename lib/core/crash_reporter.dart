@@ -19,7 +19,7 @@ class CrashReporter {
     }
 
     FlutterError.onError = (details) {
-      recordError(details.exception, details.stack, context: {'flutter_error': details.library});
+      recordError(details.exception, details.stack, context: {'flutter_error': details.library ?? ''});
     };
 
     PlatformDispatcher.instance.onError = (error, stack) {

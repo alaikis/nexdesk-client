@@ -19,10 +19,15 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   bool _loading = false;
+  String? _emailError;
+  String? _passwordError;
+  String? _nameError;
 
   @override
   Widget build(BuildContext context) {
     final isLogin = widget.mode == AuthMode.login;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hintColor = isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93);
 
     return Scaffold(
       body: Center(
@@ -52,6 +57,7 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                     controller: _nameController,
                     label: 'Name',
                     icon: Icons.person_outline,
+                    errorText: _nameError,
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -60,6 +66,7 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                   label: 'Email',
                   icon: Icons.mail_outline,
                   keyboardType: TextInputType.emailAddress,
+                  errorText: _emailError,
                 ),
                 const SizedBox(height: 12),
                 _GlassTextField(
@@ -67,6 +74,7 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                   label: 'Password',
                   icon: Icons.lock_outline,
                   obscureText: true,
+                  errorText: _passwordError,
                 ),
                 const SizedBox(height: 24),
                 _loading
@@ -93,7 +101,7 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                     isLogin
                         ? "Don't have an account? Sign up"
                         : 'Already have an account? Sign in',
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(fontSize: 13, color: hintColor),
                   ),
                 ),
               ],
@@ -110,36 +118,65 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
     final password = _passwordController.text;
     final name = _nameController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email and password are required')),
-      );
-      return;
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+      _nameError = null;
+    });
+
+    bool valid = true;
+    if (email.isEmpty) {
+      setState(() => _emailError = 'Email is required');
+      valid = false;
+    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email)) {
+      setState(() => _emailError = 'Enter a valid email');
+      valid = false;
+    }
+    if (password.isEmpty) {
+      setState(() => _passwordError = 'Password is required');
+      valid = false;
+    } else if (password.length < 8) {
+      setState(() => _passwordError = 'Password must be at least 8 characters');
+      valid = false;
     }
     if (!isLogin && name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name is required')),
-      );
-      return;
+      setState(() => _nameError = 'Name is required');
+      valid = false;
     }
+    if (!valid) return;
 
     setState(() => _loading = true);
     final auth = context.read<AuthProvider>();
-    final ok = isLogin
-        ? await auth.login(email, password)
-        : await auth.register(email, password, name);
-    if (!mounted) return;
-    setState(() => _loading = false);
+    bool ok = false;
+    try {
+      ok = await (isLogin
+          ? auth.login(email, password)
+          : auth.register(email, password, name)).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => false,
+      );
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Request failed: ${e.toString().replaceAll('Exception: ', '')}')),
+        );
+      }
+      ok = false;
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
 
     if (ok) {
-      context.go('/devices');
+      if (mounted) context.go('/devices');
     } else if (auth.requires2FA) {
-      context.go('/2fa');
+      if (mounted) context.go('/2fa');
     } else {
       final message = auth.lastError ?? (isLogin ? 'Login failed' : 'Registration failed');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
     }
   }
 
@@ -158,6 +195,7 @@ class _GlassTextField extends StatelessWidget {
   final IconData icon;
   final TextInputType? keyboardType;
   final bool obscureText;
+  final String? errorText;
 
   const _GlassTextField({
     required this.controller,
@@ -165,19 +203,27 @@ class _GlassTextField extends StatelessWidget {
     required this.icon,
     this.keyboardType,
     this.obscureText = false,
+    this.errorText,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor = isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93);
+
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 18, color: const Color(0xFF8E8E93)),
+        prefixIcon: Icon(icon, size: 18, color: labelColor),
+        errorText: errorText,
       ),
-      style: const TextStyle(color: Color(0xFF1D1D1F), fontSize: 15),
+      style: TextStyle(
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFFF5F5F7) : const Color(0xFF1D1D1F),
+        fontSize: 15,
+      ),
     );
   }
 }

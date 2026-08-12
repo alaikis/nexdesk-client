@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../../core/api_client.dart';
 import '../../core/storage_service.dart';
+import '../../core/secure_storage_service.dart';
 
 class Device with ChangeNotifier {
   final String id;
@@ -29,6 +31,7 @@ class Device with ChangeNotifier {
 }
 
 class DeviceProvider with ChangeNotifier {
+  static const _cacheKey = 'cached_devices';
   final ApiClient _api = ApiClient();
 
   List<Device> _devices = [];
@@ -42,8 +45,12 @@ class DeviceProvider with ChangeNotifier {
     try {
       final list = await _api.listDevices();
       _devices = list.map((d) => Device.fromJson(d as Map<String, dynamic>)).toList();
+      await _cacheDevices(_devices);
     } on ApiException catch (e) {
       debugPrint('Load devices failed: $e');
+      if (_devices.isEmpty) {
+        _devices = await _loadCachedDevices();
+      }
     } finally {
       _loading = false;
       notifyListeners();
@@ -51,7 +58,7 @@ class DeviceProvider with ChangeNotifier {
   }
 
   Future<void> refresh() async {
-    final deviceId = await StorageService.getString('device_id');
+    final deviceId = await SecureStorageService.getString('device_id');
     if (deviceId == null) return;
     try {
       await _api.heartbeat(deviceId);
@@ -61,12 +68,38 @@ class DeviceProvider with ChangeNotifier {
     }
   }
 
+  Future<List<Device>> _loadCachedDevices() async {
+    try {
+      final raw = await StorageService.getString(_cacheKey);
+      if (raw == null) return [];
+      final List<dynamic> list = jsonDecode(raw);
+      return list.map((d) => Device.fromJson(d as Map<String, dynamic>)).toList();
+    } on Exception catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> _cacheDevices(List<Device> devices) async {
+    try {
+      final json = devices.map((d) => {
+        'id': d.id,
+        'name': d.name,
+        'os': d.os,
+        'online': d.online,
+        'wol_enabled': d.wolEnabled,
+      }).toList();
+      await StorageService.setString(_cacheKey, jsonEncode(json));
+    } on Exception catch (_) {
+      debugPrint('Failed to cache devices');
+    }
+  }
+
   Future<bool> registerDevice(String name, String os) async {
     try {
       final res = await _api.registerDevice(name: name, os: os, pubkey: '');
       final device = Device.fromJson(res);
       _devices.add(device);
-      await StorageService.setString('device_id', device.id);
+      await SecureStorageService.setString('device_id', device.id);
       notifyListeners();
       return true;
     } on ApiException catch (e) {

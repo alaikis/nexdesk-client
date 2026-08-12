@@ -1,4 +1,4 @@
-name: Build
+name: CI/CD - Multi-Platform Build & Release
 
 on:
   push:
@@ -7,11 +7,103 @@ on:
   workflow_dispatch:
 
 env:
-  FLUTTER_VERSION: '3.22'
+  FLUTTER_VERSION: '3.22.0'
+  APP_NAME: NEX
+  APP_VERSION: 0.1.0-alpha.13
 
 jobs:
+  build-windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - run: flutter build windows --release
+        env:
+          CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
+      - name: Package Windows ZIP
+        shell: bash
+        run: |
+          7z a nex-windows.zip build/windows/x64/Release/.
+          ls -lh nex-windows.zip
+      - name: Prepare Windows installer payload
+        shell: bash
+        run: |
+          mkdir -p build/windows/x64/Release/nex-windows
+          cp -r installer/nex-windows/* build/windows/x64/Release/nex-windows/
+          cp -r build/windows/x64/Release/* build/windows/x64/Release/nex-windows/
+      - name: Build Windows Installer (NSIS)
+        shell: bash
+        run: |
+          cd build/windows/x64/Release
+          makensis ../../../../../../installer/nex.nsi
+          ls -lh NEX-Setup-*.exe
+      - name: Sign Windows binaries
+        if: startsWith(github.ref, 'refs/tags/v') && env.WINDOWS_CERT_PFX != ''
+        shell: bash
+        run: |
+          echo "Signing Windows binaries..."
+          # Convert PFX to P12 if needed
+          # signtool sign /f "${{ env.WINDOWS_CERT_PFX }}" /p "${{ secrets.WINDOWS_CERT_PASSWORD }}" /tr http://timestamp.digicert.com /td sha256 /fd sha256 NEX-Setup-*.exe
+          echo "Windows signing placeholder - configure WINDOWS_CERT_PFX secret"
+      - name: Compute checksums
+        shell: bash
+        run: |
+          cd build/windows/x64/Release
+          sha256sum NEX-Setup-*.exe > NEX-Setup-${{ env.APP_VERSION }}-win.exe.sha256
+          sha256sum nex-windows.zip > nex-windows.zip.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            build/windows/x64/Release/NEX-Setup-*.exe
+            build/windows/x64/Release/nex-windows.zip
+            build/windows/x64/Release/*.sha256
+
+  build-macos:
+    name: macOS
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - run: flutter config --enable-macos-desktop
+      - run: flutter pub get
+      - run: flutter build macos --release
+      - name: Sign macOS app
+        if: startsWith(github.ref, 'refs/tags/v') && env.MACOS_CERT_P12 != ''
+        run: |
+          echo "Signing macOS app..."
+          # security create-keychain -p "${{ secrets.MACOS_KEYCHAIN_PASSWORD }}" build.keychain
+          # security import "${{ env.MACOS_CERT_P12 }}" -k build.keychain -P "${{ secrets.MACOS_CERT_PASSWORD }}" -T /usr/bin/codesign
+          # security unlock-keychain -p "${{ secrets.MACOS_KEYCHAIN_PASSWORD }}" build.keychain
+          # codesign --deep --force --sign "${{ env.MACOS_CERT_ID }}" build/macos/Build/Products/Release/*.app
+          # echo "macOS signing placeholder - configure MACOS_CERT_P12 secret"
+      - name: Package macOS
+        shell: bash
+        run: |
+          zip -r nex-macos.zip build/macos/Build/Products/Release/*.app
+          ls -lh nex-macos.zip
+      - name: Compute checksums
+        shell: bash
+        run: |
+          sha256sum nex-macos.zip > nex-macos.zip.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: |
+            nex-macos.zip
+            nex-macos.zip.sha256
+
   build-linux:
-    name: Build Linux
+    name: Linux
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -20,21 +112,54 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter config --enable-linux-desktop
-      - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev
-      - name: Get dependencies
-        run: flutter pub get
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev liblzma-dev libfuse2
+      - run: flutter pub get
       - run: flutter build linux --release
-      - name: Package Linux
+      - name: Package Linux TAR
+        shell: bash
         run: |
           tar -czf nex-linux-x64.tar.gz -C build/linux/x64/release/bundle .
           ls -lh nex-linux-x64.tar.gz
+      - name: Build Linux AppImage
+        shell: bash
+        run: |
+          echo "Building AppImage..."
+          # Download linuxdeploy
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+          # Create AppDir
+          mkdir -p AppDir/usr/bin
+          cp -r build/linux/x64/release/bundle/* AppDir/usr/
+          # Create desktop entry
+          cat > AppDir/nex.desktop << 'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=NEX
+          Exec=nex
+          Icon=nex
+          Categories=Network;RemoteAccess;
+          EOF
+          # Create icon
+          cp installer/nex-windows/web/favicon.svg AppDir/nex.svg
+          # Build AppImage
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
+          ls -lh NEX-*.AppImage || true
+      - name: Compute checksums
+        shell: bash
+        run: |
+          sha256sum nex-linux-x64.tar.gz > nex-linux-x64.tar.gz.sha256
+          if ls NEX-*.AppImage 1>/dev/null 2>&1; then sha256sum NEX-*.AppImage > nex-linux.AppImage.sha256; fi
       - uses: actions/upload-artifact@v4
         with:
-          name: nex-linux-x64
-          path: nex-linux-x64.tar.gz
+          name: linux-artifacts
+          path: |
+            nex-linux-x64.tar.gz
+            nex-linux-x64.tar.gz.sha256
+            NEX-*.AppImage
+            nex-linux.AppImage.sha256
 
   build-android:
-    name: Build Android
+    name: Android
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -46,64 +171,25 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
-      - name: Get dependencies
-        run: flutter pub get
+      - run: flutter pub get
       - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: nex-android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-
-  build-macos:
-    name: Build macOS
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-      - run: flutter config --enable-macos-desktop
-      - name: Get dependencies
-        run: flutter pub get
-      - run: flutter build macos --release
-      - name: Package macOS
-        run: |
-          zip -r nex-macos.zip build/macos/Build/Products/Release/*.app
-          ls -lh nex-macos.zip
-      - uses: actions/upload-artifact@v4
-        with:
-          name: nex-macos
-          path: nex-macos.zip
-
-  build-windows:
-    name: Build Windows
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-      - run: flutter config --enable-windows-desktop
-      - name: Get dependencies
-        run: flutter pub get
-      - run: flutter build windows --release
-        env:
-          CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
-      - name: Package Windows
+      - run: flutter build appbundle --release
+      - name: Compute checksums
         shell: bash
         run: |
-          7z a nex-windows.zip build/windows/x64/Release/.
-          ls -lh nex-windows.zip
+          sha256sum build/app/outputs/flutter-apk/app-release.apk > app-release.apk.sha256
+          sha256sum build/app/outputs/bundle/release/app-release.aab > app-release.aab.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: nex-windows
-          path: nex-windows.zip
+          name: android-artifacts
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+            *.sha256
 
   release:
-    name: Create Release
-    needs: [build-linux, build-android, build-macos, build-windows]
+    name: Create GitHub Release
+    needs: [build-windows, build-macos, build-linux, build-android]
     runs-on: ubuntu-22.04
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -114,6 +200,8 @@ jobs:
         with:
           path: release-assets
           merge-multiple: true
+      - name: List release assets
+        run: find release-assets -type f | sort
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -121,5 +209,19 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          body: |
+            ## NEX ${{ env.APP_VERSION }}
+
+            ### Downloads
+            - **Windows**: `NEX-Setup-${{ env.APP_VERSION }}-win.exe` (installer) + `nex-windows.zip` (portable)
+            - **macOS**: `nex-macos.zip`
+            - **Linux**: `nex-linux-x64.tar.gz` + `NEX-*.AppImage`
+            - **Android**: `app-release.apk` + `app-release.aab`
+
+            ### Installation
+            - **Windows**: Run the `.exe` installer and follow the wizard.
+            - **macOS**: Unzip and drag `NEX.app` to `/Applications`.
+            - **Linux**: Extract the tarball or run the AppImage.
+            - **Android**: Install the APK or download from app store (coming soon).
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

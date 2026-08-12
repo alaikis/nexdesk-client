@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'two_factor_screen.dart';
 
@@ -11,6 +12,26 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final String _baseUrl = 'https://nex.hottol.com';
+  String _version = '0.1.0';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _version = '${info.version} (${info.buildNumber})';
+        });
+      }
+    } on Exception catch (_) {
+      if (mounted) setState(() {});
+    }
+  }
 
   Future<void> _launchUrl(String path) async {
     final uri = Uri.parse('$_baseUrl$path');
@@ -67,11 +88,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'NEX version 0.1.0',
-              style: TextStyle(fontSize: 12, color: Color(0xFF8E8E93)),
+              'NEX version $_version',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF8E8E93)),
             ),
           ),
         ],

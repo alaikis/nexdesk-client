@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../config/app_config.dart';
 import '../../core/storage_service.dart';
+import '../../core/secure_storage_service.dart';
 import '../../core/log_service.dart';
 
 class ApiException implements Exception {
@@ -28,22 +29,22 @@ class ApiClient {
   String? get refreshToken => _refreshToken;
 
   Future<void> init() async {
-    _token = await StorageService.getString('jwt_token');
-    _refreshToken = await StorageService.getString('jwt_refresh_token');
+    _token = await SecureStorageService.getString('jwt_token');
+    _refreshToken = await SecureStorageService.getString('jwt_refresh_token');
   }
 
   Future<void> _saveAuth(String? token, String? refresh) async {
     _token = token;
     _refreshToken = refresh;
     if (token != null) {
-      await StorageService.setString('jwt_token', token);
+      await SecureStorageService.setString('jwt_token', token);
     } else {
-      await StorageService.delete('jwt_token');
+      await SecureStorageService.delete('jwt_token');
     }
     if (refresh != null) {
-      await StorageService.setString('jwt_refresh_token', refresh);
+      await SecureStorageService.setString('jwt_refresh_token', refresh);
     } else {
-      await StorageService.delete('jwt_refresh_token');
+      await SecureStorageService.delete('jwt_refresh_token');
     }
   }
 
@@ -81,6 +82,7 @@ class ApiClient {
     String method,
     String path, {
     Map<String, dynamic>? body,
+    int retries = 2,
   }) async {
     final uri = Uri.parse('${AppConfig.apiBaseUrl}$path');
     final headers = <String, String>{'Content-Type': 'application/json'};
@@ -91,30 +93,38 @@ class ApiClient {
       headers['X-Refresh-Token'] = _refreshToken!;
     }
 
+    Future<http.Response> sendRequest(http.Client client) async {
+      switch (method) {
+        case 'GET':
+          return client.get(uri, headers: headers).timeout(const Duration(seconds: 15));
+        case 'POST':
+          return client.post(uri, headers: headers, body: _encode(body)).timeout(const Duration(seconds: 15));
+        case 'PATCH':
+          return client.patch(uri, headers: headers, body: _encode(body)).timeout(const Duration(seconds: 15));
+        case 'DELETE':
+          return client.delete(uri, headers: headers).timeout(const Duration(seconds: 15));
+        default:
+          throw ArgumentError('Unsupported method: $method');
+      }
+    }
+
     late http.Response response;
     final client = _client ?? http.Client();
-    switch (method) {
-      case 'GET':
-        response = await client.get(uri, headers: headers);
-        break;
-      case 'POST':
-        response = await client.post(uri, headers: headers, body: _encode(body));
-        break;
-      case 'PATCH':
-        response = await client.patch(uri, headers: headers, body: _encode(body));
-        break;
-      case 'DELETE':
-        response = await client.delete(uri, headers: headers);
-        break;
-      default:
-        throw ArgumentError('Unsupported method: $method');
+    try {
+      response = await sendRequest(client);
+    } on Exception catch (_) {
+      if (retries > 0) {
+        await Future.delayed(const Duration(seconds: 1));
+        return _request(method, path, body: body, retries: retries - 1);
+      }
+      rethrow;
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final refreshed = response.headers['x-access-token'];
       if (refreshed != null && refreshed.isNotEmpty) {
         _token = refreshed;
-        await StorageService.setString('jwt_token', refreshed);
+        await SecureStorageService.setString('jwt_token', refreshed);
       }
       LogService().debug('HTTP $method $path -> ${response.statusCode}');
       if (response.body.isEmpty) return {};
@@ -130,16 +140,16 @@ class ApiClient {
         http.Response retryResponse;
         switch (method) {
           case 'GET':
-            retryResponse = await client2.get(uri, headers: newHeaders);
+            retryResponse = await client2.get(uri, headers: newHeaders).timeout(const Duration(seconds: 15));
             break;
           case 'POST':
-            retryResponse = await client2.post(uri, headers: newHeaders, body: _encode(body));
+            retryResponse = await client2.post(uri, headers: newHeaders, body: _encode(body)).timeout(const Duration(seconds: 15));
             break;
           case 'PATCH':
-            retryResponse = await client2.patch(uri, headers: newHeaders, body: _encode(body));
+            retryResponse = await client2.patch(uri, headers: newHeaders, body: _encode(body)).timeout(const Duration(seconds: 15));
             break;
           case 'DELETE':
-            retryResponse = await client2.delete(uri, headers: newHeaders);
+            retryResponse = await client2.delete(uri, headers: newHeaders).timeout(const Duration(seconds: 15));
             break;
           default:
             throw ArgumentError('Unsupported method: $method');
@@ -209,7 +219,7 @@ class ApiClient {
     required String pubkey,
     String? fingerprint,
   }) async {
-    final deviceId = await StorageService.getString('device_id');
+    final deviceId = await SecureStorageService.getString('device_id');
     final body = <String, dynamic>{
       'name': name,
       'os': os,

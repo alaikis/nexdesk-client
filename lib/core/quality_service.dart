@@ -9,6 +9,7 @@ class AdaptiveBitrateController {
   AdaptiveBitrateController._internal();
 
   Timer? _monitorTimer;
+  String? _sessionId;
   final ApiClient _api = ApiClient();
   QualityProfile _currentProfile = QualityProfile.auto;
   int _consecutiveDegradeCount = 0;
@@ -20,6 +21,7 @@ class AdaptiveBitrateController {
 
   void start(String sessionId) {
     stop();
+    _sessionId = sessionId;
     _monitorTimer = Timer.periodic(_monitorInterval, (_) => _checkAndAdjust(sessionId));
   }
 
@@ -65,8 +67,9 @@ class AdaptiveBitrateController {
   }
 
   Future<Map<String, dynamic>?> _getWebRtcStats() async {
+    if (_sessionId == null) return null;
     try {
-      final res = await _api.get('/sessions/$sessionId/webrtc-stats');
+      final res = await _api.get('/sessions/$_sessionId/webrtc-stats');
       return res;
     } catch (_) {
       return null;

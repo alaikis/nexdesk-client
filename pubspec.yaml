@@ -28,11 +28,11 @@ dependencies:
 
   # Crypto
   crypto: ^3.0.3
-  sodium_libs: ^2.0.0
+  sodium: ^4.0.4
 
   # Storage
   shared_preferences: ^2.2.3
-  flutter_secure_storage: ^9.0.0
+  flutter_secure_storage: ^10.3.1
 
   # Desktop window management
   window_manager: ^0.4.0

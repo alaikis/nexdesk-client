@@ -25,7 +25,7 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
-  NativeMethodChannel::Register(flutter_controller_);
+  NativeMethodChannel::Register(flutter_controller_.get());
 
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 

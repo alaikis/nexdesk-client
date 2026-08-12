@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'screen_capture_service.dart';
-import 'storage_service.dart';
+import 'secure_storage_service.dart';
 import 'signaling_service.dart';
 import '../features/session/session_provider.dart';
 import '../config/app_config.dart';
@@ -18,14 +18,14 @@ class InputInjectorService {
 
   Future<void> init(SessionProvider sessionProvider) async {
     if (_initialized) return;
-    _deviceId = await StorageService.getString('device_id');
+    _deviceId = await SecureStorageService.getString('device_id');
     _sessionProvider = sessionProvider;
     _initialized = true;
   }
 
   Future<void> start() async {
     if (_signaling != null) return;
-    final token = await StorageService.getString('jwt_token') ?? '';
+    final token = await SecureStorageService.getString('jwt_token') ?? '';
     final deviceId = _deviceId ?? '';
     if (token.isEmpty || deviceId.isEmpty) return;
 

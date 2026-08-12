@@ -1,44 +1,51 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
 class StorageService {
-  static const _secure = FlutterSecureStorage();
   static const _prefix = 'nex_';
 
+  static Future<SharedPreferences> _prefs() async {
+    return await SharedPreferences.getInstance();
+  }
+
   static Future<String?> getString(String key) async {
-    return await _secure.read(key: _prefix + key);
+    return (await _prefs()).getString(_prefix + key);
   }
 
   static Future<void> setString(String key, String value) async {
-    await _secure.write(key: _prefix + key, value: value);
+    await (await _prefs()).setString(_prefix + key, value);
   }
 
   static Future<Uint8List?> getBytes(String key) async {
-    final raw = await _secure.read(key: _prefix + key);
+    final raw = await getString(key);
     if (raw == null) return null;
     return Uint8List.fromList(base64Decode(raw));
   }
 
   static Future<void> setBytes(String key, Uint8List value) async {
-    await _secure.write(key: _prefix + key, value: base64Encode(value));
+    await setString(key, base64Encode(value));
   }
 
   static Future<void> delete(String key) async {
-    await _secure.delete(key: _prefix + key);
+    await (await _prefs()).remove(_prefix + key);
   }
 
   static Future<void> clear() async {
-    await _secure.deleteAll();
+    final prefs = await _prefs();
+    final keys = prefs.getKeys().where((k) => k.startsWith(_prefix)).toList();
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
   }
 
   static Future<bool> has(String key) async {
-    final val = await _secure.read(key: _prefix + key);
+    final val = await getString(key);
     return val != null;
   }
 
   static Future<List<String>> getStringList(String key) async {
-    final raw = await _secure.read(key: _prefix + key);
+    final raw = await getString(key);
     if (raw == null) return [];
     try {
       final list = jsonDecode(raw) as List<dynamic>;
@@ -49,6 +56,6 @@ class StorageService {
   }
 
   static Future<void> setStringList(String key, List<String> value) async {
-    await _secure.write(key: _prefix + key, value: jsonEncode(value));
+    await setString(key, jsonEncode(value));
   }
 }

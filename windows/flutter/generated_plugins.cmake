@@ -7,7 +7,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_webrtc
   permission_handler_windows
   screen_retriever_windows
-  sodium_libs
   url_launcher_windows
   window_manager
 )

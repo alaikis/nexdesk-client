@@ -11,6 +11,8 @@ import 'platform/platform_service.dart';
 import 'core/crash_reporter.dart';
 import 'core/api_client.dart';
 import 'core/input_injector_service.dart';
+import 'core/log_service.dart';
+import 'core/update_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,7 +41,48 @@ Future<void> main() async {
 
   await _checkForUpdates();
 
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    if (UpdateService().updateAvailable && UpdateService().latestUpdate != null) {
+      final update = UpdateService().latestUpdate!;
+      final ctx = NexApp.navigatorKey.currentContext;
+      if (ctx != null && ctx.mounted) {
+        showDialog(
+          context: ctx,
+          barrierDismissible: false,
+          builder: (dialogCtx) => AlertDialog(
+            title: Text('Update available: ${update.version}'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('A new version is available. Would you like to download it?'),
+                if (update.notes != null && update.notes!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(update.notes!, style: Theme.of(dialogCtx).textTheme.bodyMedium),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Later'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  UpdateService().downloadUpdate();
+                },
+                child: const Text('Download'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  });
+
   ErrorWidget.builder = (FlutterErrorDetails details) {
+    LogService().error('UI error: ${details.exception}', error: details.exception, stackTrace: details.stack);
     return Material(
       child: Center(
         child: Padding(
@@ -54,10 +97,10 @@ Future<void> main() async {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF1D1D1F)),
               ),
               const SizedBox(height: 8),
-              Text(
-                details.exceptionAsString(),
+              const Text(
+                'An unexpected error occurred. Please restart the app.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
+                style: TextStyle(color: Colors.grey),
               ),
             ],
           ),

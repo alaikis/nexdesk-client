@@ -77,17 +77,22 @@ class TwoFactorService {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     final clean = input.toUpperCase().replaceAll('=', '').replaceAll(' ', '');
 
-    final bits = StringBuffer();
+    final bits = <int>[];
     for (final char in clean.codeUnits) {
       final idx = alphabet.indexOf(String.fromCharCode(char));
       if (idx >= 0) {
-        bits.write(idx.toRadixString(2).padLeft(5, '0'));
+        for (int i = 4; i >= 0; i--) {
+          bits.add((idx >> i) & 1);
+        }
       }
     }
 
     final bytes = <int>[];
     for (int i = 0; i + 8 <= bits.length; i += 8) {
-      final byte = int.parse(bits.toString().substring(i, i + 8), radix: 2);
+      int byte = 0;
+      for (int j = 0; j < 8; j++) {
+        byte = (byte << 1) | bits[i + j];
+      }
       bytes.add(byte);
     }
 

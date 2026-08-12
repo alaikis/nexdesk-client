@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../app.dart';
 import '../../features/devices/device_provider.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/session/session_provider.dart';
@@ -57,16 +58,20 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
           IconButton(
             onPressed: () => context.go('/settings'),
             icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
           ),
           IconButton(
             onPressed: () async {
               final auth = context.read<AuthProvider>();
               await auth.logout();
               if (!mounted) return;
-              // ignore: use_build_context_synchronously
-              context.go('/login');
+              final navCtx = NexApp.navigatorKey.currentContext;
+              if (navCtx != null && navCtx.mounted) {
+                GoRouter.of(navCtx).go('/login');
+              }
             },
             icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
           ),
         ],
       ),
@@ -104,10 +109,13 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                       _StatusBadge(isOnline: device.online),
                       if (device.wolEnabled) ...[
                         const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: _waking ? null : () => _wakeDevice(device.id),
-                          tooltip: 'Wake',
-                          icon: const Icon(Icons.power_settings_new, color: Color(0xFF007AFF)),
+                        Semantics(
+                          label: 'Wake device',
+                          child: IconButton(
+                            onPressed: _waking ? null : () => _wakeDevice(device.id),
+                            tooltip: 'Wake',
+                            icon: const Icon(Icons.power_settings_new, color: Color(0xFF007AFF)),
+                          ),
                         ),
                       ],
                     ],
