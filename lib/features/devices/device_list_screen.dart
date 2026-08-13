@@ -1,11 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../app.dart';
 import '../../features/devices/device_provider.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/session/session_provider.dart';
 import '../../core/error_handler.dart';
+import '../../widgets/nex_card.dart';
+import '../../widgets/nex_button.dart';
+import '../../widgets/nex_input.dart';
+import '../../widgets/online_dot.dart';
+import '../../widgets/sidebar.dart';
 
 class DeviceListScreen extends StatefulWidget {
   const DeviceListScreen({super.key});
@@ -15,7 +21,9 @@ class DeviceListScreen extends StatefulWidget {
 }
 
 class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
-  bool _waking = false;
+  int _selectedNav = 0;
+  Timer? _refreshTimer;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -23,13 +31,24 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<DeviceProvider>().loadDevices();
     });
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) context.read<DeviceProvider>().refresh();
+    });
+    _searchController.addListener(() {
+      context.read<DeviceProvider>().setFilter(_searchController.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _wakeDevice(String deviceId) async {
-    setState(() => _waking = true);
     final ok = await context.read<DeviceProvider>().wakeDevice(deviceId);
     if (mounted) {
-      setState(() => _waking = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(ok ? 'Magic packet sent' : 'Failed to wake device')),
       );
@@ -49,154 +68,292 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
     context.go('/session/${res.id}');
   }
 
+  Future<void> _copyCode(String code) async {
+    await Clipboard.setData(ClipboardData(text: code));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Copied'), duration: Duration(seconds: 1)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final devices = context.watch<DeviceProvider>();
+    final currentDeviceId = context.watch<AuthProvider>().deviceId;
+    final currentDevice = devices.devices.firstWhere(
+      (d) => d.id == currentDeviceId,
+      orElse: () => Device(id: '', name: '', os: '', online: false, code: ''),
+    );
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Devices'),
-        actions: [
-          IconButton(
-            onPressed: () => context.go('/settings'),
-            icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
-          ),
-          IconButton(
-            onPressed: () async {
-              final auth = context.read<AuthProvider>();
-              await auth.logout();
-              if (!mounted) return;
-              final navCtx = NexApp.navigatorKey.currentContext;
-              if (navCtx != null && navCtx.mounted) {
-                GoRouter.of(navCtx).go('/login');
-              }
+      body: Row(
+        children: [
+          NexSidebar(
+            selectedIndex: _selectedNav,
+            onTap: (index) {
+              setState(() => _selectedNav = index);
+              if (index == 2) context.go('/settings');
             },
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
+            items: const [
+              SidebarItem(icon: Icons.computer, label: 'Devices'),
+              SidebarItem(icon: Icons.history, label: 'Sessions'),
+              SidebarItem(icon: Icons.settings, label: 'Settings'),
+            ],
           ),
-        ],
-      ),
-      body: ListenableBuilder(
-        listenable: context.read<DeviceProvider>(),
-        builder: (context, _) {
-          final devices = context.read<DeviceProvider>().devices;
-          if (context.read<DeviceProvider>().loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (devices.isEmpty) {
-            return const Center(child: Text('No devices yet'));
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: devices.length,
-            itemBuilder: (context, index) {
-              final device = devices[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(14),
-                  leading: _DeviceIcon(index: index),
-                  title: Text(
-                    device.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  subtitle: Text(
-                    device.os,
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF8E8E93)),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Row(
                     children: [
-                      _StatusBadge(isOnline: device.online),
-                      if (device.wolEnabled) ...[
-                        const SizedBox(width: 8),
-                        Semantics(
-                          label: 'Wake device',
-                          child: IconButton(
-                            onPressed: _waking ? null : () => _wakeDevice(device.id),
-                            tooltip: 'Wake',
-                            icon: const Icon(Icons.power_settings_new, color: Color(0xFF007AFF)),
-                          ),
+                      Expanded(
+                        child: NexInput(
+                          controller: _searchController,
+                          hintText: 'Search devices...',
+                          prefixIcon: Icons.search,
                         ),
-                      ],
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: null,
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add'),
+                      ),
                     ],
                   ),
-                  onTap: () => _startSession(device.id),
                 ),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: null,
-        tooltip: 'Register new device (coming soon)',
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-    );
-  }
-}
-
-class _DeviceIcon extends StatelessWidget {
-  final int index;
-  const _DeviceIcon({required this.index});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = [
-      const Color(0xFF007AFF),
-      const Color(0xFFAF52DE),
-      const Color(0xFF34C759),
-    ];
-    final icons = [
-      Icons.computer,
-      Icons.laptop_mac,
-      Icons.smartphone,
-    ];
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: colors[index % colors.length].withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Icon(icons[index % icons.length], color: colors[index % colors.length], size: 20),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final bool isOnline;
-  const _StatusBadge({required this.isOnline});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: isOnline ? const Color(0xFF34C759).withValues(alpha: 0.12) : const Color(0xFF8E8E93).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: isOnline ? const Color(0xFF34C759) : const Color(0xFF8E8E93),
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            isOnline ? 'Online' : 'Offline',
-            style: TextStyle(
-              color: isOnline ? const Color(0xFF34C759) : const Color(0xFF8E8E93),
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListenableBuilder(
+                    listenable: devices,
+                    builder: (context, _) {
+                      if (devices.loading && devices.devices.isEmpty) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      return ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        children: [
+                          if (currentDevice.id.isNotEmpty) ...[
+                            _LocalDeviceCard(device: currentDevice, onCopy: _copyCode),
+                            const SizedBox(height: 20),
+                          ],
+                          if (devices.onlineDevices.isNotEmpty) ...[
+                            _SectionHeader(title: 'Online (${devices.onlineDevices.length})'),
+                            const SizedBox(height: 8),
+                            ...devices.onlineDevices.map((d) => _DeviceCard(
+                                  device: d,
+                                  onConnect: () => _startSession(d.id),
+                                  onCopy: () => _copyCode(d.code),
+                                  onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
+                                )),
+                            const SizedBox(height: 20),
+                          ],
+                          if (devices.offlineDevices.isNotEmpty) ...[
+                            _SectionHeader(title: 'Offline (${devices.offlineDevices.length})'),
+                            const SizedBox(height: 8),
+                            ...devices.offlineDevices.map((d) => _DeviceCard(
+                                  device: d,
+                                  onConnect: () => _startSession(d.id),
+                                  onCopy: () => _copyCode(d.code),
+                                  onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
+                                )),
+                          ],
+                          if (devices.devices.isEmpty)
+                            _EmptyState(onAdd: () {}),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Text(
+      title,
+      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant, letterSpacing: 0.5),
+    );
+  }
+}
+
+class _LocalDeviceCard extends StatelessWidget {
+  final Device device;
+  final ValueChanged<String> onCopy;
+  const _LocalDeviceCard({required this.device, required this.onCopy});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return NexCard(
+      color: cs.primaryContainer.withValues(alpha: 0.15),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.computer, size: 20, color: cs.primary),
+              const SizedBox(width: 8),
+              Text('This Device', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600, fontSize: 15)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Device Code', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                    const SizedBox(height: 2),
+                    GestureDetector(
+                      onTap: () => onCopy(device.code.isEmpty ? 'Not set' : device.code),
+                      child: Row(
+                        children: [
+                          Text(
+                            device.code.isEmpty ? 'Not set' : device.code,
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'monospace', color: cs.primary),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(Icons.copy, size: 14, color: cs.onSurfaceVariant),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Control Password', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                    const SizedBox(height: 2),
+                    Text(
+                      device.hasControlPassword ? '••••••••' : 'Not set',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              OnlineDot(isOnline: device.online),
+              const SizedBox(width: 8),
+              Text(device.name, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeviceCard extends StatelessWidget {
+  final Device device;
+  final VoidCallback onConnect;
+  final VoidCallback onCopy;
+  final VoidCallback? onWake;
+
+  const _DeviceCard({required this.device, required this.onConnect, required this.onCopy, this.onWake});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return NexCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.computer, size: 20, color: cs.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(device.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                const SizedBox(height: 2),
+                Text(device.os, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+              ],
+            ),
+          ),
+          if (device.code.isNotEmpty) ...[
+            GestureDetector(
+              onTap: onCopy,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  device.code,
+                  style: TextStyle(fontSize: 12, fontFamily: 'monospace', color: cs.onSurfaceVariant),
+                ),
+              ),
+            ),
+          ],
+          OnlineDot(isOnline: device.online),
+          const SizedBox(width: 12),
+          FilledButton.tonal(
+            onPressed: onConnect,
+            child: const Text('Connect'),
+          ),
+          if (onWake != null) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: onWake,
+              tooltip: 'Wake',
+              icon: Icon(Icons.power_settings_new, size: 18, color: cs.primary),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final VoidCallback onAdd;
+  const _EmptyState({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48),
+        child: Column(
+          children: [
+            Icon(Icons.devices_other, size: 48, color: cs.outline),
+            const SizedBox(height: 16),
+            Text('No devices yet', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15)),
+            const SizedBox(height: 16),
+            NexButton(text: 'Add Device', fullWidth: false, onPressed: onAdd),
+          ],
+        ),
       ),
     );
   }

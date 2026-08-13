@@ -10,6 +10,8 @@ class Device with ChangeNotifier {
   final String os;
   final bool online;
   final bool wolEnabled;
+  final String code;
+  final bool hasControlPassword;
 
   Device({
     required this.id,
@@ -17,6 +19,8 @@ class Device with ChangeNotifier {
     required this.os,
     required this.online,
     this.wolEnabled = false,
+    this.code = '',
+    this.hasControlPassword = false,
   });
 
   factory Device.fromJson(Map<String, dynamic> json) {
@@ -26,6 +30,10 @@ class Device with ChangeNotifier {
       os: json['os'] as String? ?? 'unknown',
       online: json['online'] as bool? ?? false,
       wolEnabled: json['wol_enabled'] as bool? ?? false,
+      code: json['code'] as String? ?? '',
+      hasControlPassword: json['control_password'] is bool
+          ? json['control_password'] as bool
+          : (json['control_password'] as String?)?.isNotEmpty ?? false,
     );
   }
 }
@@ -36,8 +44,26 @@ class DeviceProvider with ChangeNotifier {
 
   List<Device> _devices = [];
   bool _loading = false;
+  String _filter = '';
   List<Device> get devices => List.unmodifiable(_devices);
   bool get loading => _loading;
+  String get filter => _filter;
+  List<Device> get filteredDevices {
+    if (_filter.isEmpty) return _devices;
+    final q = _filter.toLowerCase();
+    return _devices.where((d) =>
+      d.name.toLowerCase().contains(q) ||
+      d.os.toLowerCase().contains(q) ||
+      d.code.toLowerCase().contains(q)
+    ).toList();
+  }
+  List<Device> get onlineDevices => filteredDevices.where((d) => d.online).toList();
+  List<Device> get offlineDevices => filteredDevices.where((d) => !d.online).toList();
+
+  void setFilter(String value) {
+    _filter = value;
+    notifyListeners();
+  }
 
   Future<void> loadDevices() async {
     _loading = true;
@@ -87,6 +113,8 @@ class DeviceProvider with ChangeNotifier {
         'os': d.os,
         'online': d.online,
         'wol_enabled': d.wolEnabled,
+        'code': d.code,
+        'control_password': d.hasControlPassword,
       }).toList();
       await StorageService.setString(_cacheKey, jsonEncode(json));
     } on Exception catch (_) {
