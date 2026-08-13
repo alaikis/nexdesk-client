@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../widgets/nex_card.dart';
 import 'two_factor_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -45,58 +46,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Card(
-            child: ListTile(
-              title: const Text('Two-Factor Authentication'),
-              subtitle: const Text('Manage 2FA settings'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const TwoFactorScreen(),
-                  ),
-                );
-              },
-            ),
+    final cs = Theme.of(context).colorScheme;
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Text('Settings', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 20),
+        NexCard(
+          child: Column(
+            children: [
+              ListTile(
+                title: const Text('Two-Factor Authentication'),
+                subtitle: const Text('Manage 2FA settings'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TwoFactorScreen()),
+                  );
+                },
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  title: const Text('Privacy Policy'),
-                  subtitle: const Text('View privacy policy'),
-                  trailing: const Icon(Icons.open_in_new),
-                  onTap: () => _launchUrl('/legal/privacy'),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  title: const Text('Terms of Service'),
-                  subtitle: const Text('View terms of service'),
-                  trailing: const Icon(Icons.open_in_new),
-                  onTap: () => _launchUrl('/legal/terms'),
-                ),
-              ],
-            ),
+        ),
+        const SizedBox(height: 12),
+        NexCard(
+          child: Column(
+            children: [
+              ListTile(
+                title: const Text('Privacy Policy'),
+                subtitle: const Text('View privacy policy'),
+                trailing: const Icon(Icons.open_in_new),
+                onTap: () => _launchUrl('/legal/privacy'),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                title: const Text('Terms of Service'),
+                subtitle: const Text('View terms of service'),
+                trailing: const Icon(Icons.open_in_new),
+                onTap: () => _launchUrl('/legal/terms'),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'NEX version $_version',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF8E8E93)),
-            ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text('NEX version $_version', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+        ),
+      ],
     );
   }
 }
