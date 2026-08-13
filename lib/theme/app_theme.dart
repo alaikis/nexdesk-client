@@ -11,7 +11,6 @@ class NexColors {
   final Color textSecondary;
   final Color textTertiary;
   final Color online;
-  final Color offline;
   final Color error;
 
   const NexColors.light()
@@ -25,7 +24,6 @@ class NexColors {
         textSecondary = const Color(0xFF6E6E73),
         textTertiary = const Color(0xFF8E8E93),
         online = const Color(0xFF34C759),
-        offline = const Color(0xFF8E8E93),
         error = const Color(0xFFFF3B30);
 
   const NexColors.dark()
@@ -39,7 +37,6 @@ class NexColors {
         textSecondary = const Color(0xFFEBEBF5),
         textTertiary = const Color(0xFF8E8E93),
         online = const Color(0xFF30D158),
-        offline = const Color(0xFF8E8E93),
         error = const Color(0xFFFF453A);
 
   ThemeData toTheme(Brightness brightness) {
@@ -114,13 +111,17 @@ extension NexTheme on ThemeData {
 class NexTextStyles {
   NexTextStyles._();
 
+  static TextStyle mono({required Color color}) => TextStyle(color: color, fontFamily: 'monospace', fontSize: 13);
+
   static TextTheme light() {
     final colors = NexColors.light();
     return TextTheme(
       headlineLarge: TextStyle(color: colors.textPrimary, fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5),
       headlineMedium: TextStyle(color: colors.textPrimary, fontSize: 22, fontWeight: FontWeight.w600),
-      bodyLarge: TextStyle(color: colors.textPrimary, fontSize: 15, height: 1.4),
+      headlineSmall: TextStyle(color: colors.textPrimary, fontSize: 17, fontWeight: FontWeight.w600),
+      bodyLarge: TextStyle(color: colors.textPrimary, fontSize: 15, height: 1.5),
       bodyMedium: TextStyle(color: colors.textSecondary, fontSize: 13),
+      labelSmall: TextStyle(color: colors.textTertiary, fontSize: 12),
     );
   }
 
@@ -129,8 +130,10 @@ class NexTextStyles {
     return TextTheme(
       headlineLarge: TextStyle(color: colors.textPrimary, fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5),
       headlineMedium: TextStyle(color: colors.textPrimary, fontSize: 22, fontWeight: FontWeight.w600),
-      bodyLarge: TextStyle(color: colors.textPrimary, fontSize: 15, height: 1.4),
+      headlineSmall: TextStyle(color: colors.textPrimary, fontSize: 17, fontWeight: FontWeight.w600),
+      bodyLarge: TextStyle(color: colors.textPrimary, fontSize: 15, height: 1.5),
       bodyMedium: TextStyle(color: colors.textSecondary, fontSize: 13),
+      labelSmall: TextStyle(color: colors.textTertiary, fontSize: 12),
     );
   }
 }

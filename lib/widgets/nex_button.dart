@@ -30,7 +30,7 @@ class NexButton extends StatelessWidget {
           foregroundColor: disabled ? cs.onSurfaceVariant : cs.onPrimary,
         ),
         child: loading
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: cs.onPrimary))
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

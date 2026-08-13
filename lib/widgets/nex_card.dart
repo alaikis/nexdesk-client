@@ -6,6 +6,7 @@ class NexCard extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final VoidCallback? onTap;
   final Color? color;
+  final Color? borderColor;
 
   const NexCard({
     super.key,
@@ -14,6 +15,7 @@ class NexCard extends StatelessWidget {
     this.margin,
     this.onTap,
     this.color,
+    this.borderColor,
   });
 
   @override
@@ -26,7 +28,7 @@ class NexCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: color ?? cs.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: cs.outline),
+          border: Border.all(color: borderColor ?? cs.outline),
         ),
         child: Padding(
           padding: padding ?? const EdgeInsets.all(16),

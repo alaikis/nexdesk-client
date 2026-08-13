@@ -4,12 +4,14 @@ class NexSidebar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onTap;
   final List<SidebarItem> items;
+  final VoidCallback? onLogout;
 
   const NexSidebar({
     super.key,
     required this.selectedIndex,
     required this.onTap,
     required this.items,
+    this.onLogout,
   });
 
   @override
@@ -33,6 +35,14 @@ class NexSidebar extends StatelessWidget {
             );
           }),
           const Spacer(),
+          if (onLogout != null) ...[
+            IconButton(
+              onPressed: onLogout,
+              icon: Icon(Icons.logout, size: 20, color: cs.onSurfaceVariant),
+              tooltip: 'Logout',
+            ),
+            const SizedBox(height: 4),
+          ],
           // User avatar placeholder
           Container(
             width: 36,

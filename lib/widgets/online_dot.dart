@@ -30,7 +30,7 @@ class _OnlineDotState extends State<OnlineDot> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final color = widget.isOnline ? cs.primary : cs.outline;
+    final color = widget.isOnline ? cs.primary : cs.onSurfaceVariant;
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {

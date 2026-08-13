@@ -252,6 +252,14 @@ class ApiClient {
     return patch('/devices/$deviceId/favorite', {});
   }
 
+  Future<Map<String, dynamic>> updateDeviceCode(String deviceId, String code) async {
+    return patch('/devices/$deviceId/code', {'code': code});
+  }
+
+  Future<Map<String, dynamic>> updateControlPassword(String deviceId, String password) async {
+    return patch('/devices/$deviceId/password', {'password': password});
+  }
+
   Future<List<dynamic>> getFavorites() async {
     final res = await get('/devices/favorites');
     return res['devices'] as List<dynamic>;

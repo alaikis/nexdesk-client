@@ -23,7 +23,9 @@ class DeviceListScreen extends StatefulWidget {
 class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   int _selectedNav = 0;
   Timer? _refreshTimer;
+  Timer? _searchDebounce;
   final TextEditingController _searchController = TextEditingController();
+  String? _wakingDeviceId;
 
   @override
   void initState() {
@@ -35,23 +37,37 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
       if (mounted) context.read<DeviceProvider>().refresh();
     });
     _searchController.addListener(() {
-      context.read<DeviceProvider>().setFilter(_searchController.text);
+      _searchDebounce?.cancel();
+      _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+        if (mounted) context.read<DeviceProvider>().setFilter(_searchController.text);
+      });
     });
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
+  Future<void> _logout() async {
+    await context.read<AuthProvider>().logout();
+    if (mounted) context.go('/login');
+  }
+
   Future<void> _wakeDevice(String deviceId) async {
-    final ok = await context.read<DeviceProvider>().wakeDevice(deviceId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ok ? 'Magic packet sent' : 'Failed to wake device')),
-      );
+    setState(() => _wakingDeviceId = deviceId);
+    try {
+      final ok = await context.read<DeviceProvider>().wakeDevice(deviceId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ok ? 'Magic packet sent' : 'Failed to wake device')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _wakingDeviceId = null);
     }
   }
 
@@ -94,8 +110,10 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
             selectedIndex: _selectedNav,
             onTap: (index) {
               setState(() => _selectedNav = index);
+              if (index == 1) context.go('/sessions');
               if (index == 2) context.go('/settings');
             },
+            onLogout: _logout,
             items: const [
               SidebarItem(icon: Icons.computer, label: 'Devices'),
               SidebarItem(icon: Icons.history, label: 'Sessions'),
@@ -149,6 +167,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                                   onConnect: () => _startSession(d.id),
                                   onCopy: () => _copyCode(d.code),
                                   onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
+                                  wakingDeviceId: _wakingDeviceId,
                                 )),
                             const SizedBox(height: 20),
                           ],
@@ -160,10 +179,11 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                                   onConnect: () => _startSession(d.id),
                                   onCopy: () => _copyCode(d.code),
                                   onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
+                                  wakingDeviceId: _wakingDeviceId,
                                 )),
                           ],
                           if (devices.devices.isEmpty)
-                            _EmptyState(onAdd: () {}),
+                            _EmptyState(),
                         ],
                       );
                     },
@@ -223,15 +243,17 @@ class _LocalDeviceCard extends StatelessWidget {
                     Text('Device Code', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                     const SizedBox(height: 2),
                     GestureDetector(
-                      onTap: () => onCopy(device.code.isEmpty ? 'Not set' : device.code),
+                      onTap: device.code.isEmpty ? null : () => onCopy(device.code),
                       child: Row(
                         children: [
                           Text(
                             device.code.isEmpty ? 'Not set' : device.code,
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'monospace', color: cs.primary),
                           ),
-                          const SizedBox(width: 6),
-                          Icon(Icons.copy, size: 14, color: cs.onSurfaceVariant),
+                          if (device.code.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Icon(Icons.copy, size: 14, color: cs.onSurfaceVariant),
+                          ],
                         ],
                       ),
                     ),
@@ -272,8 +294,9 @@ class _DeviceCard extends StatelessWidget {
   final VoidCallback onConnect;
   final VoidCallback onCopy;
   final VoidCallback? onWake;
+  final String? wakingDeviceId;
 
-  const _DeviceCard({required this.device, required this.onConnect, required this.onCopy, this.onWake});
+  const _DeviceCard({required this.device, required this.onConnect, required this.onCopy, this.onWake, this.wakingDeviceId});
 
   @override
   Widget build(BuildContext context) {
@@ -297,7 +320,7 @@ class _DeviceCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(device.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                Text(device.name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: cs.onSurface)),
                 const SizedBox(height: 2),
                 Text(device.os, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
               ],
@@ -324,9 +347,11 @@ class _DeviceCard extends StatelessWidget {
           if (onWake != null) ...[
             const SizedBox(width: 8),
             IconButton(
-              onPressed: onWake,
+              onPressed: wakingDeviceId == device.id ? null : onWake,
               tooltip: 'Wake',
-              icon: Icon(Icons.power_settings_new, size: 18, color: cs.primary),
+                  icon: wakingDeviceId == device.id
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(Icons.power_settings_new, size: 18, color: cs.primary),
             ),
           ],
         ],
@@ -336,8 +361,8 @@ class _DeviceCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  final VoidCallback onAdd;
-  const _EmptyState({required this.onAdd});
+  final VoidCallback? onAdd;
+  const _EmptyState({this.onAdd});
 
   @override
   Widget build(BuildContext context) {

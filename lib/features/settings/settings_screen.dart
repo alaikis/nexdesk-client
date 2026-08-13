@@ -50,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text('Settings', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
+        Text('Settings', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: cs.onSurface)),
         const SizedBox(height: 20),
         NexCard(
           child: Column(

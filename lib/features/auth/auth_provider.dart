@@ -1,7 +1,4 @@
-import 'dart:convert';
 import 'dart:io' show Platform;
-import 'dart:math';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -133,28 +130,22 @@ class AuthProvider with ChangeNotifier {
   Future<void> _ensureDeviceRegistered(String fallbackName) async {
     final existing = await _api.listDevices();
     final known = existing.firstWhere(
-      (d) => d['id'] == _deviceId,
+      (d) => d['id']?.toString() == _deviceId,
       orElse: () => <String, dynamic>{},
     );
     if ((known as Map).isEmpty) {
-      final keyPair = _generateDeviceKeyPair();
-      final pubkey = base64Encode(keyPair.publicKey);
-      final fingerprint = sha256.convert(keyPair.publicKey).toString();
-      await _api.registerDevice(
+      final res = await _api.registerDevice(
         name: fallbackName,
         os: _detectOS(),
-        pubkey: pubkey,
-        fingerprint: fingerprint,
+        pubkey: '',
       );
+      final newDeviceId = res['id']?.toString();
+      if (newDeviceId != null) {
+        _deviceId = newDeviceId;
+        await SecureStorageService.setString('device_id', _deviceId!);
+      }
     }
     _deviceName = fallbackName;
-  }
-
-  ({Uint8List publicKey, Uint8List privateKey}) _generateDeviceKeyPair() {
-    final random = Random.secure();
-    final priv = Uint8List.fromList(List.generate(32, (_) => random.nextInt(256)));
-    final pub = Uint8List.fromList(sha256.convert(priv).bytes.sublist(0, 32));
-    return (publicKey: pub, privateKey: priv);
   }
 
   String _generateDeviceId() => const Uuid().v4();
