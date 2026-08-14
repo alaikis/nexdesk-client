@@ -25,7 +25,7 @@ Future<void> main() async {
     const windowOptions = WindowOptions(
       size: Size(1280, 800),
       center: true,
-      minimumSize: Size(800, 600),
+      minimumSize: Size(900, 600),
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       windowManager.show();

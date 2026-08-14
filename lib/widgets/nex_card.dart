@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class NexCard extends StatelessWidget {
   final Widget child;
@@ -27,11 +28,11 @@ class NexCard extends StatelessWidget {
         margin: margin,
         decoration: BoxDecoration(
           color: color ?? cs.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(NexRadius.lg),
           border: Border.all(color: borderColor ?? cs.outline),
         ),
         child: Padding(
-          padding: padding ?? const EdgeInsets.all(16),
+          padding: padding ?? const EdgeInsets.all(NexSpacing.lg),
           child: child,
         ),
       ),

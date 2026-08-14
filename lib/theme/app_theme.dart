@@ -56,7 +56,7 @@ class NexColors {
         color: colors.card,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(NexRadius.lg),
           side: BorderSide(color: colors.border),
         ),
       ),
@@ -77,8 +77,8 @@ class NexColors {
           backgroundColor: colors.primary,
           foregroundColor: colors.onPrimary,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xl, vertical: NexSpacing.md),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.md)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
@@ -86,17 +86,17 @@ class NexColors {
         style: OutlinedButton.styleFrom(
           foregroundColor: colors.primary,
           side: BorderSide(color: colors.primary),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.md)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: colors.card,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.primary, width: 1.5)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: colors.error)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(NexRadius.md), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(NexRadius.md), borderSide: BorderSide(color: colors.border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(NexRadius.md), borderSide: BorderSide(color: colors.primary, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(NexRadius.md), borderSide: BorderSide(color: colors.error)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: NexSpacing.md, vertical: NexSpacing.md),
       ),
     );
   }

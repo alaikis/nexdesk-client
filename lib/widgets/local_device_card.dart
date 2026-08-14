@@ -14,7 +14,7 @@ class LocalDeviceCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return NexCard(
       color: cs.primaryContainer.withValues(alpha: 0.15),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(NexSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
