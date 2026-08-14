@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/auth/auth_screen.dart';
 import 'features/auth/two_factor_screen.dart';
+import 'features/devices/control_center_screen.dart';
 import 'features/devices/device_list_screen.dart';
 import 'features/session/session_screen.dart';
 import 'features/sessions/session_list_screen.dart';
@@ -44,6 +45,10 @@ class NexApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/devices',
+          builder: (context, state) => const ControlCenterScreen(),
+        ),
+        GoRoute(
+          path: '/devices/list',
           builder: (context, state) => const DeviceListScreen(),
         ),
         GoRoute(
