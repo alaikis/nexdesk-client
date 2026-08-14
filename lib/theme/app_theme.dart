@@ -49,7 +49,6 @@ class NexColors {
         primary: colors.primary,
         onPrimary: colors.onPrimary,
         surface: colors.surface,
-        background: colors.background,
         error: colors.error,
       ),
       scaffoldBackgroundColor: colors.background,
@@ -136,4 +135,21 @@ class NexTextStyles {
       labelSmall: TextStyle(color: colors.textTertiary, fontSize: 12),
     );
   }
+}
+
+class NexSpacing {
+  static const xs = 4.0;
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const lg = 16.0;
+  static const xl = 20.0;
+  static const xxl = 24.0;
+  static const xxxl = 32.0;
+}
+
+class NexRadius {
+  static const sm = 8.0;
+  static const md = 10.0;
+  static const lg = 12.0;
+  static const xl = 16.0;
 }
