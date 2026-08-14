@@ -15,6 +15,7 @@ import '../../widgets/device_card.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/sidebar.dart';
+import '../../widgets/bottom_nav_bar.dart';
 
 class ControlCenterScreen extends StatefulWidget {
   const ControlCenterScreen({super.key});
@@ -109,167 +110,192 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
     final onlineDevices = devices.onlineDevices;
     final recentSessions = sessions.history.take(3).toList();
 
-    return Scaffold(
-      body: Row(
+    Widget content = SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          NexSidebar(
-            selectedIndex: _selectedNav,
-            onTap: (index) {
-              setState(() => _selectedNav = index);
-              if (index == 1) context.go('/devices/list');
-              if (index == 2) context.go('/sessions');
-              if (index == 3) context.go('/settings');
-            },
-            onLogout: _logout,
-            items: const [
-              SidebarItem(icon: Icons.computer, label: 'Devices'),
-              SidebarItem(icon: Icons.list, label: 'All Devices'),
-              SidebarItem(icon: Icons.history, label: 'Sessions'),
-              SidebarItem(icon: Icons.settings, label: 'Settings'),
+          Row(
+            children: [
+              Expanded(
+                child: NexInput(
+                  controller: _searchController,
+                  hintText: 'Search devices...',
+                  prefixIcon: Icons.search,
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add'),
+              ),
             ],
           ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: NexInput(
-                          controller: _searchController,
-                          hintText: 'Search devices...',
-                          prefixIcon: Icons.search,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: null,
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  if (currentDevice.id.isNotEmpty) ...[
-                    LocalDeviceCard(
-                      device: currentDevice,
-                      onCopy: _copyCode,
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  Row(
-                    children: [
-                      Expanded(
-                        child: NexCard(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Quick Actions', style: Theme.of(context).textTheme.titleSmall),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  _QuickAction(
-                                    icon: Icons.copy,
-                                    label: 'Copy Code',
-                                    onTap: () {
-                                      if (currentDevice.code.isNotEmpty) {
-                                        _copyCode(currentDevice.code);
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(width: 12),
-                                  _QuickAction(
-                                    icon: Icons.connect_without_contact,
-                                    label: 'Connect',
-                                    onTap: () {
-                                      if (onlineDevices.isNotEmpty) {
-                                        _startSession(onlineDevices.first.id);
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(width: 12),
-                                  _QuickAction(
-                                    icon: Icons.history,
-                                    label: 'Sessions',
-                                    onTap: () => context.go('/sessions'),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: NexCard(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Recent Sessions', style: Theme.of(context).textTheme.titleSmall),
-                              const SizedBox(height: 12),
-                              if (recentSessions.isEmpty)
-                                Text('No recent sessions', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
-                              else
-                                ...recentSessions.map((session) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 6),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.history, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                                      const SizedBox(width: 8),
-                                      Expanded(child: Text('${session.controllerDeviceId} → ${session.controlleeDeviceId}')),
-                                      Text(session.startedAt, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                                    ],
-                                  ),
-                                )),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Text('Online Devices', style: Theme.of(context).textTheme.titleMedium),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () => context.go('/devices/list'),
-                        child: const Text('View All'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (onlineDevices.isEmpty)
-                    EmptyState(
-                      message: 'No online devices',
-                      buttonText: 'Refresh',
-                      onButtonPressed: () => devices.refresh(),
-                    )
-                  else
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
-                      children: onlineDevices.take(3).map((d) => SizedBox(
-                        width: 280,
-                        child: DeviceCard(
-                          device: d,
-                          onConnect: () => _startSession(d.id),
-                          onCopy: () => _copyCode(d.code),
-                          onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
-                          wakingDeviceId: _wakingDeviceId,
-                        ),
-                      )).toList(),
-                    ),
-                ],
-              ),
+          const SizedBox(height: 24),
+          if (currentDevice.id.isNotEmpty) ...[
+            LocalDeviceCard(
+              device: currentDevice,
+              onCopy: _copyCode,
             ),
+            const SizedBox(height: 24),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: NexCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Quick Actions', style: Theme.of(context).textTheme.titleSmall),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          _QuickAction(
+                            icon: Icons.copy,
+                            label: 'Copy Code',
+                            onTap: () {
+                              if (currentDevice.code.isNotEmpty) {
+                                _copyCode(currentDevice.code);
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 12),
+                          _QuickAction(
+                            icon: Icons.connect_without_contact,
+                            label: 'Connect',
+                            onTap: () {
+                              if (onlineDevices.isNotEmpty) {
+                                _startSession(onlineDevices.first.id);
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 12),
+                          _QuickAction(
+                            icon: Icons.history,
+                            label: 'Sessions',
+                            onTap: () => context.go('/sessions'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: NexCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Recent Sessions', style: Theme.of(context).textTheme.titleSmall),
+                      const SizedBox(height: 12),
+                      if (recentSessions.isEmpty)
+                        Text('No recent sessions', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
+                      else
+                        ...recentSessions.map((session) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            children: [
+                              Icon(Icons.history, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text('${session.controllerDeviceId} → ${session.controlleeDeviceId}')),
+                              Text(session.startedAt, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                            ],
+                          ),
+                        )),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Text('Online Devices', style: Theme.of(context).textTheme.titleMedium),
+              const Spacer(),
+              TextButton(
+                onPressed: () => context.go('/devices/list'),
+                child: const Text('View All'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (onlineDevices.isEmpty)
+            EmptyState(
+              message: 'No online devices',
+              buttonText: 'Refresh',
+              onButtonPressed: () => devices.refresh(),
+            )
+          else
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: onlineDevices.take(3).map((d) => SizedBox(
+                width: 280,
+                child: DeviceCard(
+                  device: d,
+                  onConnect: () => _startSession(d.id),
+                  onCopy: () => _copyCode(d.code),
+                  onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
+                  wakingDeviceId: _wakingDeviceId,
+                ),
+              )).toList(),
+            ),
         ],
       ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 600) {
+          return Scaffold(
+            body: Row(
+              children: [
+                NexSidebar(
+                  selectedIndex: _selectedNav,
+                  onTap: (index) {
+                    setState(() => _selectedNav = index);
+                    if (index == 1) context.go('/devices/list');
+                    if (index == 2) context.go('/sessions');
+                    if (index == 3) context.go('/settings');
+                  },
+                  onLogout: _logout,
+                  items: const [
+                    SidebarItem(icon: Icons.computer, label: 'Devices'),
+                    SidebarItem(icon: Icons.list, label: 'All Devices'),
+                    SidebarItem(icon: Icons.history, label: 'Sessions'),
+                    SidebarItem(icon: Icons.settings, label: 'Settings'),
+                  ],
+                ),
+                Expanded(child: content),
+              ],
+            ),
+          );
+        } else {
+          return Scaffold(
+            body: content,
+            bottomNavigationBar: BottomNavBar(
+              selectedIndex: _selectedNav,
+              onTap: (index) {
+                setState(() => _selectedNav = index);
+                if (index == 1) context.go('/devices/list');
+                if (index == 2) context.go('/sessions');
+                if (index == 3) context.go('/settings');
+              },
+              items: const [
+                BottomNavItem(icon: Icons.computer, label: 'Devices'),
+                BottomNavItem(icon: Icons.list, label: 'All Devices'),
+                BottomNavItem(icon: Icons.history, label: 'Sessions'),
+                BottomNavItem(icon: Icons.settings, label: 'Settings'),
+              ],
+            ),
+          );
+        }
+      },
     );
   }
 }
