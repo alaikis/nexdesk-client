@@ -50,6 +50,12 @@ class AuthProvider with ChangeNotifier {
       _deviceId = _generateDeviceId();
       await SecureStorageService.setString('device_id', _deviceId!);
     }
+
+    final existingClientId = await StorageService.getString('client_id');
+    if (existingClientId == null) {
+      await StorageService.setString('client_id', const Uuid().v4());
+    }
+
     notifyListeners();
   }
 
@@ -128,9 +134,10 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> _ensureDeviceRegistered(String fallbackName) async {
+    final clientId = await StorageService.getString('client_id');
     final existing = await _api.listDevices();
     final known = existing.firstWhere(
-      (d) => d['id']?.toString() == _deviceId,
+      (d) => d['client_id']?.toString() == clientId,
       orElse: () => <String, dynamic>{},
     );
     if ((known as Map).isEmpty) {
@@ -138,10 +145,17 @@ class AuthProvider with ChangeNotifier {
         name: fallbackName,
         os: _detectOS(),
         pubkey: '',
+        clientId: clientId,
       );
       final newDeviceId = res['id']?.toString();
       if (newDeviceId != null) {
         _deviceId = newDeviceId;
+        await SecureStorageService.setString('device_id', _deviceId!);
+      }
+    } else {
+      final existingId = known['id']?.toString();
+      if (existingId != null && _deviceId != existingId) {
+        _deviceId = existingId;
         await SecureStorageService.setString('device_id', _deviceId!);
       }
     }
