@@ -218,6 +218,7 @@ class ApiClient {
     required String os,
     required String pubkey,
     String? fingerprint,
+    String? clientId,
   }) async {
     final deviceId = await SecureStorageService.getString('device_id');
     final body = <String, dynamic>{
@@ -227,6 +228,7 @@ class ApiClient {
     };
     if (deviceId != null) body['id'] = deviceId;
     if (fingerprint != null) body['fingerprint'] = fingerprint;
+    if (clientId != null) body['client_id'] = clientId;
     return post('/devices', body);
   }
 
