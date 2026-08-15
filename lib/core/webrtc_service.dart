@@ -41,6 +41,7 @@ class WebRtcService {
     required Function(RTCIceCandidate) onIceCandidate,
     required Function(ScreenStream) onRemoteStream,
     QualityProfile? qualityProfile,
+    Map<String, dynamic>? captureConstraints,
   }) async {
     // Fetch dynamic TURN credentials from server
     final iceServers = <Map<String, dynamic>>[
@@ -96,7 +97,7 @@ class WebRtcService {
     }
 
     if (role == SessionRole.controllee) {
-      await _captureScreens(selectedScreenIds);
+      await _captureScreens(selectedScreenIds, captureConstraints);
     }
   }
 
@@ -114,11 +115,16 @@ class WebRtcService {
     _applyQualityProfile(profile);
   }
 
-  Future<void> _captureScreens(List<int> selectedScreenIds) async {
+  Future<void> _captureScreens(List<int> selectedScreenIds, [Map<String, dynamic>? captureConstraints]) async {
     for (final screenId in selectedScreenIds) {
       try {
+        final constraints = <String, dynamic>{
+          'video': true,
+          'audio': false,
+          if (captureConstraints != null) ...captureConstraints,
+        };
         final displayMedia = await navigator.mediaDevices.getDisplayMedia(
-          {'video': true, 'audio': false},
+          constraints,
         );
         final renderer = RTCVideoRenderer();
         await renderer.initialize();

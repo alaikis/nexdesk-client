@@ -37,6 +37,11 @@ struct ScreenCaptureState {
   bool active = false;
   std::vector<uint8_t> previousFrame;
   bool hasPreviousFrame = false;
+  int windowX = 0;
+  int windowY = 0;
+  int windowWidth = 0;
+  int windowHeight = 0;
+  bool captureWindow = false;
 };
 
 std::mutex g_capture_mutex;
@@ -184,7 +189,18 @@ bool CaptureFrame(ScreenCaptureState& state, std::vector<uint8_t>& outPixels) {
     return false;
   }
 
-  state.context->CopyResource(state.stagingTexture, acquiredTexture);
+  if (state.captureWindow) {
+    D3D11_BOX srcBox;
+    srcBox.left = state.windowX;
+    srcBox.top = state.windowY;
+    srcBox.right = state.windowX + state.windowWidth;
+    srcBox.bottom = state.windowY + state.windowHeight;
+    srcBox.front = 0;
+    srcBox.back = 1;
+    state.context->CopySubresourceRegion(state.stagingTexture, 0, 0, 0, 0, acquiredTexture, 0, &srcBox);
+  } else {
+    state.context->CopyResource(state.stagingTexture, acquiredTexture);
+  }
   acquiredTexture->Release();
 
   D3D11_TEXTURE2D_DESC desc;
@@ -289,6 +305,42 @@ void CleanupCapture(ScreenCaptureState& state) {
 
 }  // namespace
 
+// Window enumeration helpers
+namespace {
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+  if (!IsWindowVisible(hwnd)) return TRUE;
+  int length = GetWindowTextLength(hwnd);
+  if (length == 0) return TRUE;
+
+  std::wstring title(length + 1, L'\0');
+  GetWindowText(hwnd, &title[0], length + 1);
+  title.resize(length);
+
+  RECT rect;
+  if (!GetWindowRect(hwnd, &rect)) return TRUE;
+  int w = rect.right - rect.left;
+  int h = rect.bottom - rect.top;
+  if (w <= 0 || h <= 0) return TRUE;
+
+  DWORD pid = 0;
+  GetWindowThreadProcessId(hwnd, &pid);
+
+  auto& windows = *reinterpret_cast<std::vector<flutter::EncodableValue>*>(lParam);
+  flutter::EncodableMap win;
+  win[flutter::EncodableValue("hwnd")] = flutter::EncodableValue(reinterpret_cast<int64_t>(hwnd));
+  win[flutter::EncodableValue("title")] = flutter::EncodableValue(std::string(title.begin(), title.end()));
+  win[flutter::EncodableValue("processId")] = flutter::EncodableValue(static_cast<int32_t>(pid));
+  flutter::EncodableMap bounds;
+  bounds[flutter::EncodableValue("x")] = flutter::EncodableValue(rect.left);
+  bounds[flutter::EncodableValue("y")] = flutter::EncodableValue(rect.top);
+  bounds[flutter::EncodableValue("width")] = flutter::EncodableValue(w);
+  bounds[flutter::EncodableValue("height")] = flutter::EncodableValue(h);
+  win[flutter::EncodableValue("bounds")] = flutter::EncodableValue(bounds);
+  windows.push_back(flutter::EncodableValue(win));
+  return TRUE;
+}
+}  // namespace
+
 // System tray state
 namespace {
 NOTIFYICONDATA g_tray_data = {};
@@ -390,6 +442,58 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
         result->Success(flutter::EncodableValue(flutter::EncodableMap()));
       } else if (call.method_name() == "isSupported") {
         result->Success(flutter::EncodableValue(true));
+      } else if (call.method_name() == "enumerateWindows") {
+        std::vector<flutter::EncodableValue> windows;
+        EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&windows));
+        result->Success(flutter::EncodableValue(windows));
+      } else if (call.method_name() == "startWindowCapture") {
+        std::lock_guard<std::mutex> lock(g_capture_mutex);
+        int displayIndex = 0;
+        std::string windowId;
+        int wx = 0, wy = 0, ww = 0, wh = 0;
+        if (call.arguments() && std::holds_alternative<flutter::EncodableMap>(*call.arguments())) {
+          const auto& args = std::get<flutter::EncodableMap>(*call.arguments());
+          auto itd = args.find(flutter::EncodableValue("displayIndex"));
+          if (itd != args.end()) displayIndex = std::get<int32_t>(itd->second);
+          auto itw = args.find(flutter::EncodableValue("windowId"));
+          if (itw != args.end()) windowId = std::get<std::string>(itw->second);
+          auto itx = args.find(flutter::EncodableValue("x"));
+          if (itx != args.end()) wx = std::get<int32_t>(itx->second);
+          auto ity = args.find(flutter::EncodableValue("y"));
+          if (ity != args.end()) wy = std::get<int32_t>(ity->second);
+          auto itww = args.find(flutter::EncodableValue("width"));
+          if (itww != args.end()) ww = std::get<int32_t>(itww->second);
+          auto ith = args.find(flutter::EncodableValue("height"));
+          if (ith != args.end()) wh = std::get<int32_t>(ith->second);
+        }
+        ScreenCaptureState state;
+        if (InitDXGICapture(displayIndex, state)) {
+          if (!windowId.empty() && ww > 0 && wh > 0) {
+            state.captureWindow = true;
+            state.windowX = wx;
+            state.windowY = wy;
+            state.windowWidth = ww;
+            state.windowHeight = wh;
+            state.width = ww;
+            state.height = wh;
+            D3D11_TEXTURE2D_DESC texDesc = {};
+            texDesc.Width = ww;
+            texDesc.Height = wh;
+            texDesc.MipLevels = 1;
+            texDesc.ArraySize = 1;
+            texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+            texDesc.SampleDesc.Count = 1;
+            texDesc.Usage = D3D11_USAGE_STAGING;
+            texDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+            texDesc.BindFlags = 0;
+            state.device->CreateTexture2D(&texDesc, nullptr, &state.stagingTexture);
+          }
+          int id = g_next_capture_id++;
+          g_captures[id] = state;
+          result->Success(flutter::EncodableValue(id));
+        } else {
+          result->Success(flutter::EncodableValue(-1));
+        }
       } else {
         result->NotImplemented();
       }

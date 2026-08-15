@@ -22,11 +22,21 @@ class MainFlutterWindow: NSWindow {
                 captureManager.requestPermission(result: result)
             case "getScreenSize":
                 captureManager.getScreenSize(result: result)
+            case "enumerateWindows":
+                captureManager.enumerateWindows(result: result)
             case "startCapture":
                 let args = call.arguments as? [String: Any] ?? [:]
                 let width = args["width"] as? Int ?? 1280
                 let height = args["height"] as? Int ?? 720
                 captureManager.startCapture(width: width, height: height, result: result)
+            case "startWindowCapture":
+                let args = call.arguments as? [String: Any] ?? [:]
+                let windowId = args["windowId"] as? String ?? ""
+                let x = args["x"] as? Int ?? 0
+                let y = args["y"] as? Int ?? 0
+                let width = args["width"] as? Int ?? 1280
+                let height = args["height"] as? Int ?? 720
+                captureManager.startWindowCapture(windowId: windowId, x: x, y: y, width: width, height: height, result: result)
             case "stopCapture":
                 captureManager.stopCapture(result: result)
             default:

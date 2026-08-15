@@ -24,6 +24,11 @@ import 'recording_list_screen.dart';
 import 'chat_panel.dart';
 import '../../widgets/floating_toolbar.dart';
 import 'whiteboard_screen.dart';
+import '../../platform/windows_screen_capture.dart';
+import '../../platform/macos_screen_capture.dart';
+import '../../platform/linux_screen_capture.dart';
+
+enum SharingSource { fullScreen, window }
 
 class SessionScreen extends StatefulWidget {
   final String sessionId;
@@ -49,6 +54,10 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   Set<int> _selectedScreenIds = {};
   bool _selectingScreens = true;
 
+  List<WindowInfo> _windows = [];
+  WindowInfo? _selectedWindow;
+  SharingSource _sharingSource = SharingSource.fullScreen;
+
   @override
   void initState() {
     super.initState();
@@ -72,10 +81,105 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         _selectedScreenIds = {screens.first.id};
       });
     }
+    await _initWindows();
+  }
+
+  Future<void> _initWindows() async {
+    try {
+      final windows = await _getPlatformCapture().enumerateWindows();
+      final truncated = windows
+          .map((w) => WindowInfo(
+                id: w['hwnd'] as String? ?? w['windowId'] as String? ?? w['window_id'] as String? ?? '',
+                title: (w['title'] as String? ?? '').length > 50
+                    ? (w['title'] as String? ?? '').substring(0, 50)
+                    : (w['title'] as String? ?? ''),
+                processId: w['processId'] as int? ?? w['process_id'] as int? ?? 0,
+                x: w['bounds']?['x'] as int? ?? w['x'] as int? ?? 0,
+                y: w['bounds']?['y'] as int? ?? w['y'] as int? ?? 0,
+                width: w['bounds']?['width'] as int? ?? w['width'] as int? ?? 0,
+                height: w['bounds']?['height'] as int? ?? w['height'] as int? ?? 0,
+              ))
+          .where((w) => w.width > 0 && w.height > 0)
+          .toList();
+      if (mounted) {
+        setState(() {
+          _windows = truncated;
+        });
+      }
+    } catch (_) {
+      _windows = [];
+    }
+  }
+
+  dynamic _getPlatformCapture() {
+    switch (Theme.of(context).platform) {
+      case TargetPlatform.windows:
+        return WindowsScreenCapture();
+      case TargetPlatform.macOS:
+        return MacOSScreenCapture();
+      case TargetPlatform.linux:
+        return LinuxScreenCapture();
+      default:
+        return LinuxScreenCapture();
+    }
+  }
+
+  Future<void> _showSharingSourceDialog() async {
+    final source = await showDialog<SharingSource>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Select sharing source'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Full Screen'),
+              subtitle: Text('Share ${_screens.map((s) => s.name).join(", ")}'),
+              leading: const Icon(Icons.desktop_windows_outlined),
+              onTap: () => Navigator.pop(ctx, SharingSource.fullScreen),
+            ),
+            if (_windows.isNotEmpty) ...[
+              const Divider(),
+              const Text('Windows', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              ..._windows.map((w) => ListTile(
+                    title: Text(w.title.isEmpty ? 'Untitled Window' : w.title),
+                    subtitle: Text('${w.width}×${w.height}'),
+                    leading: const Icon(Icons.web_outlined),
+                    onTap: () {
+                      setState(() => _selectedWindow = w);
+                      Navigator.pop(ctx, SharingSource.window);
+                    },
+                  )),
+            ] else
+              const Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: Text('No windows detected', style: TextStyle(fontSize: 13, color: Color(0xFF636366))),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        ],
+      ),
+    );
+    if (source == null) return;
+    setState(() {
+      _sharingSource = source;
+      if (source == SharingSource.window) {
+        _selectedWindow = _windows.first;
+      } else {
+        _selectedWindow = null;
+      }
+    });
   }
 
   Future<void> _startSession() async {
     if (_selectedScreenIds.isEmpty) return;
+
+    await _showSharingSourceDialog();
+    if (_sharingSource == SharingSource.fullScreen && _selectedScreenIds.isEmpty) return;
+    if (_sharingSource == SharingSource.window && _selectedWindow == null) return;
 
     setState(() => _selectingScreens = false);
 
@@ -160,15 +264,35 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       );
       context.read<SessionProvider>().setSignalingService(_signaling);
       final qualityProfile = await QualityService().getProfile(widget.sessionId);
+      final captureConstraints = _selectedWindow != null
+          ? <String, dynamic>{
+              'video': <String, dynamic>{
+                'displaySurface': 'window',
+                'cursor': 'always',
+                if (_selectedWindow!.width > 0 && _selectedWindow!.height > 0)
+                  'width': <String, dynamic>{'max': _selectedWindow!.width},
+                if (_selectedWindow!.width > 0 && _selectedWindow!.height > 0)
+                  'height': <String, dynamic>{'max': _selectedWindow!.height},
+              },
+            }
+          : null;
       await _webrtc.initialize(
         role: SessionRole.controller,
         selectedScreenIds: _selectedScreenIds.toList(),
         qualityProfile: qualityProfile,
+        captureConstraints: captureConstraints,
         onLocalDescription: (desc) {
+          final payload = <String, dynamic>{
+            'sdp': desc.sdp,
+            'type': desc.type,
+            if (_selectedWindow != null) 'window_id': _selectedWindow!.id,
+            if (_selectedWindow != null) 'window_title': _selectedWindow!.title,
+            if (_selectedWindow != null) 'window_bounds': _selectedWindow!.toJson(),
+          };
           _signaling?.send(SignalingMessage(
             type: SignalingMessageType.callOffer,
             sessionId: widget.sessionId,
-            payload: {'sdp': desc.sdp, 'type': desc.type},
+            payload: payload,
           ));
         },
         onIceCandidate: (candidate) {

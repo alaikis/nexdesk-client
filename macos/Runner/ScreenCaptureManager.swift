@@ -31,33 +31,89 @@ class ScreenCaptureManager: NSObject, SCStreamOutput, SCStreamDelegate {
         ])
     }
 
+    func enumerateWindows(result: @escaping FlutterResult) {
+        Task {
+            do {
+                let content = try await SCShareableContent.current
+                var windows: [[String: Any]] = []
+                for display in content.displays {
+                    for window in display.windows {
+                        if window.isOnScreen && !window.title.isEmpty {
+                            let bounds = window.frame
+                            windows.append([
+                                "windowId": String(window.windowID),
+                                "title": window.title,
+                                "processId": Int(window.owningApplicationPID),
+                                "bounds": [
+                                    "x": Int(bounds.origin.x),
+                                    "y": Int(bounds.origin.y),
+                                    "width": Int(bounds.size.width),
+                                    "height": Int(bounds.size.height)
+                                ]
+                            ])
+                        }
+                    }
+                }
+                result(windows)
+            } catch {
+                result([])
+            }
+        }
+    }
+
     func startCapture(width: Int, height: Int, result: @escaping FlutterResult) {
         Task {
             do {
-                // Get shareable content
                 let content = try await SCShareableContent.current
                 guard let display = content.displays.first else {
                     result(FlutterError(code: "NO_DISPLAY", message: "No display found", details: nil))
                     return
                 }
-
-                // Create filter for the display
                 let filter = SCContentFilter(display: display, excludingWindows: [])
-
-                // Configure stream
                 let config = SCStreamConfiguration()
                 config.width = width
                 config.height = height
-                config.minimumFrameInterval = CMTime(value: 1, timescale: 30) // 30 fps
+                config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
                 config.queueDepth = 3
-
-                // Create stream
                 stream = SCStream(filter: filter, configuration: config, delegate: self)
-
-                // Add output
                 try stream?.addStreamOutput(self, type: .screen, sampleHandlerQueue: .main)
+                try await stream?.startCapture()
+                isCapturing = true
+                result(true)
+            } catch {
+                result(FlutterError(code: "CAPTURE_ERROR", message: error.localizedDescription, details: nil))
+            }
+        }
+    }
 
-                // Start capture
+    func startWindowCapture(windowId: String, x: Int, y: Int, width: Int, height: Int, result: @escaping FlutterResult) {
+        Task {
+            do {
+                let content = try await SCShareableContent.current
+                guard let display = content.displays.first else {
+                    result(FlutterError(code: "NO_DISPLAY", message: "No display found", details: nil))
+                    return
+                }
+                var targetWindow: SCWindow? = nil
+                for win in display.windows {
+                    if String(win.windowID) == windowId {
+                        targetWindow = win
+                        break
+                    }
+                }
+                let filter: SCContentFilter
+                if let window = targetWindow {
+                    filter = SCContentFilter(display: display, excludingWindows: content.windows.filter { $0.windowID != window.windowID })
+                } else {
+                    filter = SCContentFilter(display: display, excludingWindows: [])
+                }
+                let config = SCStreamConfiguration()
+                config.width = width
+                config.height = height
+                config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
+                config.queueDepth = 3
+                stream = SCStream(filter: filter, configuration: config, delegate: self)
+                try stream?.addStreamOutput(self, type: .screen, sampleHandlerQueue: .main)
                 try await stream?.startCapture()
                 isCapturing = true
                 result(true)

@@ -44,4 +44,20 @@ class LinuxScreenCapture {
       // Fallback: track state locally if native side is unavailable
     }
   }
+
+  static Future<List<Map<String, dynamic>>> enumerateWindows() async {
+    final result = await _channel.invokeMethod<List<dynamic>>('enumerateWindows');
+    return result?.cast<Map<String, dynamic>>() ?? [];
+  }
+
+  static Future<int> startWindowCapture(String windowId, int x, int y, int width, int height) async {
+    final result = await _channel.invokeMethod<int>('startWindowCapture', {
+      'windowId': windowId,
+      'x': x,
+      'y': y,
+      'width': width,
+      'height': height,
+    });
+    return result ?? -1;
+  }
 }
