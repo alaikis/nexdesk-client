@@ -12,8 +12,25 @@ import 'platform/platform_service.dart';
 import 'core/crash_reporter.dart';
 import 'core/api_client.dart';
 import 'core/input_injector_service.dart';
-import 'core/log_service.dart';
 import 'core/update_service.dart';
+import 'core/system_tray_service.dart';
+
+class _NexWindowListener extends WindowListener {
+  @override
+  void onWindowMinimize() {
+    SystemTrayService.hide();
+  }
+
+  @override
+  void onWindowMaximize() {
+    SystemTrayService.show();
+  }
+
+  @override
+  void onWindowRestore() {
+    SystemTrayService.show();
+  }
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +60,11 @@ Future<void> main() async {
   await _checkForUpdates();
 
   WidgetsBinding.instance.addPostFrameCallback((_) async {
+    if (Platform.isWindows) {
+      await SystemTrayService.init();
+      windowManager.addListener(_NexWindowListener());
+    }
+
     if (UpdateService().updateAvailable && UpdateService().latestUpdate != null) {
       final update = UpdateService().latestUpdate!;
       final ctx = NexApp.navigatorKey.currentContext;
@@ -81,34 +103,6 @@ Future<void> main() async {
       }
     }
   });
-
-  ErrorWidget.builder = (FlutterErrorDetails details) {
-    LogService().error('UI error: ${details.exception}', error: details.exception, stackTrace: details.stack);
-    return Material(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              const Text(
-                'Something went wrong',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF1D1D1F)),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'An unexpected error occurred. Please restart the app.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  };
 
   runApp(
     MultiProvider(
