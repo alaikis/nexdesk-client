@@ -361,4 +361,32 @@ class ApiClient {
   Future<void> setSessionPassword(String sessionId, String password) async {
     await post('/sessions/$sessionId/password', {'password': password});
   }
+
+  Future<List<dynamic>> listShares() async {
+    final res = await get('/shares');
+    return res['shares'] as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> createShare(String name, String path, int deviceId, bool isPublic) async {
+    return post('/shares', {
+      'name': name,
+      'path': path,
+      'device_id': deviceId,
+      'is_public': isPublic,
+    });
+  }
+
+  Future<void> deleteShare(int shareId) async {
+    await delete('/shares/$shareId');
+  }
+
+  Future<List<dynamic>> browseShare(int shareId, String path) async {
+    final res = await get('/shares/$shareId/browse?path=${Uri.encodeQueryComponent(path)}');
+    return res['files'] as List<dynamic>;
+  }
+
+  Future<String?> getShareDownloadUrl(int shareId, String path) async {
+    final res = await get('/shares/$shareId/download?path=${Uri.encodeQueryComponent(path)}');
+    return res['download_url'] as String?;
+  }
 }

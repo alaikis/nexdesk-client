@@ -8,7 +8,6 @@ import '../../features/auth/auth_provider.dart';
 import '../../features/session/session_provider.dart';
 import '../../core/error_handler.dart';
 import '../../widgets/nex_card.dart';
-import '../../widgets/nex_input.dart';
 import '../../widgets/local_device_card.dart';
 import '../../widgets/sidebar.dart';
 import '../../widgets/bottom_nav_bar.dart';
@@ -86,42 +85,72 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
     }
   }
 
+  Future<void> _showConnectDialog() async {
+    final codeController = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Connect to Device'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter the device code to connect:'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: codeController,
+              decoration: const InputDecoration(
+                labelText: 'Device Code',
+                hintText: 'e.g. ABC123',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.characters,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, codeController.text.trim()),
+            child: const Text('Connect'),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.isNotEmpty) {
+      final target = context.read<DeviceProvider>().devices.firstWhere(
+        (d) => d.code.toLowerCase() == result.toLowerCase(),
+        orElse: () => Device(id: '', name: '', os: '', online: false, code: ''),
+      );
+      if (target.id.isNotEmpty) {
+        await _startSession(target.id);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Device not found')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final devices = context.watch<DeviceProvider>();
     final auth = context.watch<AuthProvider>();
-    final sessions = context.watch<SessionProvider>();
     final currentDeviceId = auth.deviceId;
     final currentDevice = devices.devices.firstWhere(
       (d) => d.id == currentDeviceId,
       orElse: () => Device(id: '', name: '', os: '', online: false, code: ''),
     );
-    final onlineDevices = devices.onlineDevices;
-    final recentSessions = sessions.history.take(3).toList();
 
     Widget content = SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: NexInput(
-                  controller: _searchController,
-                  hintText: 'Search devices...',
-                  prefixIcon: Icons.search,
-                ),
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: null,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
           if (currentDevice.id.isNotEmpty) ...[
             LocalDeviceCard(
               device: currentDevice,
@@ -129,77 +158,40 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
             ),
             const SizedBox(height: 24),
           ],
-          Row(
-            children: [
-              Expanded(
-                child: NexCard(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Quick Actions', style: Theme.of(context).textTheme.titleSmall),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          _QuickAction(
-                            icon: Icons.copy,
-                            label: 'Copy Code',
-                            onTap: () {
-                              if (currentDevice.code.isNotEmpty) {
-                                _copyCode(currentDevice.code);
-                              }
-                            },
-                          ),
-                          const SizedBox(width: 12),
-                          _QuickAction(
-                            icon: Icons.connect_without_contact,
-                            label: 'Connect',
-                            onTap: () {
-                              if (onlineDevices.isNotEmpty) {
-                                _startSession(onlineDevices.first.id);
-                              }
-                            },
-                          ),
-                          const SizedBox(width: 12),
-                          _QuickAction(
-                            icon: Icons.history,
-                            label: 'Sessions',
-                            onTap: () => context.go('/sessions'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+          NexCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Quick Actions', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    _QuickAction(
+                      icon: Icons.copy,
+                      label: 'Copy Code',
+                      onTap: () {
+                        if (currentDevice.code.isNotEmpty) {
+                          _copyCode(currentDevice.code);
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 12),
+                    _QuickAction(
+                      icon: Icons.connect_without_contact,
+                      label: 'Connect',
+                      onTap: () => _showConnectDialog(),
+                    ),
+                    const SizedBox(width: 12),
+                    _QuickAction(
+                      icon: Icons.history,
+                      label: 'Sessions',
+                      onTap: () => context.go('/sessions'),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: NexCard(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Recent Sessions', style: Theme.of(context).textTheme.titleSmall),
-                      const SizedBox(height: 12),
-                      if (recentSessions.isEmpty)
-                        Text('No recent sessions', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
-                      else
-                        ...recentSessions.map((session) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Row(
-                            children: [
-                              Icon(Icons.history, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text('${session.controllerDeviceId} → ${session.controlleeDeviceId}')),
-                              Text(session.startedAt, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                            ],
-                          ),
-                        )),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 24),
         ],
@@ -218,13 +210,15 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                     setState(() => _selectedNav = index);
                     if (index == 1) context.go('/devices/list');
                     if (index == 2) context.go('/sessions');
-                    if (index == 3) context.go('/settings');
+                    if (index == 3) context.go('/shares');
+                    if (index == 4) context.go('/settings');
                   },
                   onLogout: _logout,
                   items: const [
                     SidebarItem(icon: Icons.computer, label: 'Devices'),
                     SidebarItem(icon: Icons.list, label: 'All Devices'),
                     SidebarItem(icon: Icons.history, label: 'Sessions'),
+                    SidebarItem(icon: Icons.folder_shared, label: 'Shares'),
                     SidebarItem(icon: Icons.settings, label: 'Settings'),
                   ],
                 ),
@@ -241,12 +235,14 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                 setState(() => _selectedNav = index);
                 if (index == 1) context.go('/devices/list');
                 if (index == 2) context.go('/sessions');
-                if (index == 3) context.go('/settings');
+                if (index == 3) context.go('/shares');
+                if (index == 4) context.go('/settings');
               },
               items: const [
                 BottomNavItem(icon: Icons.computer, label: 'Devices'),
                 BottomNavItem(icon: Icons.list, label: 'All Devices'),
                 BottomNavItem(icon: Icons.history, label: 'Sessions'),
+                BottomNavItem(icon: Icons.folder_shared, label: 'Shares'),
                 BottomNavItem(icon: Icons.settings, label: 'Settings'),
               ],
             ),

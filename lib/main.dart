@@ -7,6 +7,7 @@ import 'app.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/devices/device_provider.dart';
 import 'features/session/session_provider.dart';
+import 'features/shares/share_provider.dart';
 import 'platform/platform_service.dart';
 import 'core/crash_reporter.dart';
 import 'core/api_client.dart';
@@ -115,6 +116,7 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: auth),
         ChangeNotifierProvider.value(value: deviceProvider),
         ChangeNotifierProvider.value(value: sessionProvider),
+        ChangeNotifierProvider.value(value: ShareProvider()),
       ],
       child: const NexApp(),
     ),

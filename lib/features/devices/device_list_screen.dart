@@ -27,6 +27,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   Timer? _searchDebounce;
   final TextEditingController _searchController = TextEditingController();
   String? _wakingDeviceId;
+  Device? _selectedDevice;
 
   @override
   void initState() {
@@ -94,6 +95,10 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
     }
   }
 
+  void _selectDevice(Device device) {
+    setState(() => _selectedDevice = device);
+  }
+
   @override
   Widget build(BuildContext context) {
     final devices = context.watch<DeviceProvider>();
@@ -111,12 +116,14 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
             onTap: (index) {
               setState(() => _selectedNav = index);
               if (index == 1) context.go('/sessions');
-              if (index == 2) context.go('/settings');
+              if (index == 2) context.go('/shares');
+              if (index == 3) context.go('/settings');
             },
             onLogout: _logout,
             items: const [
               SidebarItem(icon: Icons.computer, label: 'Devices'),
               SidebarItem(icon: Icons.history, label: 'Sessions'),
+              SidebarItem(icon: Icons.folder_shared, label: 'Shares'),
               SidebarItem(icon: Icons.settings, label: 'Settings'),
             ],
           ),
@@ -152,38 +159,61 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                       if (devices.loading && devices.devices.isEmpty) {
                         return const Center(child: CircularProgressIndicator());
                       }
-                      return ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                      final isSelected = (Device d) => _selectedDevice != null && d.id == _selectedDevice!.id;
+                      return Row(
                         children: [
-                          if (currentDevice.id.isNotEmpty) ...[
-                            LocalDeviceCard(device: currentDevice, onCopy: _copyCode),
-                            const SizedBox(height: 20),
-                          ],
-                          if (devices.onlineDevices.isNotEmpty) ...[
-                            SectionHeader(title: 'Online (${devices.onlineDevices.length})'),
-                            const SizedBox(height: 8),
-                            ...devices.onlineDevices.map((d) => DeviceCard(
-                                  device: d,
-                                  onConnect: () => _startSession(d.id),
-                                  onCopy: () => _copyCode(d.code),
-                                  onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
-                                  wakingDeviceId: _wakingDeviceId,
-                                )),
-                            const SizedBox(height: 20),
-                          ],
-                          if (devices.offlineDevices.isNotEmpty) ...[
-                            SectionHeader(title: 'Offline (${devices.offlineDevices.length})'),
-                            const SizedBox(height: 8),
-                            ...devices.offlineDevices.map((d) => DeviceCard(
-                                  device: d,
-                                  onConnect: () => _startSession(d.id),
-                                  onCopy: () => _copyCode(d.code),
-                                  onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
-                                  wakingDeviceId: _wakingDeviceId,
-                                )),
-                          ],
-                          if (devices.devices.isEmpty)
-                            EmptyState(),
+                          Expanded(
+                            flex: 3,
+                            child: ListView(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              children: [
+                                if (currentDevice.id.isNotEmpty) ...[
+                                  LocalDeviceCard(device: currentDevice, onCopy: _copyCode),
+                                  const SizedBox(height: 20),
+                                ],
+                                if (devices.onlineDevices.isNotEmpty) ...[
+                                  SectionHeader(title: 'Online (${devices.onlineDevices.length})'),
+                                  const SizedBox(height: 8),
+                                  ...devices.onlineDevices.map((d) => DeviceCard(
+                                        device: d,
+                                        onConnect: () => _startSession(d.id),
+                                        onCopy: () => _copyCode(d.code),
+                                        onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
+                                        wakingDeviceId: _wakingDeviceId,
+                                        isSelected: isSelected(d),
+                                        onTap: () => _selectDevice(d),
+                                      )),
+                                  const SizedBox(height: 20),
+                                ],
+                                if (devices.offlineDevices.isNotEmpty) ...[
+                                  SectionHeader(title: 'Offline (${devices.offlineDevices.length})'),
+                                  const SizedBox(height: 8),
+                                  ...devices.offlineDevices.map((d) => DeviceCard(
+                                        device: d,
+                                        onConnect: () => _startSession(d.id),
+                                        onCopy: () => _copyCode(d.code),
+                                        onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
+                                        wakingDeviceId: _wakingDeviceId,
+                                        isSelected: isSelected(d),
+                                        onTap: () => _selectDevice(d),
+                                      )),
+                                ],
+                                if (devices.devices.isEmpty)
+                                  EmptyState(),
+                              ],
+                            ),
+                          ),
+                          if (_selectedDevice != null)
+                            Expanded(
+                              flex: 2,
+                              child: _DeviceDetailPanel(
+                                device: _selectedDevice!,
+                                onConnect: () => _startSession(_selectedDevice!.id),
+                                onCopy: () => _copyCode(_selectedDevice!.code),
+                                onWake: _selectedDevice!.wolEnabled ? () => _wakeDevice(_selectedDevice!.id) : null,
+                                onClose: () => setState(() => _selectedDevice = null),
+                              ),
+                            ),
                         ],
                       );
                     },
@@ -198,3 +228,162 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   }
 }
 
+class _DeviceDetailPanel extends StatelessWidget {
+  final Device device;
+  final VoidCallback onConnect;
+  final VoidCallback onCopy;
+  final VoidCallback? onWake;
+  final VoidCallback onClose;
+
+  const _DeviceDetailPanel({
+    required this.device,
+    required this.onConnect,
+    required this.onCopy,
+    this.onWake,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(right: 20, bottom: 20),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(Icons.computer, size: 20, color: cs.primary),
+                const SizedBox(width: 8),
+                Text(device.name, style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600, fontSize: 15)),
+                const Spacer(),
+                IconButton(
+                  onPressed: onClose,
+                  icon: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+                  tooltip: 'Close',
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: cs.outline),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _DetailRow(label: 'OS', value: device.os),
+                const SizedBox(height: 12),
+                _DetailRow(label: 'Status', value: device.online ? 'Online' : 'Offline'),
+                const SizedBox(height: 12),
+                _DetailRow(label: 'Device Code', value: device.code.isEmpty ? 'Not set' : device.code),
+                const SizedBox(height: 24),
+                Text('Actions', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+                const SizedBox(height: 12),
+                _ActionButton(
+                  icon: Icons.connect_without_contact,
+                  label: 'Connect',
+                  onTap: onConnect,
+                ),
+                const SizedBox(height: 8),
+                _ActionButton(
+                  icon: Icons.copy,
+                  label: 'Copy Code',
+                  onTap: onCopy,
+                ),
+                if (onWake != null) ...[
+                  const SizedBox(height: 8),
+                  _ActionButton(
+                    icon: Icons.power_settings_new,
+                    label: 'Wake Device',
+                    onTap: onWake,
+                  ),
+                ],
+                const SizedBox(height: 8),
+                _ActionButton(
+                  icon: Icons.restart_alt,
+                  label: 'Restart',
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Restart command sent')),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                _ActionButton(
+                  icon: Icons.share,
+                  label: 'Share Files',
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('File sharing coming soon')),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _DetailRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(label, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+        ),
+        Expanded(
+          child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  const _ActionButton({required this.icon, required this.label, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: cs.primary),
+            const SizedBox(width: 12),
+            Text(label, style: TextStyle(fontSize: 13, color: cs.onSurface)),
+          ],
+        ),
+      ),
+    );
+  }
+}
