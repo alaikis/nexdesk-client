@@ -12,6 +12,8 @@ import '../../widgets/local_device_card.dart';
 import '../../widgets/sidebar.dart';
 import '../../widgets/bottom_nav_bar.dart';
 
+enum ConnectMode { control, file, view, collab }
+
 class ControlCenterScreen extends StatefulWidget {
   const ControlCenterScreen({super.key});
 
@@ -25,6 +27,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
   Timer? _searchDebounce;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _connectController = TextEditingController();
+  ConnectMode _connectMode = ConnectMode.control;
 
   @override
   void initState() {
@@ -95,46 +98,61 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
 
     final result = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Connect'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _connectController,
-              decoration: const InputDecoration(
-                labelText: 'Device Code',
-                hintText: 'Enter code',
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Connect'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _connectController,
+                decoration: const InputDecoration(
+                  labelText: 'Device Code',
+                  hintText: 'Enter code',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                textCapitalization: TextCapitalization.characters,
               ),
-              textCapitalization: TextCapitalization.characters,
-            ),
-            if (recent.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text('Recent', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: recent.map((d) => ActionChip(
-                  label: Text(d.code, style: const TextStyle(fontSize: 12)),
-                  onPressed: () {
-                    Navigator.pop(context, d.code);
-                  },
-                )).toList(),
+              SegmentedButton<ConnectMode>(
+                segments: const [
+                  ButtonSegment(value: ConnectMode.control, label: Text('Control'), icon: Icon(Icons.computer, size: 16)),
+                  ButtonSegment(value: ConnectMode.file, label: Text('File'), icon: Icon(Icons.folder_open, size: 16)),
+                  ButtonSegment(value: ConnectMode.view, label: Text('View'), icon: Icon(Icons.visibility, size: 16)),
+                  ButtonSegment(value: ConnectMode.collab, label: Text('Collab'), icon: Icon(Icons.people, size: 16)),
+                ],
+                selected: {_connectMode},
+                onSelectionChanged: (Set<ConnectMode> selection) {
+                  setDialogState(() => _connectMode = selection.first);
+                },
               ),
+              if (recent.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text('Recent', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: recent.map((d) => ActionChip(
+                    label: Text(d.code, style: const TextStyle(fontSize: 12)),
+                    onPressed: () {
+                      Navigator.pop(context, d.code);
+                    },
+                  )).toList(),
+                ),
+              ],
             ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, _connectController.text.trim()),
+              child: const Text('Connect'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, _connectController.text.trim()),
-            child: const Text('Connect'),
-          ),
-        ],
       ),
     );
     if (result != null && result.isNotEmpty) {
@@ -178,33 +196,51 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
           ],
           NexCard(
             padding: const EdgeInsets.all(16),
+            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.08),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Quick Actions', style: Theme.of(context).textTheme.titleSmall),
+                Row(
+                  children: [
+                    Icon(Icons.connect_without_contact, size: 18, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text('Quick Connect', style: Theme.of(context).textTheme.titleSmall),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _QuickAction(
-                      icon: Icons.copy,
-                      label: 'Copy Code',
-                      onTap: () {
-                        if (currentDevice.code.isNotEmpty) {
-                          _copyCode(currentDevice.code);
-                        }
-                      },
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showConnectDialog(),
+                        icon: const Icon(Icons.computer, size: 18),
+                        label: const Text('Control'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
-                    _QuickAction(
-                      icon: Icons.connect_without_contact,
-                      label: 'Connect',
-                      onTap: () => _showConnectDialog(),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showConnectDialog(),
+                        icon: const Icon(Icons.folder_open, size: 18),
+                        label: const Text('Files'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
-                    _QuickAction(
-                      icon: Icons.history,
-                      label: 'Sessions',
-                      onTap: () => context.go('/sessions'),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showConnectDialog(),
+                        icon: const Icon(Icons.visibility, size: 18),
+                        label: const Text('View'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -281,37 +317,6 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
           );
         }
       },
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _QuickAction({required this.icon, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        width: 80,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 6),
-            Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          ],
-        ),
-      ),
     );
   }
 }
