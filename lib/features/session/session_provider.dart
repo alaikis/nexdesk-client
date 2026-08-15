@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 import '../../core/api_client.dart';
 import '../../core/storage_service.dart';
 import '../../core/signaling_service.dart';
@@ -21,6 +22,7 @@ class Session with ChangeNotifier {
   bool privacyEnabled;
   bool whiteboardEnabled;
   bool cameraEnabled;
+  bool terminalEnabled;
 
   Session({
     required this.id,
@@ -33,6 +35,7 @@ class Session with ChangeNotifier {
     this.privacyEnabled = false,
     this.whiteboardEnabled = false,
     this.cameraEnabled = false,
+    this.terminalEnabled = false,
   });
 
   factory Session.fromJson(Map<String, dynamic> json) {
@@ -47,6 +50,7 @@ class Session with ChangeNotifier {
       privacyEnabled: json['privacy_enabled'] as bool? ?? false,
       whiteboardEnabled: json['whiteboard_enabled'] as bool? ?? false,
       cameraEnabled: json['camera_enabled'] as bool? ?? false,
+      terminalEnabled: json['terminal_enabled'] as bool? ?? false,
     );
   }
 
@@ -62,6 +66,7 @@ class Session with ChangeNotifier {
       'privacy_enabled': privacyEnabled,
       'whiteboard_enabled': whiteboardEnabled,
       'camera_enabled': cameraEnabled,
+      'terminal_enabled': terminalEnabled,
     };
   }
 }
@@ -90,6 +95,7 @@ class SessionProvider with ChangeNotifier {
   bool get privacyEnabled => _activeSession?.privacyEnabled ?? false;
   bool get whiteboardEnabled => _activeSession?.whiteboardEnabled ?? false;
   bool get cameraEnabled => _activeSession?.cameraEnabled ?? false;
+  bool get terminalEnabled => _activeSession?.terminalEnabled ?? false;
   ToolbarMode get toolbarMode => _toolbarMode;
   Offset get toolbarPosition => _toolbarPosition;
   List<_FileUpload> get uploads => List.unmodifiable(_uploads);
@@ -214,6 +220,12 @@ class SessionProvider with ChangeNotifier {
 
   Future<void> setCameraEnabled(bool enabled) async {
     _activeSession?.cameraEnabled = enabled;
+    await _persistSession();
+    notifyListeners();
+  }
+
+  Future<void> setTerminalEnabled(bool enabled) async {
+    _activeSession?.terminalEnabled = enabled;
     await _persistSession();
     notifyListeners();
   }

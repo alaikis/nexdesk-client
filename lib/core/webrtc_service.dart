@@ -193,8 +193,8 @@ class WebRtcService {
       }
     };
 
-    pc.onConnectionStateChanged = (state) {
-      if (state == RTCConnectionState.RTCConnectionStateFailed) {
+    pc.onConnectionState = (state) {
+      if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
         stream.failed = true;
       }
     };

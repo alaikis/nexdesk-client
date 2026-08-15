@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:async/async.dart';
+import 'dart:async';
 import '../../core/webrtc_service.dart';
 import '../../core/screen_service.dart';
 import '../../core/signaling_service.dart';
@@ -29,11 +30,9 @@ import 'whiteboard_screen.dart';
 import '../../platform/windows_screen_capture.dart';
 import '../../platform/macos_screen_capture.dart';
 import '../../platform/linux_screen_capture.dart';
-import '../../platform/windows_print_service.dart';
-import '../../platform/macos_print_service.dart';
-import '../../platform/linux_print_service.dart';
 import 'remote_print_screen.dart';
 import 'remote_camera_screen.dart';
+import 'remote_terminal_screen.dart';
 
 enum SharingSource { fullScreen, window }
 
@@ -623,6 +622,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
+        icon: Icons.terminal,
+        label: 'Terminal',
+        tooltip: 'Remote terminal',
+        onTap: _showRemoteTerminal,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
         icon: _whiteboardActive ? Icons.brush : Icons.brush_outlined,
         label: _whiteboardActive ? 'Whiteboard' : 'Whiteboard',
         tooltip: _whiteboardActive ? 'Disable whiteboard' : 'Enable whiteboard',
@@ -751,6 +757,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         label: 'Camera',
         tooltip: 'Remote camera',
         onTap: _showRemoteCamera,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
+        icon: Icons.terminal,
+        label: 'Terminal',
+        tooltip: 'Remote terminal',
+        onTap: _showRemoteTerminal,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
@@ -954,7 +967,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     if (activeSessionId == null || files.isEmpty) return;
 
     for (final file in files) {
-      unawaited(sessionProvider.sendFile(file));
+      sessionProvider.sendFile(file);
     }
 
     if (mounted) {
@@ -1098,6 +1111,19 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     );
   }
 
+  void _showRemoteTerminal() {
+    final sessionProvider = context.read<SessionProvider>();
+    final session = sessionProvider.activeSession;
+    if (session == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RemoteTerminalScreen(sessionId: widget.sessionId),
+      ),
+    );
+  }
+
   Future<void> _showSendPrintDialog() async {
     final sessionProvider = context.read<SessionProvider>();
     final session = sessionProvider.activeSession;
@@ -1111,7 +1137,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const DropdownButtonFormField<String>(
+            DropdownButtonFormField<String>(
               value: 'image',
               decoration: InputDecoration(labelText: 'Format'),
               items: [
