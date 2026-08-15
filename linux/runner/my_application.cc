@@ -9,9 +9,81 @@
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
+  FlView* fl_view;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
+
+static void on_drag_motion(GtkWidget* widget, GdkDragContext* context, gint x, gint y, guint time, gpointer user_data) {
+    MyApplication* self = MY_APPLICATION(user_data);
+    if (self->fl_view && fl_view_get_engine(self->fl_view)) {
+        FlMethodChannel* channel = fl_method_channel_new(fl_engine_get_binary_messenger(fl_view_get_engine(self->fl_view)), "nex.flutter/drag_drop", fl_method_codec_standard_method_codec_get());
+        fl_method_channel_invoke_method(channel, "onDragEnter", nullptr, nullptr, nullptr, nullptr);
+        g_object_unref(channel);
+    }
+    gdk_drag_status(context, GDK_ACTION_COPY, time);
+}
+
+static void on_drag_leave(GtkWidget* widget, GdkDragContext* context, guint time, gpointer user_data) {
+    MyApplication* self = MY_APPLICATION(user_data);
+    if (self->fl_view && fl_view_get_engine(self->fl_view)) {
+        FlMethodChannel* channel = fl_method_channel_new(fl_engine_get_binary_messenger(fl_view_get_engine(self->fl_view)), "nex.flutter/drag_drop", fl_method_codec_standard_method_codec_get());
+        fl_method_channel_invoke_method(channel, "onDragLeave", nullptr, nullptr, nullptr, nullptr);
+        g_object_unref(channel);
+    }
+}
+
+static void on_drag_data_received(GtkWidget* widget, GdkDragContext* context, gint x, gint y, GtkSelectionData* selection_data, guint info, guint time, gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+  gchar** uris = gtk_selection_data_get_uris(selection_data);
+  if (!uris) {
+    gtk_drag_finish(context, FALSE, FALSE, time);
+    return;
+  }
+
+  GPtrArray* files = g_ptr_array_new();
+  gint64 total_size = 0;
+
+  for (int i = 0; uris[i] != nullptr; i++) {
+    gchar* uri = uris[i];
+    if (g_str_has_prefix(uri, "file://")) {
+      gchar* path = g_filename_from_uri(uri, nullptr, nullptr);
+      if (path) {
+        g_ptr_array_add(files, path);
+        GFile* file = g_file_new_for_path(path);
+        GFileInfo* info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE, G_FILE_QUERY_INFO_NONE, nullptr, nullptr);
+        if (info) {
+          total_size += g_file_info_get_size(info);
+          g_object_unref(info);
+        }
+        g_object_unref(file);
+      }
+    }
+    g_free(uri);
+  }
+  g_free(uris);
+
+  if (files->len > 0 && self->fl_view && fl_view_get_engine(self->fl_view)) {
+    FlMethodChannel* channel = fl_method_channel_new(fl_engine_get_binary_messenger(fl_view_get_engine(self->fl_view)), "nex.flutter/drag_drop", fl_method_codec_standard_method_codec_get());
+
+    GVariantBuilder list_builder;
+    g_variant_builder_init(&list_builder, G_VARIANT_TYPE("as"));
+    for (guint i = 0; i < files->len; i++) {
+      g_variant_builder_add_value(&list_builder, g_variant_new_string((const gchar*)g_ptr_array_index(files, i)));
+    }
+
+    GVariant* args = g_variant_new("(asi)", g_variant_builder_end(&list_builder), total_size);
+    fl_method_channel_invoke_method(channel, "onFilesDropped", args, nullptr, nullptr, nullptr);
+    g_object_unref(channel);
+  }
+
+  for (guint i = 0; i < files->len; i++) {
+    g_free(g_ptr_array_index(files, i));
+  }
+  g_ptr_array_free(files, TRUE);
+
+  gtk_drag_finish(context, TRUE, FALSE, time);
+}
 
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
@@ -59,6 +131,14 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_realize(GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+
+  self->fl_view = view;
+
+  GtkTargetEntry target = {"text/uri-list", GTK_TARGET_OTHER_APP, 0};
+  gtk_drag_dest_set(GTK_WIDGET(window), GTK_DEST_DEFAULT_ALL, &target, 1, GDK_ACTION_COPY);
+  g_signal_connect(window, "drag-motion", G_CALLBACK(on_drag_motion), self);
+  g_signal_connect(window, "drag-leave", G_CALLBACK(on_drag_leave), self);
+  g_signal_connect(window, "drag-data-received", G_CALLBACK(on_drag_data_received), self);
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }

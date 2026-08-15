@@ -2,6 +2,62 @@ import Cocoa
 import FlutterMacOS
 import ScreenCaptureKit
 
+class DragDropView: NSView {
+    var channel: FlutterMethodChannel?
+    
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        registerForDraggedTypes([.fileURL])
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        channel?.invokeMethod("onDragEnter", arguments: nil)
+        return .copy
+    }
+    
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        return .copy
+    }
+    
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        channel?.invokeMethod("onDragLeave", arguments: nil)
+    }
+    
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard let pasteboard = sender.draggingPasteboard.propertyList(forType: .fileURL) as? [String] else {
+            return false
+        }
+        
+        var files: [String] = []
+        var totalSize: Int64 = 0
+        
+        for urlString in pasteboard {
+            guard let url = URL(string: urlString) else { continue }
+            files.append(url.path)
+            if let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                totalSize += Int64(size)
+            }
+        }
+        
+        if files.isEmpty { return false }
+        
+        channel?.invokeMethod("onFilesDropped", arguments: [
+            "files": files,
+            "totalSize": totalSize
+        ])
+        
+        return true
+    }
+    
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        return nil
+    }
+}
+
 class MainFlutterWindow: NSWindow {
     override func awakeFromNib() {
         let flutterViewController = FlutterViewController()
@@ -10,6 +66,11 @@ class MainFlutterWindow: NSWindow {
         self.setFrame(windowFrame, display: true)
 
         RegisterGeneratedPlugins(registry: flutterViewController)
+
+        let dragView = DragDropView(frame: self.contentView?.bounds ?? .zero)
+        dragView.autoresizingMask = [.width, .height]
+        dragView.channel = FlutterMethodChannel(name: "nex.flutter/drag_drop", binaryMessenger: flutterViewController.engine.binaryMessenger)
+        self.contentView?.addSubview(dragView)
 
         // Setup screen capture method channel
         let channel = FlutterMethodChannel(name: "nex.flutter/screen_capture", binaryMessenger: flutterViewController.engine.binaryMessenger)

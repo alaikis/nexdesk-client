@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:convert';
+import 'dart:io';
 import '../../core/api_client.dart';
 import '../../core/storage_service.dart';
 import '../../core/signaling_service.dart';
@@ -73,6 +74,8 @@ class SessionProvider with ChangeNotifier {
   SignalingService? _signaling;
   ToolbarMode _toolbarMode = ToolbarMode.floating;
   Offset _toolbarPosition = const Offset(20, 300);
+  final List<_FileUpload> _uploads = [];
+  String? _lastUploadError;
 
   Session? get activeSession => _activeSession;
   List<Session> get history => List.unmodifiable(_history);
@@ -83,6 +86,8 @@ class SessionProvider with ChangeNotifier {
   bool get whiteboardEnabled => _activeSession?.whiteboardEnabled ?? false;
   ToolbarMode get toolbarMode => _toolbarMode;
   Offset get toolbarPosition => _toolbarPosition;
+  List<_FileUpload> get uploads => List.unmodifiable(_uploads);
+  String? get lastUploadError => _lastUploadError;
 
   void setSignalingService(SignalingService? service) {
     _signaling = service;
@@ -251,4 +256,54 @@ class SessionProvider with ChangeNotifier {
       debugPrint('Load sessions failed: $e');
     }
   }
+
+  Future<void> sendFile(String filePath) async {
+    final sessionId = _activeSession?.id;
+    if (sessionId == null) return;
+    final file = File(filePath);
+    if (!await file.exists()) {
+      _lastUploadError = 'File not found';
+      notifyListeners();
+      return;
+    }
+    final upload = _FileUpload(
+      id: const Uuid().v4(),
+      filePath: filePath,
+      fileName: file.path.split(Platform.pathSeparator).last,
+      size: await file.length(),
+      progress: 0.0,
+      status: _UploadStatus.uploading,
+    );
+    _uploads.add(upload);
+    _lastUploadError = null;
+    notifyListeners();
+    try {
+      await _api.uploadFile(sessionId, filePath, (sent, total) {
+        upload.progress = total > 0 ? sent / total : 0.0;
+        notifyListeners();
+      });
+      upload.status = _UploadStatus.done;
+      upload.progress = 1.0;
+    } on ApiException catch (e) {
+      upload.status = _UploadStatus.failed;
+      _lastUploadError = e.message;
+    } catch (e) {
+      upload.status = _UploadStatus.failed;
+      _lastUploadError = e.toString();
+    } finally {
+      notifyListeners();
+    }
+  }
 }
+
+class _FileUpload {
+  final String id;
+  final String filePath;
+  final String fileName;
+  final int size;
+  double progress;
+  _UploadStatus status;
+  _FileUpload({required this.id, required this.filePath, required this.fileName, required this.size, this.progress = 0.0, this.status = _UploadStatus.uploading});
+}
+
+enum _UploadStatus { uploading, done, failed }

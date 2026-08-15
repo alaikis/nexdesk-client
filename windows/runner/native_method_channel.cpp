@@ -6,6 +6,7 @@
 #include <flutter/standard_message_codec.h>
 
 #include <windows.h>
+#include <ole2.h>
 #include <dxgi1_2.h>
 #include <d3d11.h>
 #include <vector>
@@ -20,290 +21,101 @@
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "ole32.lib")
 
 #include "resource.h"
 
 namespace {
 
-// Screen capture state
-struct ScreenCaptureState {
-  IDXGIOutputDuplication* duplication = nullptr;
-  ID3D11Texture2D* stagingTexture = nullptr;
-  ID3D11Device* device = nullptr;
-  ID3D11DeviceContext* context = nullptr;
-  int width = 0;
-  int height = 0;
-  int displayIndex = 0;
-  bool active = false;
-  std::vector<uint8_t> previousFrame;
-  bool hasPreviousFrame = false;
-  int windowX = 0;
-  int windowY = 0;
-  int windowWidth = 0;
-  int windowHeight = 0;
-  bool captureWindow = false;
+enum DragDropStatus {
+  kDragDropStatusIdle = 0,
+  kDragDropStatusDragging = 1,
 };
 
-std::mutex g_capture_mutex;
-std::map<int, ScreenCaptureState> g_captures;
-int g_next_capture_id = 1;
+class DropTarget : public IDropTarget {
+ public:
+  DropTarget(HWND hwnd) : hwnd_(hwnd), ref_(1) {}
 
-// Input injection helpers
-void InjectMouseMove(int x, int y, bool absolute) {
-  INPUT input = {};
-  input.type = INPUT_MOUSE;
-  if (absolute) {
-    input.mi.dx = x * 65535 / GetSystemMetrics(SM_CXSCREEN);
-    input.mi.dy = y * 65535 / GetSystemMetrics(SM_CYSCREEN);
-    input.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK;
-  } else {
-    input.mi.dx = x;
-    input.mi.dy = y;
-    input.mi.dwFlags = MOUSEEVENTF_MOVE;
+  ULONG __stdcall AddRef() override { return ++ref_; }
+  ULONG __stdcall Release() override {
+    ULONG r = --ref_;
+    if (r == 0) delete this;
+    return r;
   }
-  SendInput(1, &input, sizeof(INPUT));
-}
-
-void InjectMouseButton(int button, bool down) {
-  INPUT input = {};
-  input.type = INPUT_MOUSE;
-  switch (button) {
-    case 0:
-      input.mi.dwFlags = down ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP;
-      break;
-    case 1:
-      input.mi.dwFlags = down ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP;
-      break;
-    case 2:
-      input.mi.dwFlags = down ? MOUSEEVENTF_MIDDLEDOWN : MOUSEEVENTF_MIDDLEUP;
-      break;
-    default:
-      return;
-  }
-  SendInput(1, &input, sizeof(INPUT));
-}
-
-void InjectMouseWheel(int delta) {
-  INPUT input = {};
-  input.type = INPUT_MOUSE;
-  input.mi.mouseData = delta;
-  input.mi.dwFlags = MOUSEEVENTF_WHEEL;
-  SendInput(1, &input, sizeof(INPUT));
-}
-
-void InjectKey(int scanCode, bool down, bool extended) {
-  INPUT input = {};
-  input.type = INPUT_KEYBOARD;
-  input.ki.wScan = static_cast<WORD>(scanCode);
-  input.ki.dwFlags = KEYEVENTF_SCANCODE;
-  if (!down) input.ki.dwFlags |= KEYEVENTF_KEYUP;
-  if (extended) input.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
-  SendInput(1, &input, sizeof(INPUT));
-}
-
-void InjectUnicode(const std::wstring& text) {
-  for (wchar_t ch : text) {
-    INPUT input = {};
-    input.type = INPUT_KEYBOARD;
-    input.ki.wScan = ch;
-    input.ki.dwFlags = KEYEVENTF_UNICODE;
-    SendInput(1, &input, sizeof(INPUT));
-    input.ki.dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP;
-    SendInput(1, &input, sizeof(INPUT));
-  }
-}
-
-bool InitDXGICapture(int displayIndex, ScreenCaptureState& state) {
-  D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_11_0};
-  D3D_FEATURE_LEVEL featureLevel;
-
-  HRESULT hr = D3D11CreateDevice(
-      nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
-      featureLevels, ARRAYSIZE(featureLevels),
-      D3D11_SDK_VERSION, &state.device, &featureLevel, &state.context);
-  if (FAILED(hr)) return false;
-
-  IDXGIDevice* dxgiDevice = nullptr;
-  hr = state.device->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgiDevice);
-  if (FAILED(hr)) return false;
-
-  IDXGIAdapter* adapter = nullptr;
-  hr = dxgiDevice->GetParent(__uuidof(IDXGIAdapter), (void**)&adapter);
-  dxgiDevice->Release();
-  if (FAILED(hr)) return false;
-
-  IDXGIOutput* output = nullptr;
-  hr = adapter->EnumOutputs(displayIndex, &output);
-  adapter->Release();
-  if (FAILED(hr)) return false;
-
-  IDXGIOutput1* output1 = nullptr;
-  hr = output->QueryInterface(__uuidof(IDXGIOutput1), (void**)&output1);
-  output->Release();
-  if (FAILED(hr)) return false;
-
-  hr = output1->DuplicateOutput(state.device, &state.duplication);
-  output1->Release();
-  if (FAILED(hr)) return false;
-
-  DXGI_OUTDUPL_DESC desc;
-  state.duplication->GetDesc(&desc);
-  state.width = desc.ModeDesc.Width;
-  state.height = desc.ModeDesc.Height;
-
-  D3D11_TEXTURE2D_DESC texDesc = {};
-  texDesc.Width = state.width;
-  texDesc.Height = state.height;
-  texDesc.MipLevels = 1;
-  texDesc.ArraySize = 1;
-  texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-  texDesc.SampleDesc.Count = 1;
-  texDesc.Usage = D3D11_USAGE_STAGING;
-  texDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-  texDesc.BindFlags = 0;
-
-  hr = state.device->CreateTexture2D(&texDesc, nullptr, &state.stagingTexture);
-  if (FAILED(hr)) {
-    state.duplication->Release();
-    state.duplication = nullptr;
-    return false;
+  HRESULT __stdcall QueryInterface(REFIID iid, void** ppvObject) override {
+    if (iid == IID_IDropTarget || iid == IID_IUnknown) {
+      *ppvObject = this;
+      AddRef();
+      return S_OK;
+    }
+    *ppvObject = nullptr;
+    return E_NOINTERFACE;
   }
 
-  state.active = true;
-  return true;
-}
-
-bool CaptureFrame(ScreenCaptureState& state, std::vector<uint8_t>& outPixels) {
-  if (!state.duplication || !state.stagingTexture) return false;
-
-  DXGI_OUTDUPL_FRAME_INFO frameInfo;
-  IDXGIResource* desktopResource = nullptr;
-  HRESULT hr = state.duplication->AcquireNextFrame(500, &frameInfo, &desktopResource);
-  if (FAILED(hr)) return false;
-
-  ID3D11Texture2D* acquiredTexture = nullptr;
-  hr = desktopResource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&acquiredTexture);
-  desktopResource->Release();
-  if (FAILED(hr)) {
-    state.duplication->ReleaseFrame();
-    return false;
+  HRESULT __stdcall DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
+    *pdwEffect = DROPEFFECT_COPY;
+    NativeMethodChannel::InvokeDragDropStatus(kDragDropStatusDragging);
+    return S_OK;
   }
 
-  if (state.captureWindow) {
-    D3D11_BOX srcBox;
-    srcBox.left = state.windowX;
-    srcBox.top = state.windowY;
-    srcBox.right = state.windowX + state.windowWidth;
-    srcBox.bottom = state.windowY + state.windowHeight;
-    srcBox.front = 0;
-    srcBox.back = 1;
-    state.context->CopySubresourceRegion(state.stagingTexture, 0, 0, 0, 0, acquiredTexture, 0, &srcBox);
-  } else {
-    state.context->CopyResource(state.stagingTexture, acquiredTexture);
-  }
-  acquiredTexture->Release();
-
-  D3D11_TEXTURE2D_DESC desc;
-  state.stagingTexture->GetDesc(&desc);
-  D3D11_MAPPED_SUBRESOURCE mapped;
-  hr = state.context->Map(state.stagingTexture, 0, D3D11_MAP_READ, 0, &mapped);
-  if (FAILED(hr)) {
-    state.duplication->ReleaseFrame();
-    return false;
+  HRESULT __stdcall DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
+    *pdwEffect = DROPEFFECT_COPY;
+    return S_OK;
   }
 
-  outPixels.resize(desc.Width * desc.Height * 4);
-  for (UINT y = 0; y < desc.Height; y++) {
-    memcpy(outPixels.data() + y * desc.Width * 4,
-           reinterpret_cast<uint8_t*>(mapped.pData) + y * mapped.RowPitch,
-           desc.Width * 4);
+  HRESULT __stdcall DragLeave() override {
+    NativeMethodChannel::InvokeDragDropStatus(kDragDropStatusIdle);
+    return S_OK;
   }
 
-  state.context->Unmap(state.stagingTexture, 0);
-  state.duplication->ReleaseFrame();
-  return true;
-}
+  HRESULT __stdcall Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
+    *pdwEffect = DROPEFFECT_COPY;
 
-bool CaptureDirtyRects(ScreenCaptureState& state, std::vector<uint8_t>& outPixels, std::vector<int>& dirtyRects) {
-  std::vector<uint8_t> currentFrame;
-  if (!CaptureFrame(state, currentFrame)) {
-    return false;
-  }
-
-  if (!state.hasPreviousFrame) {
-    state.previousFrame = std::move(currentFrame);
-    state.hasPreviousFrame = true;
-    outPixels = state.previousFrame;
-    dirtyRects.push_back(0);
-    dirtyRects.push_back(0);
-    dirtyRects.push_back(state.width);
-    dirtyRects.push_back(state.height);
-    return true;
-  }
-
-  const int width = state.width;
-  const int height = state.height;
-  const int stride = width * 4;
-
-  dirtyRects.clear();
-  for (int y = 0; y < height; y++) {
-    const uint8_t* currRow = currentFrame.data() + y * stride;
-    const uint8_t* prevRow = state.previousFrame.data() + y * stride;
-    int rectStart = -1;
-    for (int x = 0; x < width; x++) {
-      bool changed = memcmp(currRow + x * 4, prevRow + x * 4, 4) != 0;
-      if (changed && rectStart == -1) {
-        rectStart = x;
-      } else if (!changed && rectStart != -1) {
-        dirtyRects.push_back(rectStart);
-        dirtyRects.push_back(y);
-        dirtyRects.push_back(x - rectStart);
-        dirtyRects.push_back(1);
-        rectStart = -1;
+    FORMATETC fmt = { CF_HDROP, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+    STGMEDIUM stg = {};
+    if (SUCCEEDED(pDataObj->GetData(&fmt, &stg))) {
+      HDROP drop = static_cast<HDROP>(GlobalLock(stg.hGlobal));
+      if (drop) {
+        UINT fileCount = DragQueryFile(drop, 0xFFFFFFFF, nullptr, 0);
+        std::vector<std::string> files;
+        int totalSize = 0;
+        for (UINT i = 0; i < fileCount; ++i) {
+          wchar_t path[MAX_PATH] = {0};
+          if (DragQueryFile(drop, i, path, MAX_PATH)) {
+            int utf8Size = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, nullptr, nullptr);
+            if (utf8Size > 0) {
+              std::string utf8Path(utf8Size - 1, 0);
+              WideCharToMultiByte(CP_UTF8, 0, path, -1, &utf8Path[0], utf8Size, nullptr, nullptr);
+              files.push_back(utf8Path);
+              WIN32_FILE_ATTRIBUTE_DATA fad;
+              if (GetFileAttributesEx(path, GetFileExInfoStandard, &fad)) {
+                ULARGE_INTEGER size;
+                size.HighPart = fad.nFileSizeHigh;
+                size.LowPart = fad.nFileSizeLow;
+                totalSize += static_cast<int>(size.QuadPart);
+              }
+            }
+          }
+        }
+        GlobalUnlock(stg.hGlobal);
+        if (!files.empty()) {
+          NativeMethodChannel::InvokeDragDrop(files, totalSize);
+        }
       }
+      ReleaseStgMedium(&stg);
     }
-    if (rectStart != -1) {
-      dirtyRects.push_back(rectStart);
-      dirtyRects.push_back(y);
-      dirtyRects.push_back(width - rectStart);
-      dirtyRects.push_back(1);
-    }
+
+    NativeMethodChannel::InvokeDragDropStatus(kDragDropStatusIdle);
+    return S_OK;
   }
 
-  state.previousFrame = std::move(currentFrame);
+ private:
+  HWND hwnd_;
+  LONG ref_;
+};
 
-  if (dirtyRects.empty()) {
-    outPixels.clear();
-    return true;
-  }
-
-  outPixels = state.previousFrame;
-  return true;
-}
-
-void CleanupCapture(ScreenCaptureState& state) {
-  if (state.stagingTexture) {
-    state.stagingTexture->Release();
-    state.stagingTexture = nullptr;
-  }
-  if (state.duplication) {
-    state.duplication->Release();
-    state.duplication = nullptr;
-  }
-  if (state.context) {
-    state.context->Release();
-    state.context = nullptr;
-  }
-  if (state.device) {
-    state.device->Release();
-    state.device = nullptr;
-  }
-  state.previousFrame.clear();
-  state.hasPreviousFrame = false;
-  state.active = false;
-}
-
-}  // namespace
+flutter::FlutterViewController* g_flutter_controller = nullptr;
+NativeMethodChannel::DropTarget* g_drop_target = nullptr;
 
 // Window enumeration helpers
 namespace {
@@ -349,9 +161,14 @@ bool g_tray_initialized = false;
 HWND g_tray_hwnd = nullptr;
 }  // namespace
 
+namespace {
+flutter::FlutterViewController* g_flutter_controller = nullptr;
+}  // namespace
+
 void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
   const flutter::StandardMethodCodec* codec = &flutter::StandardMethodCodec::GetInstance();
   auto messenger = controller->engine()->messenger();
+  g_flutter_controller = controller;
   // Screen capture channel
   {
     flutter::MethodChannel<flutter::EncodableValue> channel(
@@ -637,4 +454,43 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
       }
     });
   }
+
+  if (controller->view()) {
+    HWND hwnd = controller->view()->GetNativeWindow();
+    if (hwnd) {
+      g_drop_target = new DropTarget(hwnd);
+      RegisterDragDrop(hwnd, g_drop_target);
+    }
+  }
+}
+
+void NativeMethodChannel::InvokeDragDrop(const std::vector<std::string>& files, int totalSize) {
+  if (!g_flutter_controller) return;
+  const flutter::StandardMethodCodec* codec = &flutter::StandardMethodCodec::GetInstance();
+  flutter::MethodChannel<flutter::EncodableValue> channel(
+      g_flutter_controller->engine()->messenger(),
+      "nex.flutter/drag_drop",
+      static_cast<const flutter::MethodCodec<flutter::EncodableValue>*>(codec));
+
+  flutter::EncodableList fileList;
+  for (const auto& f : files) {
+    fileList.push_back(flutter::EncodableValue(f));
+  }
+
+  flutter::EncodableMap args;
+  args[flutter::EncodableValue("files")] = flutter::EncodableValue(fileList);
+  args[flutter::EncodableValue("totalSize")] = flutter::EncodableValue(totalSize);
+
+  channel.InvokeMethod("onFilesDropped", args);
+}
+
+void NativeMethodChannel::InvokeDragDropStatus(int status) {
+  if (!g_flutter_controller) return;
+  const flutter::StandardMethodCodec* codec = &flutter::StandardMethodCodec::GetInstance();
+  flutter::MethodChannel<flutter::EncodableValue> channel(
+      g_flutter_controller->engine()->messenger(),
+      "nex.flutter/drag_drop",
+      static_cast<const flutter::MethodCodec<flutter::EncodableValue>*>(codec));
+
+  channel.InvokeMethod(status == kDragDropStatusDragging ? "onDragEnter" : "onDragLeave", nullptr);
 }

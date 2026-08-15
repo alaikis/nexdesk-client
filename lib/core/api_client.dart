@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../../config/app_config.dart';
 import '../../core/storage_service.dart';
 import '../../core/secure_storage_service.dart';
 import '../../core/log_service.dart';
+import 'package:path/path.dart' as path;
 
 class ApiException implements Exception {
   final int statusCode;
@@ -446,5 +448,26 @@ class ApiClient {
 
   Future<void> setBlockedUsers(String deviceId, List<int> userIds) async {
     await post('/devices/$deviceId/blocked-users', {'user_ids': userIds});
+  }
+
+  Future<Map<String, dynamic>> uploadFile(String sessionId, String filePath, void Function(int sent, int total)? onProgress) async {
+    final file = File(filePath);
+    final filename = path.basename(filePath);
+    final request = http.MultipartRequest('POST', Uri.parse('${AppConfig.apiBaseUrl}/sessions/$sessionId/files'));
+    if (_token != null) request.headers['Authorization'] = 'Bearer $_token';
+    if (_refreshToken != null) request.headers['X-Refresh-Token'] = _refreshToken!;
+    request.files.add(await http.MultipartFile.fromPath('file', filePath, filename: filename));
+    final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+    final response = await http.Response.fromStream(streamedResponse);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (response.body.isEmpty) return {};
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    String? msg;
+    try {
+      final map = jsonDecode(response.body) as Map<String, dynamic>;
+      msg = map['message'] as String? ?? map['error'] as String?;
+    } catch (_) {}
+    throw ApiException(response.statusCode, msg ?? 'Upload failed');
   }
 }

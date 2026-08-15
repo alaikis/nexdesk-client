@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:async/async.dart';
 import '../../core/webrtc_service.dart';
 import '../../core/screen_service.dart';
 import '../../core/signaling_service.dart';
@@ -14,6 +15,7 @@ import '../../core/screen_capture_service.dart';
 import '../../core/api_client.dart';
 import '../../core/input_relay_service.dart';
 import '../../core/quality_service.dart';
+import '../../core/drag_drop_service.dart';
 import '../session/session_provider.dart';
 import 'screen_selector.dart';
 import 'file_transfer_screen.dart';
@@ -43,6 +45,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   final ScreenService _screenService = ScreenService();
   final ApiClient _api = ApiClient();
   final E2eeService _e2ee = E2eeService();
+  final DragDropService _dragDrop = DragDropService();
   InputRelayService? _inputRelay;
   SignalingService? _signaling;
   bool _audioEnabled = true;
@@ -58,11 +61,43 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   WindowInfo? _selectedWindow;
   SharingSource _sharingSource = SharingSource.fullScreen;
 
+  bool _isDragOver = false;
+  List<String> _dragFiles = [];
+  int _dragTotalSize = 0;
+  StreamSubscription<dynamic>? _dragStatusSub;
+  StreamSubscription<dynamic>? _dragDropSub;
+
   @override
   void initState() {
     super.initState();
     _initScreens();
     _localDeviceIdInit();
+    _dragDrop.startListening();
+    _dragStatusSub = _dragDrop.onStatusChange.listen((status) {
+      if (mounted) {
+        setState(() {
+          _isDragOver = status == DragDropStatus.dragging;
+          if (!_isDragOver) {
+            _dragFiles = [];
+            _dragTotalSize = 0;
+          }
+        });
+      }
+    });
+    _dragDropSub = _dragDrop.onDrop.listen((event) {
+      if (mounted) {
+        setState(() {
+          _dragFiles = event.files;
+          _dragTotalSize = event.totalSize;
+        });
+        _handleFileDrop(event.files);
+        setState(() {
+          _isDragOver = false;
+          _dragFiles = [];
+          _dragTotalSize = 0;
+        });
+      }
+    });
   }
 
   Future<void> _localDeviceIdInit() async {
@@ -791,76 +826,156 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       );
     }
 
-    return Column(
+    return Stack(
       children: [
-        if (sessionProvider.reconnectionState == ReconnectionState.reconnecting)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            color: const Color(0xFFFF3B30),
-            child: Text(
-              'Reconnecting... (attempt ${sessionProvider.reconnectAttempts + 1})',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
-            ),
-          ),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              _inputRelay?.updateSize(Size(constraints.maxWidth, constraints.maxHeight));
-              return Listener(
-                onPointerDown: (e) => _inputRelay?.handlePointerEvent(e),
-                onPointerMove: (e) => _inputRelay?.handlePointerEvent(e),
-                onPointerUp: (e) => _inputRelay?.handlePointerEvent(e),
-                onPointerSignal: (e) {
-                  if (e is PointerScrollEvent) _inputRelay?.handlePointerEvent(e);
-                },
-                child: KeyboardListener(
-                  focusNode: FocusNode()..requestFocus(),
-                  onKeyEvent: (e) => _inputRelay?.handleKeyEvent(e, _keyModifiers(e)),
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(12),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 16 / 9,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
-                    itemCount: streams.length,
-                    itemBuilder: (context, index) {
-                      final stream = streams[index];
-                      final privacyEnabled = sessionProvider.privacyEnabled;
-                      return Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFE5E5EA)),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: RTCVideoView(stream.renderer),
-                            ),
-                          ),
-                          if (privacyEnabled)
-                            Positioned.fill(
-                              child: Container(
+        Column(
+          children: [
+            if (sessionProvider.reconnectionState == ReconnectionState.reconnecting)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                color: const Color(0xFFFF3B30),
+                child: Text(
+                  'Reconnecting... (attempt ${sessionProvider.reconnectAttempts + 1})',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              ),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  _inputRelay?.updateSize(Size(constraints.maxWidth, constraints.maxHeight));
+                  return Listener(
+                    onPointerDown: (e) => _inputRelay?.handlePointerEvent(e),
+                    onPointerMove: (e) => _inputRelay?.handlePointerEvent(e),
+                    onPointerUp: (e) => _inputRelay?.handlePointerEvent(e),
+                    onPointerSignal: (e) {
+                      if (e is PointerScrollEvent) _inputRelay?.handlePointerEvent(e);
+                    },
+                    child: KeyboardListener(
+                      focusNode: FocusNode()..requestFocus(),
+                      onKeyEvent: (e) => _inputRelay?.handleKeyEvent(e, _keyModifiers(e)),
+                      child: GridView.builder(
+                        padding: const EdgeInsets.all(12),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 16 / 9,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        itemCount: streams.length,
+                        itemBuilder: (context, index) {
+                          final stream = streams[index];
+                          final privacyEnabled = sessionProvider.privacyEnabled;
+                          return Stack(
+                            children: [
+                              Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.black,
                                   borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFE5E5EA)),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: _isDragOver
+                                      ? Opacity(opacity: 0.6, child: RTCVideoView(stream.renderer))
+                                      : RTCVideoView(stream.renderer),
                                 ),
                               ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              );
-            },
-          ),
+                              if (privacyEnabled)
+                                Positioned.fill(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
+        if (_isDragOver && sessionProvider.activeSessionId != null)
+          _buildDragOverlay(),
       ],
+    );
+  }
+
+  Future<void> _handleFileDrop(List<String> files) async {
+    final sessionProvider = context.read<SessionProvider>();
+    final activeSessionId = sessionProvider.activeSessionId;
+    if (activeSessionId == null || files.isEmpty) return;
+
+    for (final file in files) {
+      unawaited(sessionProvider.sendFile(file));
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Queued ${files.length} file(s) for upload'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Widget _buildDragOverlay() {
+    final cs = Theme.of(context).colorScheme;
+    final size = MediaQuery.of(context).size;
+    final fileCount = _dragFiles.length;
+    final sizeText = _dragTotalSize > 0
+        ? '${(_dragTotalSize / 1024 / 1024).toStringAsFixed(1)} MB'
+        : '';
+
+    return IgnorePointer(
+      ignoring: true,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: cs.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.primary, width: 2),
+              ),
+            ),
+          ),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: BoxDecoration(
+                color: cs.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud_upload_rounded, color: Colors.white, size: 32),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Drop to send',
+                    style: TextStyle(color: cs.onPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  if (fileCount > 0) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '$fileCount file${fileCount > 1 ? 's' : ''}${sizeText.isNotEmpty ? " • $sizeText" : ""}',
+                      style: TextStyle(color: cs.onPrimary, fontSize: 13),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -912,6 +1027,9 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   @override
   void dispose() {
+    _dragStatusSub?.cancel();
+    _dragDropSub?.cancel();
+    _dragDrop.stopListening();
     _inputRelay?.stop();
     _webrtc.dispose();
     _e2ee.dispose();
