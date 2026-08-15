@@ -376,6 +376,24 @@ class ApiClient {
     await post('/sessions/$sessionId/privacy', {'enabled': enabled});
   }
 
+  Future<Map<String, dynamic>> createPrintJob(String sessionId, String fileName, int fileSize, String format, String fileData) async {
+    return post('/sessions/$sessionId/print', {
+      'file_name': fileName,
+      'file_size': fileSize,
+      'format': format,
+      'file_data': fileData,
+    });
+  }
+
+  Future<List<dynamic>> listPrintJobs(String sessionId) async {
+    final res = await get('/sessions/$sessionId/print');
+    return res['jobs'] as List<dynamic>;
+  }
+
+  Future<void> cancelPrintJob(String sessionId, int jobId) async {
+    await delete('/sessions/$sessionId/print/$jobId');
+  }
+
   Future<List<dynamic>> listShares() async {
     final res = await get('/shares');
     return res['shares'] as List<dynamic>;

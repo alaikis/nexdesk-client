@@ -23,6 +23,7 @@ enum SignalingMessageType {
   privacy,
   whiteboard,
   qualityPreset,
+  remotePrint,
   error;
 
   factory SignalingMessageType.fromString(String value) {
@@ -107,6 +108,7 @@ class SignalingService {
   final void Function(bool enabled)? onPrivacyChanged;
   void Function(ChatMessage message)? onChatMessage;
   final void Function(Map<String, dynamic> event)? onWhiteboard;
+  final void Function(Map<String, dynamic> event)? onRemotePrint;
   final void Function(int attempts)? onReconnectAttempts;
   final void Function(int attempts)? onReconnectFailed;
 
@@ -133,6 +135,7 @@ class SignalingService {
     this.onPrivacyChanged,
     this.onChatMessage,
     this.onWhiteboard,
+    this.onRemotePrint,
     this.onReconnectAttempts,
     this.onReconnectFailed,
   });
@@ -213,6 +216,8 @@ class SignalingService {
         onPrivacyChanged?.call(enabled);
       } else if (msg.type == SignalingMessageType.whiteboard) {
         onWhiteboard?.call(Map<String, dynamic>.from(msg.payload));
+      } else if (msg.type == SignalingMessageType.remotePrint) {
+        onRemotePrint?.call(Map<String, dynamic>.from(msg.payload));
       }
       _controller.add(msg);
     } catch (e) {
@@ -311,6 +316,14 @@ class SignalingService {
       type: SignalingMessageType.qualityPreset,
       sessionId: sessionId,
       payload: {'preset': preset.name},
+    ));
+  }
+
+  void sendRemotePrint(String toDevice, Map<String, dynamic> payload) {
+    send(SignalingMessage(
+      type: SignalingMessageType.remotePrint,
+      to: toDevice,
+      payload: payload,
     ));
   }
 

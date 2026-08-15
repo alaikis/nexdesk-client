@@ -29,6 +29,10 @@ import 'whiteboard_screen.dart';
 import '../../platform/windows_screen_capture.dart';
 import '../../platform/macos_screen_capture.dart';
 import '../../platform/linux_screen_capture.dart';
+import '../../platform/windows_print_service.dart';
+import '../../platform/macos_print_service.dart';
+import '../../platform/linux_print_service.dart';
+import 'remote_print_screen.dart';
 
 enum SharingSource { fullScreen, window }
 
@@ -596,6 +600,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
+        icon: Icons.print,
+        label: 'Print',
+        tooltip: 'Remote print',
+        onTap: _showRemotePrint,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
         icon: _whiteboardActive ? Icons.brush : Icons.brush_outlined,
         label: _whiteboardActive ? 'Whiteboard' : 'Whiteboard',
         tooltip: _whiteboardActive ? 'Disable whiteboard' : 'Enable whiteboard',
@@ -710,6 +721,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         label: 'Clipboard',
         tooltip: 'Clipboard',
         onTap: _showClipboard,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
+        icon: Icons.print,
+        label: 'Print',
+        tooltip: 'Remote print',
+        onTap: _showRemotePrint,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
@@ -1023,6 +1041,97 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         builder: (_) => RecordingScreen(sessionId: widget.sessionId),
       ),
     );
+  }
+
+  Future<void> _showRemotePrint() async {
+    final sessionProvider = context.read<SessionProvider>();
+    final session = sessionProvider.activeSession;
+    if (session == null) return;
+
+    final isController = _localDeviceId == session.controllerDeviceId;
+
+    if (isController) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RemotePrintScreen(sessionId: widget.sessionId),
+        ),
+      );
+    } else {
+      await _showSendPrintDialog();
+    }
+  }
+
+  Future<void> _showSendPrintDialog() async {
+    final sessionProvider = context.read<SessionProvider>();
+    final session = sessionProvider.activeSession;
+    if (session == null) return;
+
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Send Print Job'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const DropdownButtonFormField<String>(
+              value: 'image',
+              decoration: InputDecoration(labelText: 'Format'),
+              items: [
+                DropdownMenuItem(value: 'image', child: Text('Image (PNG)')),
+                DropdownMenuItem(value: 'pdf', child: Text('PDF')),
+                DropdownMenuItem(value: 'txt', child: Text('Text')),
+              ],
+              onChanged: null,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(labelText: 'File name'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              final fileName = controller.text.isEmpty ? 'print_job' : controller.text;
+              Navigator.pop(ctx, fileName);
+            },
+            child: const Text('Capture & Send'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == null) return;
+
+    try {
+      if (_signaling != null) {
+        final targetDevice = session.controllerDeviceId;
+        _signaling!.sendRemotePrint(targetDevice, {
+          'job_id': '${DateTime.now().millisecondsSinceEpoch}_${_localDeviceId}',
+          'file_name': result,
+          'file_size': 0,
+          'format': 'image',
+          'file_data': '',
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Print job sent to controller')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Send failed: $e')),
+        );
+      }
+    }
   }
 
   @override

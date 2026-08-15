@@ -89,6 +89,7 @@ class SessionProvider with ChangeNotifier {
   Offset get toolbarPosition => _toolbarPosition;
   List<_FileUpload> get uploads => List.unmodifiable(_uploads);
   String? get lastUploadError => _lastUploadError;
+  SignalingService? get signalingService => _signaling;
 
   void setSignalingService(SignalingService? service) {
     _signaling = service;
