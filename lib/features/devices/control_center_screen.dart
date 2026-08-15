@@ -8,12 +8,8 @@ import '../../features/auth/auth_provider.dart';
 import '../../features/session/session_provider.dart';
 import '../../core/error_handler.dart';
 import '../../widgets/nex_card.dart';
-import '../../widgets/nex_button.dart';
 import '../../widgets/nex_input.dart';
 import '../../widgets/local_device_card.dart';
-import '../../widgets/device_card.dart';
-import '../../widgets/section_header.dart';
-import '../../widgets/empty_state.dart';
 import '../../widgets/sidebar.dart';
 import '../../widgets/bottom_nav_bar.dart';
 
@@ -29,7 +25,6 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
   Timer? _refreshTimer;
   Timer? _searchDebounce;
   final TextEditingController _searchController = TextEditingController();
-  String? _wakingDeviceId;
 
   @override
   void initState() {
@@ -46,6 +41,14 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
         if (mounted) context.read<DeviceProvider>().setFilter(_searchController.text);
       });
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final auth = context.read<AuthProvider>();
+        if (auth.deviceId != null) {
+          context.read<DeviceProvider>().ensureControlPassword(auth.deviceId!);
+        }
+      }
+    });
   }
 
   @override
@@ -59,20 +62,6 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
   Future<void> _logout() async {
     await context.read<AuthProvider>().logout();
     if (mounted) context.go('/login');
-  }
-
-  Future<void> _wakeDevice(String deviceId) async {
-    setState(() => _wakingDeviceId = deviceId);
-    try {
-      final ok = await context.read<DeviceProvider>().wakeDevice(deviceId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ok ? 'Magic packet sent' : 'Failed to wake device')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _wakingDeviceId = null);
-    }
   }
 
   Future<void> _startSession(String deviceId) async {
@@ -213,38 +202,6 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
             ],
           ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              Text('Online Devices', style: Theme.of(context).textTheme.titleMedium),
-              const Spacer(),
-              TextButton(
-                onPressed: () => context.go('/devices/list'),
-                child: const Text('View All'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (onlineDevices.isEmpty)
-            EmptyState(
-              message: 'No online devices',
-              buttonText: 'Refresh',
-              onButtonPressed: () => devices.refresh(),
-            )
-          else
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: onlineDevices.take(3).map((d) => SizedBox(
-                width: 280,
-                child: DeviceCard(
-                  device: d,
-                  onConnect: () => _startSession(d.id),
-                  onCopy: () => _copyCode(d.code),
-                  onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
-                  wakingDeviceId: _wakingDeviceId,
-                ),
-              )).toList(),
-            ),
         ],
       ),
     );

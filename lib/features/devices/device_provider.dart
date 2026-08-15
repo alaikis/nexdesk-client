@@ -160,7 +160,7 @@ class DeviceProvider with ChangeNotifier {
   }
 
   String _generatePassword() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#\$%';
     final buf = StringBuffer();
     for (var i = 0; i < 12; i++) {
       buf.write(chars[(DateTime.now().millisecondsSinceEpoch + i) % chars.length]);

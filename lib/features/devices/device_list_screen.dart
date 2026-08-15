@@ -7,15 +7,12 @@ import '../../features/devices/device_provider.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/session/session_provider.dart';
 import '../../core/error_handler.dart';
-import '../../widgets/nex_card.dart';
-import '../../widgets/nex_button.dart';
 import '../../widgets/nex_input.dart';
-import '../../widgets/online_dot.dart';
-import '../../widgets/sidebar.dart';
 import '../../widgets/local_device_card.dart';
 import '../../widgets/device_card.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/sidebar.dart';
 
 class DeviceListScreen extends StatefulWidget {
   const DeviceListScreen({super.key});
