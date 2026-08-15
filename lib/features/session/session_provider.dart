@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import '../../core/api_client.dart';
 import '../../core/storage_service.dart';
+import '../../core/signaling_service.dart';
 
 enum ReconnectionState { connecting, connected, reconnecting, failed }
 
@@ -14,6 +15,7 @@ class Session with ChangeNotifier {
   String? endedAt;
   String status;
   bool relayUsed;
+  bool privacyEnabled;
 
   Session({
     required this.id,
@@ -23,6 +25,7 @@ class Session with ChangeNotifier {
     this.endedAt,
     this.status = 'active',
     this.relayUsed = false,
+    this.privacyEnabled = false,
   });
 
   factory Session.fromJson(Map<String, dynamic> json) {
@@ -34,6 +37,7 @@ class Session with ChangeNotifier {
       endedAt: json['ended_at'] as String?,
       status: json['status'] as String? ?? 'active',
       relayUsed: json['relay_used'] as bool? ?? false,
+      privacyEnabled: json['privacy_enabled'] as bool? ?? false,
     );
   }
 
@@ -46,6 +50,7 @@ class Session with ChangeNotifier {
       if (endedAt != null) 'ended_at': endedAt,
       'status': status,
       'relay_used': relayUsed,
+      'privacy_enabled': privacyEnabled,
     };
   }
 }
@@ -58,12 +63,45 @@ class SessionProvider with ChangeNotifier {
   List<Session> _history = [];
   ReconnectionState _reconnectionState = ReconnectionState.connected;
   int _reconnectAttempts = 0;
+  SignalingService? _signaling;
 
   Session? get activeSession => _activeSession;
   List<Session> get history => List.unmodifiable(_history);
   ReconnectionState get reconnectionState => _reconnectionState;
   int get reconnectAttempts => _reconnectAttempts;
   String? get activeSessionId => _activeSession?.id;
+  bool get privacyEnabled => _activeSession?.privacyEnabled ?? false;
+
+  void setSignalingService(SignalingService? service) {
+    _signaling = service;
+  }
+
+  Future<void> togglePrivacy(bool enabled) async {
+    final sessionId = _activeSession?.id;
+    if (sessionId == null) return;
+
+    if (_signaling != null) {
+      _signaling!.sendPrivacy(sessionId, enabled);
+    }
+
+    try {
+      await _api.setSessionPrivacy(sessionId, enabled);
+    } on ApiException catch (e) {
+      debugPrint('Set privacy failed: $e');
+    }
+
+    _activeSession?.privacyEnabled = enabled;
+    await _persistSession();
+    notifyListeners();
+  }
+
+  void setPrivacyEnabled(bool enabled) {
+    if (_activeSession?.privacyEnabled != enabled) {
+      _activeSession?.privacyEnabled = enabled;
+      _persistSession();
+      notifyListeners();
+    }
+  }
 
   SessionProvider() {
     _loadPersistedSession();

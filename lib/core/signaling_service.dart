@@ -19,6 +19,7 @@ enum SignalingMessageType {
   resumeSession,
   inputEvent,
   chatMessage,
+  privacy,
   error;
 
   factory SignalingMessageType.fromString(String value) {
@@ -100,6 +101,7 @@ class SignalingService {
   final void Function(String sessionId)? onPasswordRequired;
   final void Function(Map<String, dynamic> event)? onInputEvent;
   final void Function(Uint8List publicKey, String fromDevice)? onKeyExchange;
+  final void Function(bool enabled)? onPrivacyChanged;
   void Function(ChatMessage message)? onChatMessage;
   final void Function(int attempts)? onReconnectAttempts;
   final void Function(int attempts)? onReconnectFailed;
@@ -124,6 +126,7 @@ class SignalingService {
     this.onPasswordRequired,
     this.onInputEvent,
     this.onKeyExchange,
+    this.onPrivacyChanged,
     this.onChatMessage,
     this.onReconnectAttempts,
     this.onReconnectFailed,
@@ -200,6 +203,9 @@ class SignalingService {
         if (from != null && content != null) {
           onChatMessage?.call(ChatMessage(from: from, content: content, timestamp: timestamp));
         }
+      } else if (msg.type == SignalingMessageType.privacy) {
+        final enabled = msg.payload['enabled'] as bool? ?? false;
+        onPrivacyChanged?.call(enabled);
       }
       _controller.add(msg);
     } catch (e) {
@@ -263,7 +269,7 @@ class SignalingService {
     ));
   }
 
-  /// Send chat message to remote device
+   /// Send chat message to remote device
   void sendChatMessage(String toDevice, String content) {
     send(SignalingMessage(
       type: SignalingMessageType.chatMessage,
@@ -273,6 +279,15 @@ class SignalingService {
         'content': content,
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       },
+    ));
+  }
+
+  /// Send privacy screen toggle to remote device
+  void sendPrivacy(String sessionId, bool enabled) {
+    send(SignalingMessage(
+      type: SignalingMessageType.privacy,
+      sessionId: sessionId,
+      payload: {'enabled': enabled},
     ));
   }
 

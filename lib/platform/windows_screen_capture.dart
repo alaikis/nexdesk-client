@@ -50,4 +50,19 @@ class WindowsScreenCapture {
     final result = await _channel.invokeMethod<bool>('isSupported');
     return result ?? false;
   }
+
+  /// Set privacy screen state. When enabled, native capture can signal
+  /// the controllee to avoid capturing sensitive content.
+  /// The actual black overlay for the remote viewer is rendered in the
+  /// Flutter session view, not in native capture.
+  static bool privacyEnabled = false;
+
+  static Future<void> setPrivacyEnabled(bool enabled) async {
+    privacyEnabled = enabled;
+    try {
+      await _channel.invokeMethod('setPrivacyEnabled', {'enabled': enabled});
+    } on PlatformException catch (_) {
+      // Fallback: track state locally if native side is unavailable
+    }
+  }
 }

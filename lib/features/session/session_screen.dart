@@ -116,6 +116,11 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
           _e2eeReady = true;
           debugPrint('E2EE session key derived from $fromDevice');
         },
+        onPrivacyChanged: (enabled) {
+          if (mounted) {
+            context.read<SessionProvider>().setPrivacyEnabled(enabled);
+          }
+        },
         onReconnectAttempts: (attempts) {
           if (!mounted) return;
           context.read<SessionProvider>().setReconnectionState(ReconnectionState.reconnecting, attempts: attempts);
@@ -140,6 +145,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         sessionId: widget.sessionId,
         targetDeviceId: controlleeId,
       );
+      context.read<SessionProvider>().setSignalingService(_signaling);
       final qualityProfile = await QualityService().getProfile(widget.sessionId);
       await _webrtc.initialize(
         role: SessionRole.controller,
@@ -303,6 +309,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   @override
   Widget build(BuildContext context) {
+    final privacyEnabled = context.watch<SessionProvider>().privacyEnabled;
     return Scaffold(
       appBar: AppBar(
         title: Text('Session ${widget.sessionId}'),
@@ -326,12 +333,23 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
               icon: const Icon(Icons.hd),
             ),
           ),
+           Semantics(
+             label: _audioEnabled ? 'Mute audio' : 'Unmute audio',
+             child: IconButton(
+               onPressed: _toggleAudio,
+               tooltip: _audioEnabled ? 'Mute' : 'Unmute',
+               icon: Icon(_audioEnabled ? Icons.mic : Icons.mic_off),
+             ),
+           ),
           Semantics(
-            label: _audioEnabled ? 'Mute audio' : 'Unmute audio',
+            label: privacyEnabled ? 'Disable privacy screen' : 'Enable privacy screen',
             child: IconButton(
-              onPressed: _toggleAudio,
-              tooltip: _audioEnabled ? 'Mute' : 'Unmute',
-              icon: Icon(_audioEnabled ? Icons.mic : Icons.mic_off),
+              onPressed: () async {
+                final sp = context.read<SessionProvider>();
+                await sp.togglePrivacy(!privacyEnabled);
+              },
+              tooltip: privacyEnabled ? 'Disable privacy' : 'Enable privacy',
+              icon: Icon(privacyEnabled ? Icons.visibility_off : Icons.visibility),
             ),
           ),
           Semantics(
@@ -523,15 +541,29 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                     itemCount: streams.length,
                     itemBuilder: (context, index) {
                       final stream = streams[index];
-                      return Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE5E5EA)),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: RTCVideoView(stream.renderer),
-                        ),
+                      final privacyEnabled = sessionProvider.privacyEnabled;
+                      return Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFE5E5EA)),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: RTCVideoView(stream.renderer),
+                            ),
+                          ),
+                          if (privacyEnabled)
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                        ],
                       );
                     },
                   ),

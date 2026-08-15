@@ -362,6 +362,10 @@ class ApiClient {
     await post('/sessions/$sessionId/password', {'password': password});
   }
 
+  Future<void> setSessionPrivacy(String sessionId, bool enabled) async {
+    await post('/sessions/$sessionId/privacy', {'enabled': enabled});
+  }
+
   Future<List<dynamic>> listShares() async {
     final res = await get('/shares');
     return res['shares'] as List<dynamic>;
