@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'app.dart';
+import 'l10n/app_localizations.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/devices/device_provider.dart';
 import 'features/session/session_provider.dart';
@@ -69,16 +70,18 @@ Future<void> main() async {
       final update = UpdateService().latestUpdate!;
       final ctx = NexApp.navigatorKey.currentContext;
       if (ctx != null && ctx.mounted) {
+        final l10n = AppLocalizations.of(ctx);
+        final info = await PackageInfo.fromPlatform();
         showDialog(
           context: ctx,
           barrierDismissible: false,
           builder: (dialogCtx) => AlertDialog(
-            title: Text('Update available: ${update.version}'),
+            title: Text(l10n?.updateAvailable(info.version, update.version) ?? 'Update available: ${update.version}'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('A new version is available. Would you like to download it?'),
+                Text(l10n?.updateMessage ?? 'A new version is available. Would you like to download it?'),
                 if (update.notes != null && update.notes!.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Text(update.notes!, style: Theme.of(dialogCtx).textTheme.bodyMedium),
@@ -88,14 +91,14 @@ Future<void> main() async {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogCtx),
-                child: const Text('Later'),
+                child: Text(l10n?.later ?? 'Later'),
               ),
               FilledButton(
                 onPressed: () {
                   Navigator.pop(dialogCtx);
                   UpdateService().downloadUpdate();
                 },
-                child: const Text('Download'),
+                child: Text(l10n?.download ?? 'Download'),
               ),
             ],
           ),

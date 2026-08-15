@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../features/devices/device_provider.dart';
 import 'nex_card.dart';
 import 'online_dot.dart';
+import '../l10n/app_localizations.dart';
 
 class DeviceCard extends StatefulWidget {
   final Device device;
@@ -119,14 +121,14 @@ class _DeviceCardState extends State<DeviceCard> {
                               visualDensity: VisualDensity.compact,
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
                             )),
-                            if (widget.device.tags.length > 3)
-                              Chip(
-                                label: Text('+${widget.device.tags.length - 3}', style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-                                backgroundColor: cs.surfaceContainerHighest,
-                                side: BorderSide.none,
-                                visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-                              ),
+                             if (widget.device.tags.length > 3)
+                               Chip(
+                                 label: Text(AppLocalizations.of(context)!.moreTags(widget.device.tags.length - 3), style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+                                 backgroundColor: cs.surfaceContainerHighest,
+                                 side: BorderSide.none,
+                                 visualDensity: VisualDensity.compact,
+                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                               ),
                           ],
                         ),
                       ],
@@ -152,13 +154,13 @@ class _DeviceCardState extends State<DeviceCard> {
               const SizedBox(width: 12),
               FilledButton.tonal(
                 onPressed: widget.onConnect,
-                child: const Text('Connect'),
+                child: Text(AppLocalizations.of(context)!.connect),
               ),
               if (widget.onWake != null) ...[
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: widget.wakingDeviceId == widget.device.id ? null : widget.onWake,
-                  tooltip: 'Wake',
+                  tooltip: AppLocalizations.of(context)!.wakeDevice,
                   icon: widget.wakingDeviceId == widget.device.id
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                       : Icon(Icons.power_settings_new, size: 18, color: cs.primary),
@@ -176,7 +178,7 @@ class _DeviceCardState extends State<DeviceCard> {
                 size: 18,
                 color: widget.device.favorite ? Colors.amber : cs.onSurfaceVariant,
               ),
-              tooltip: widget.device.favorite ? 'Remove from favorites' : 'Add to favorites',
+              tooltip: widget.device.favorite ? AppLocalizations.of(context)!.removeFromFavoritesTooltip : AppLocalizations.of(context)!.addToFavoritesTooltip,
             ),
           ),
         ],

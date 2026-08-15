@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/signaling_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class ChatPanel extends StatefulWidget {
   final SignalingService signaling;
@@ -61,6 +62,7 @@ class _ChatPanelState extends State<ChatPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: 280,
       decoration: BoxDecoration(
@@ -75,11 +77,11 @@ class _ChatPanelState extends State<ChatPanel> {
               color: Colors.grey.shade100,
               border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.chat_bubble_outline, size: 18),
-                SizedBox(width: 8),
-                Text('Chat', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Icon(Icons.chat_bubble_outline, size: 18),
+                const SizedBox(width: 8),
+                Text(l10n.chatTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -121,7 +123,7 @@ class _ChatPanelState extends State<ChatPanel> {
                     child: TextField(
                       controller: _controller,
                       decoration: InputDecoration(
-                        hintText: 'Type a message...',
+                        hintText: l10n.typeMessage,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
                         isDense: true,

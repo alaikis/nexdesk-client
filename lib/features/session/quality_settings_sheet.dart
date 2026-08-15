@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/quality_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class QualitySettingsSheet extends StatefulWidget {
   final String sessionId;
@@ -41,8 +42,9 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
     await _qualityService.setProfile(widget.sessionId, profile);
     await widget.onProfileChanged?.call(profile);
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Quality set to ${QualityProfileConfig.presetLabels[preset]}')),
+      SnackBar(content: Text(l10n.qualitySetTo(QualityProfileConfig.presetLabels[preset] ?? preset.name))),
     );
   }
 
@@ -50,8 +52,9 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
     await _qualityService.setProfile(widget.sessionId, QualityProfile.high);
     await widget.onProfileChanged?.call(QualityProfile.high);
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Custom quality applied')),
+      SnackBar(content: Text(l10n.customQualityApplied)),
     );
   }
 
@@ -72,13 +75,14 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Stream Quality', style: Theme.of(context).textTheme.headlineSmall),
+          Text(l10n.streamQuality, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,
@@ -93,14 +97,14 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
           ),
           if (_preset == QualityPreset.custom) ...[
             const SizedBox(height: 24),
-            Text('Custom Settings', style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.customSettings, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
-            _buildSlider('Width', _customWidth.toDouble(), 320, 3840, 10, (v) => setState(() => _customWidth = v.round())),
-            _buildSlider('Height', _customHeight.toDouble(), 240, 2160, 10, (v) => setState(() => _customHeight = v.round())),
-            _buildSlider('FPS', _customFps.toDouble(), 1, 144, 1, (v) => setState(() => _customFps = v.round())),
-            _buildSlider('Bitrate (kbps)', _customBitrate.toDouble(), 100, 50000, 100, (v) => setState(() => _customBitrate = v.round())),
+            _buildSlider(l10n.widthLabel, _customWidth.toDouble(), 320, 3840, 10, (v) => setState(() => _customWidth = v.round())),
+            _buildSlider(l10n.heightLabel, _customHeight.toDouble(), 240, 2160, 10, (v) => setState(() => _customHeight = v.round())),
+            _buildSlider(l10n.fpsLabel, _customFps.toDouble(), 1, 144, 1, (v) => setState(() => _customFps = v.round())),
+            _buildSlider(l10n.bitrateLabel, _customBitrate.toDouble(), 100, 50000, 100, (v) => setState(() => _customBitrate = v.round())),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _applyCustom, child: const Text('Apply Custom')),
+            FilledButton(onPressed: _applyCustom, child: Text(l10n.applyCustom)),
           ],
         ],
       ),

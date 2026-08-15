@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/local_recording_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class RecordingScreen extends StatefulWidget {
   final String sessionId;
@@ -43,8 +44,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
       });
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Recording failed: $e')),
+          SnackBar(content: Text(l10n.recordingFailed(e.toString()))),
         );
       }
     }
@@ -67,8 +69,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Session Recording')),
+      appBar: AppBar(title: Text(l10n.sessionRecording)),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -78,11 +81,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
               const SizedBox(height: 16),
               Text(_formatDuration(_duration), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              const Text('Recording...', style: TextStyle(color: Color(0xFF636366))),
+              Text(l10n.recording, style: const TextStyle(color: Color(0xFF636366))),
             ] else ...[
               const Icon(Icons.play_circle_outline, size: 48, color: Color(0xFF8E8E93)),
               const SizedBox(height: 16),
-              const Text('Not recording', style: TextStyle(color: Color(0xFF636366))),
+              Text(l10n.notRecording, style: const TextStyle(color: Color(0xFF636366))),
             ],
           ],
         ),

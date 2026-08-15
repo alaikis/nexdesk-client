@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/signaling_service.dart';
 import '../../features/session/session_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 class _AnsiSpan {
   final String text;
@@ -326,21 +327,22 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Remote Terminal'),
+        title: Text(l10n.remoteTerminalTitle),
         actions: [
           IconButton(
             icon: Icon(_connected ? Icons.link : Icons.link_off),
             onPressed: _requestTerminal,
-            tooltip: _connected ? 'Reconnect' : 'Connect',
+            tooltip: _connected ? l10n.reconnect : l10n.connect,
           ),
           IconButton(
             icon: const Icon(Icons.clear_all),
             onPressed: () {
               if (mounted) setState(() => _lines.clear());
             },
-            tooltip: 'Clear',
+            tooltip: l10n.clear,
           ),
         ],
       ),
@@ -358,7 +360,7 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
                     ElevatedButton.icon(
                       onPressed: _requestTerminal,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
+                      label: Text(l10n.retry),
                     ),
                   ],
                 ),
@@ -392,9 +394,9 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
                             fontFamily: 'monospace',
                             fontSize: 13,
                           ),
-                          decoration: const InputDecoration(
-                            hintText: 'Enter command...',
-                            hintStyle: TextStyle(color: Color(0xFF8E8E93), fontFamily: 'monospace'),
+                          decoration: InputDecoration(
+                            hintText: l10n.enterCommand,
+                            hintStyle: const TextStyle(color: Color(0xFF8E8E93), fontFamily: 'monospace'),
                             border: InputBorder.none,
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
@@ -414,7 +416,7 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
                           _sendInput('$value\n');
                           _inputController.clear();
                         },
-                        tooltip: 'Send',
+                        tooltip: l10n.send,
                       ),
                     ],
                   ),

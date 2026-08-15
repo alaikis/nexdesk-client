@@ -9,6 +9,7 @@ import '../../features/screen_wall/screen_wall_provider.dart';
 import '../../core/webrtc_service.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/nex_button.dart';
+import '../../l10n/app_localizations.dart';
 
 class ScreenWallScreen extends StatefulWidget {
   const ScreenWallScreen({super.key});
@@ -34,6 +35,7 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
     final wallProvider = context.watch<ScreenWallProvider>();
     final deviceProvider = context.watch<DeviceProvider>();
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     final wallDevices = wallProvider.selectedDeviceIds
         .map((id) => deviceProvider.devices.firstWhere(
@@ -48,13 +50,13 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Screen Wall'),
+        title: Text(l10n.screenWallTitle),
         actions: [
           SegmentedButton<int>(
-            segments: const [
-              ButtonSegment(value: 2, label: Text('2×2')),
-              ButtonSegment(value: 3, label: Text('3×3')),
-              ButtonSegment(value: 4, label: Text('4×4')),
+            segments: [
+              ButtonSegment(value: 2, label: Text(l10n.grid2x2)),
+              ButtonSegment(value: 3, label: Text(l10n.grid3x3)),
+              ButtonSegment(value: 4, label: Text(l10n.grid4x4)),
             ],
             selected: {gridSize},
             onSelectionChanged: (Set<int> selection) {
@@ -67,20 +69,20 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
             icon: wallProvider.refreshing
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.refresh),
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
           ),
           IconButton(
             onPressed: _showDeviceSelectionDialog,
             icon: const Icon(Icons.add),
-            tooltip: 'Add Devices',
+            tooltip: l10n.addDevices,
           ),
         ],
       ),
       body: wallDevices.isEmpty
           ? Center(
               child: EmptyState(
-                message: 'No devices in screen wall',
-                buttonText: 'Add Devices',
+                message: l10n.noDevicesInWall,
+                buttonText: l10n.addDevices,
                 onButtonPressed: _showDeviceSelectionDialog,
               ),
             )
@@ -113,12 +115,13 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           final selected = Set<String>.from(wallProvider.selectedDeviceIds);
+          final l10n = AppLocalizations.of(context)!;
           return AlertDialog(
-            title: const Text('Select Devices'),
+            title: Text(l10n.selectDevices),
             content: SizedBox(
               width: double.maxFinite,
               child: devices.isEmpty
-                  ? const Text('No devices available')
+                  ? Text(l10n.noDevicesAvailable)
                   : ListView.builder(
                       shrinkWrap: true,
                       itemCount: devices.length,
@@ -137,7 +140,7 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
                             });
                           },
                           title: Text(device.name),
-                          subtitle: Text(device.online ? 'Online' : 'Offline'),
+                          subtitle: Text(device.online ? l10n.onlineStatus : l10n.offlineStatus),
                           secondary: Icon(
                             device.online ? Icons.wifi : Icons.wifi_off,
                             color: device.online ? const Color(0xFF34C759) : Theme.of(context).colorScheme.error,
@@ -148,10 +151,10 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
                     ),
             ),
             actions: [
-              TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
+              TextButton(onPressed: () => context.pop(), child: Text(l10n.cancel)),
               FilledButton(
                 onPressed: () => context.pop(selected),
-                child: const Text('Done'),
+                child: Text(l10n.done),
               ),
             ],
           );
@@ -176,16 +179,22 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
   }
 }
 
-class _WallCell extends StatelessWidget {
+class _WallCell extends StatefulWidget {
   final Device device;
 
   const _WallCell({required this.device});
 
   @override
+  State<_WallCell> createState() => _WallCellState();
+}
+
+class _WallCellState extends State<_WallCell> {
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final wallProvider = context.watch<ScreenWallProvider>();
-    final wallStream = wallProvider.getWallStream(device.id);
+    final wallStream = wallProvider.getWallStream(widget.device.id);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       decoration: BoxDecoration(
@@ -200,9 +209,9 @@ class _WallCell extends StatelessWidget {
             if (wallStream != null && wallStream.remoteStream != null)
               RTCVideoView(wallStream.renderer)
             else if (wallStream != null && wallStream.failed)
-              _buildErrorPlaceholder(cs)
+              _buildErrorPlaceholder(cs, l10n)
             else
-              _buildWaitingPlaceholder(cs),
+              _buildWaitingPlaceholder(cs, l10n),
             Positioned(
               top: 8,
               left: 8,
@@ -216,17 +225,17 @@ class _WallCell extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      device.online ? Icons.wifi : Icons.wifi_off,
+                      widget.device.online ? Icons.wifi : Icons.wifi_off,
                       size: 14,
-                      color: device.online ? const Color(0xFF34C759) : cs.error,
+                      color: widget.device.online ? const Color(0xFF34C759) : cs.error,
                     ),
                     const SizedBox(width: 4),
-                  Text(
-                    device.name,
-                    style: TextStyle(fontSize: 12, color: cs.onSurface, fontWeight: FontWeight.w500),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    Text(
+                      widget.device.name,
+                      style: TextStyle(fontSize: 12, color: cs.onSurface, fontWeight: FontWeight.w500),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -235,7 +244,7 @@ class _WallCell extends StatelessWidget {
               top: 8,
               right: 8,
               child: IconButton(
-                onPressed: () => context.read<ScreenWallProvider>().removeDevice(device.id),
+                onPressed: () => context.read<ScreenWallProvider>().removeDevice(widget.device.id),
                 icon: Icon(Icons.close, size: 16, color: cs.onSurfaceVariant),
                 style: IconButton.styleFrom(
                   backgroundColor: cs.surface.withValues(alpha: 0.85),
@@ -249,7 +258,7 @@ class _WallCell extends StatelessWidget {
     );
   }
 
-  Widget _buildWaitingPlaceholder(ColorScheme cs) {
+  Widget _buildWaitingPlaceholder(ColorScheme cs, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -257,7 +266,7 @@ class _WallCell extends StatelessWidget {
           Icon(Icons.desktop_windows_outlined, size: 36, color: cs.outline),
           const SizedBox(height: 8),
           Text(
-            'Waiting for stream...',
+            l10n.waitingForStream,
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
         ],
@@ -265,7 +274,7 @@ class _WallCell extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorPlaceholder(ColorScheme cs) {
+  Widget _buildErrorPlaceholder(ColorScheme cs, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -273,7 +282,7 @@ class _WallCell extends StatelessWidget {
           Icon(Icons.error_outline, size: 36, color: cs.error),
           const SizedBox(height: 8),
           Text(
-            'Connection failed',
+            l10n.connectionFailed,
             style: TextStyle(fontSize: 12, color: cs.error),
           ),
         ],

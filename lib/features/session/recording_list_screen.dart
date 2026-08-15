@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/session_recording.dart';
+import '../../l10n/app_localizations.dart';
 
 class RecordingListScreen extends StatefulWidget {
   final String sessionId;
@@ -36,14 +37,15 @@ class _RecordingListScreenState extends State<RecordingListScreen> {
   }
 
   Future<void> _deleteRecording(int recordingId) async {
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete recording?'),
-        content: const Text('This cannot be undone.'),
+        title: Text(l10n.deleteRecording),
+        content: Text(l10n.cannotBeUndone),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete)),
         ],
       ),
     );
@@ -57,12 +59,13 @@ class _RecordingListScreenState extends State<RecordingListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Recordings')),
+      appBar: AppBar(title: Text(l10n.recordingsTitle)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _recordings.isEmpty
-              ? const Center(child: Text('No recordings yet'))
+              ? Center(child: Text(l10n.noRecordingsYet))
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _recordings.length,
@@ -88,7 +91,7 @@ class _RecordingListScreenState extends State<RecordingListScreen> {
                         ),
                         trailing: IconButton(
                           onPressed: () => _deleteRecording(rec.id),
-                          tooltip: 'Delete',
+                          tooltip: l10n.delete,
                           icon: const Icon(Icons.delete_outline, color: Color(0xFFFF3B30)),
                         ),
                       ),

@@ -3,6 +3,7 @@ import '../features/devices/device_provider.dart';
 import 'nex_card.dart';
 import 'online_dot.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 class LocalDeviceCard extends StatelessWidget {
   final Device device;
@@ -13,6 +14,7 @@ class LocalDeviceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return NexCard(
       color: cs.primaryContainer.withValues(alpha: 0.15),
       padding: EdgeInsets.all(NexSpacing.lg),
@@ -23,7 +25,7 @@ class LocalDeviceCard extends StatelessWidget {
             children: [
               Icon(Icons.computer, size: 20, color: cs.primary),
               const SizedBox(width: 8),
-              Text('This Device', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600, fontSize: 15)),
+              Text(l10n.thisDevice, style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600, fontSize: 15)),
             ],
           ),
           const SizedBox(height: 12),
@@ -33,14 +35,14 @@ class LocalDeviceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Device Code', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                    Text(l10n.deviceCodeLabel, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                     const SizedBox(height: 2),
                     GestureDetector(
                       onTap: device.code.isEmpty ? null : () => onCopy(device.code),
                       child: Row(
                         children: [
                           Text(
-                            device.code.isEmpty ? 'Not set' : device.code,
+                            device.code.isEmpty ? l10n.notSet : device.code,
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'monospace', color: cs.primary),
                           ),
                           if (device.code.isNotEmpty) ...[
@@ -57,10 +59,10 @@ class LocalDeviceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Control Password', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                    Text(l10n.controlPasswordLabel, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                     const SizedBox(height: 2),
                     Text(
-                      device.hasControlPassword ? '••••••••' : 'Not set',
+                      device.hasControlPassword ? '••••••••' : l10n.notSet,
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ],

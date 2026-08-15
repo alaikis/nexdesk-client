@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'auth_provider.dart';
 import '../../core/error_handler.dart';
+import '../../l10n/app_localizations.dart';
 
 class TwoFactorScreen extends StatefulWidget {
   const TwoFactorScreen({super.key});
@@ -17,6 +18,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> with ErrorHandler {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -29,12 +31,12 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> with ErrorHandler {
                 const Icon(Icons.security, size: 56, color: Color(0xFF007AFF)),
                 const SizedBox(height: 28),
                 Text(
-                  'Two-Factor Authentication',
+                  l10n.twoFactorAuthTitle,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Enter the 6-digit code from your authenticator app.',
+                  l10n.enterCodeHint,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 24),
@@ -50,13 +52,13 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> with ErrorHandler {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text('Verify'),
+                      child: Text(l10n.verify),
                     ),
                   ),
                 const SizedBox(height: 14),
                 TextButton(
                   onPressed: () => context.go('/login'),
-                  child: const Text('Back to sign in', style: TextStyle(fontSize: 13)),
+                  child: Text(l10n.backToSignIn, style: const TextStyle(fontSize: 13)),
                 ),
               ],
             ),
@@ -68,9 +70,10 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> with ErrorHandler {
 
   void _submit() async {
     final code = _codeController.text.trim();
+    final l10n = AppLocalizations.of(context)!;
     if (code.isEmpty || code.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a 6-digit code')),
+        SnackBar(content: Text(l10n.enter6DigitCode)),
       );
       return;
     }
@@ -84,7 +87,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> with ErrorHandler {
     if (ok) {
       context.go('/devices');
     } else {
-      final message = auth.lastError ?? 'Verification failed';
+      final message = auth.lastError ?? l10n.verificationFailed;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/file_transfer_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class FileTransferScreen extends StatefulWidget {
   final String sessionId;
@@ -141,12 +142,13 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('File Transfers')),
+      appBar: AppBar(title: Text(l10n.fileTransfersTitle)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _transfers.isEmpty
-              ? const Center(child: Text('No transfers yet'))
+              ? Center(child: Text(l10n.noTransfersYet))
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _transfers.length,
@@ -192,14 +194,14 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
                               const SizedBox(width: 8),
                               IconButton(
                                 onPressed: () => _cancel(transfer.id),
-                                tooltip: 'Cancel',
+                                tooltip: l10n.cancelTransfer,
                                 icon: const Icon(Icons.cancel, color: Colors.red),
                               ),
                             ] else if (transfer.status == TransferStatus.failed) ...[
                               const SizedBox(width: 8),
                               IconButton(
                                 onPressed: () => _retry(transfer.id),
-                                tooltip: 'Retry',
+                                tooltip: l10n.retryTransfer,
                                 icon: const Icon(Icons.refresh, color: Color(0xFF007AFF)),
                               ),
                             ],
@@ -208,7 +210,7 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
                       ),
                     );
                   },
-                ),
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: _pickAndUpload,
         child: const Icon(Icons.add, color: Colors.white),

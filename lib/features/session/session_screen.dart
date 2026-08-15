@@ -33,6 +33,7 @@ import '../../platform/linux_screen_capture.dart';
 import 'remote_print_screen.dart';
 import 'remote_camera_screen.dart';
 import 'remote_terminal_screen.dart';
+import '../../l10n/app_localizations.dart';
 
 enum SharingSource { fullScreen, window }
 
@@ -164,26 +165,27 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   }
 
   Future<void> _showSharingSourceDialog() async {
+    final l10n = AppLocalizations.of(context)!;
     final source = await showDialog<SharingSource>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Select sharing source'),
+        title: Text(l10n.selectSharingSource),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('Full Screen'),
-              subtitle: Text('Share ${_screens.map((s) => s.name).join(", ")}'),
+              title: Text(l10n.fullScreen),
+              subtitle: Text(l10n.shareScreens(_screens.map((s) => s.name).join(", "))),
               leading: const Icon(Icons.desktop_windows_outlined),
               onTap: () => Navigator.pop(ctx, SharingSource.fullScreen),
             ),
             if (_windows.isNotEmpty) ...[
               const Divider(),
-              const Text('Windows', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              Text(l10n.windows, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               ..._windows.map((w) => ListTile(
-                    title: Text(w.title.isEmpty ? 'Untitled Window' : w.title),
-                    subtitle: Text('${w.width}×${w.height}'),
+                    title: Text(w.title.isEmpty ? l10n.untitledWindow : w.title),
+                    subtitle: Text(l10n.windowSize(w.width, w.height)),
                     leading: const Icon(Icons.web_outlined),
                     onTap: () {
                       setState(() => _selectedWindow = w);
@@ -191,14 +193,14 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                     },
                   )),
             ] else
-              const Padding(
-                padding: EdgeInsets.only(top: 12),
-                child: Text('No windows detected', style: TextStyle(fontSize: 13, color: Color(0xFF636366))),
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(l10n.noWindowsDetected, style: const TextStyle(fontSize: 13, color: Color(0xFF636366))),
               ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
         ],
       ),
     );
@@ -229,8 +231,9 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       final granted = await ScreenCaptureService.requestPermission();
       if (!granted) {
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Screen capture permission denied')),
+            SnackBar(content: Text(l10n.screenCapturePermissionDenied)),
           );
         }
         setState(() => _selectingScreens = true);
@@ -367,21 +370,22 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   Future<void> _promptForPassword(String sessionId) async {
     final controller = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
     try {
       final password = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Session Password'),
+          title: Text(l10n.sessionPasswordTitle),
           content: TextField(
             controller: controller,
             obscureText: true,
-            decoration: const InputDecoration(hintText: 'Enter session password'),
+            decoration: InputDecoration(hintText: l10n.enterSessionPassword),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
             TextButton(
               onPressed: () => Navigator.pop(ctx, controller.text),
-              child: const Text('Join'),
+              child: Text(l10n.join),
             ),
           ],
         ),
@@ -441,21 +445,22 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   Future<void> _setSessionPassword() async {
     final controller = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
     try {
       final password = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Set Session Password'),
+          title: Text(l10n.setSessionPasswordTitle),
           content: TextField(
             controller: controller,
             obscureText: true,
-            decoration: const InputDecoration(hintText: 'Enter password (leave empty to remove)'),
+            decoration: InputDecoration(hintText: l10n.enterPasswordHint),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
             TextButton(
               onPressed: () => Navigator.pop(ctx, controller.text),
-              child: const Text('Save'),
+              child: Text(l10n.save),
             ),
           ],
         ),
@@ -465,13 +470,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         await _api.setSessionPassword(widget.sessionId, password);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Password updated')),
+            SnackBar(content: Text(l10n.passwordUpdated)),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to set password: $e')),
+            SnackBar(content: Text(l10n.failedToSetPassword(e.toString()))),
           );
         }
       }
@@ -502,17 +507,18 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final privacyEnabled = context.watch<SessionProvider>().privacyEnabled;
     final toolbarMode = context.watch<SessionProvider>().toolbarMode;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Session ${widget.sessionId}'),
+        title: Text(l10n.sessionIdLabel(widget.sessionId)),
         actions: [
           Semantics(
-            label: 'Close session',
+            label: l10n.closeSession,
             child: IconButton(
               onPressed: () => _webrtc.dispose(),
-              tooltip: 'Close',
+              tooltip: l10n.close,
               icon: const Icon(Icons.close),
             ),
           ),
@@ -540,18 +546,19 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   }
 
   Widget _buildClassicToolbar(bool privacyEnabled) {
+    final l10n = AppLocalizations.of(context)!;
     final actions = <ToolbarAction>[
       ToolbarAction(
         icon: Icons.hd,
-        label: 'Quality',
-        tooltip: 'Quality settings',
+        label: l10n.quality,
+        tooltip: l10n.qualitySettings,
         onTap: _showQualitySettings,
         group: ToolbarGroup.display,
       ),
       ToolbarAction(
         icon: privacyEnabled ? Icons.visibility_off : Icons.visibility,
-        label: privacyEnabled ? 'Hide screen' : 'Privacy',
-        tooltip: privacyEnabled ? 'Disable privacy' : 'Enable privacy',
+        label: privacyEnabled ? l10n.hideScreen : l10n.privacy,
+        tooltip: privacyEnabled ? l10n.disablePrivacy : l10n.enablePrivacy,
         onTap: () async {
           final sp = context.read<SessionProvider>();
           await sp.togglePrivacy(!privacyEnabled);
@@ -560,85 +567,85 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       ),
       ToolbarAction(
         icon: _audioEnabled ? Icons.mic : Icons.mic_off,
-        label: _audioEnabled ? 'Mute' : 'Unmute',
-        tooltip: _audioEnabled ? 'Mute audio' : 'Unmute audio',
+        label: _audioEnabled ? l10n.mute : l10n.unmute,
+        tooltip: _audioEnabled ? l10n.muteAudio : l10n.unmuteAudio,
         onTap: _toggleAudio,
         group: ToolbarGroup.audio,
       ),
       ToolbarAction(
         icon: Icons.folder_open,
-        label: 'Files',
-        tooltip: 'File transfers',
+        label: l10n.files,
+        tooltip: l10n.fileTransfers,
         onTap: _showFileTransfers,
         group: ToolbarGroup.files,
       ),
       ToolbarAction(
         icon: Icons.playlist_play,
-        label: 'Recordings',
-        tooltip: 'Recordings',
+        label: l10n.recordings,
+        tooltip: l10n.recordings,
         onTap: _showRecordings,
         group: ToolbarGroup.files,
       ),
       ToolbarAction(
         icon: Icons.fiber_manual_record,
-        label: 'Record',
-        tooltip: 'Start recording',
+        label: l10n.record,
+        tooltip: l10n.startRecording,
         onTap: _showRecording,
         group: ToolbarGroup.files,
       ),
       ToolbarAction(
         icon: Icons.lock_outline,
-        label: 'Password',
-        tooltip: 'Session password',
+        label: l10n.password,
+        tooltip: l10n.sessionPassword,
         onTap: _setSessionPassword,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: Icons.chat_bubble_outline,
-        label: 'Chat',
-        tooltip: 'Chat',
+        label: l10n.chat,
+        tooltip: l10n.chat,
         onTap: _showChat,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: Icons.content_paste,
-        label: 'Clipboard',
-        tooltip: 'Clipboard',
+        label: l10n.clipboard,
+        tooltip: l10n.clipboard,
         onTap: _showClipboard,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: Icons.print,
-        label: 'Print',
-        tooltip: 'Remote print',
+        label: l10n.print,
+        tooltip: l10n.remotePrint,
         onTap: _showRemotePrint,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: Icons.camera_alt_outlined,
-        label: 'Camera',
-        tooltip: 'Remote camera',
+        label: l10n.camera,
+        tooltip: l10n.remoteCamera,
         onTap: _showRemoteCamera,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: Icons.terminal,
-        label: 'Terminal',
-        tooltip: 'Remote terminal',
+        label: l10n.terminal,
+        tooltip: l10n.remoteTerminal,
         onTap: _showRemoteTerminal,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: _whiteboardActive ? Icons.brush : Icons.brush_outlined,
-        label: _whiteboardActive ? 'Whiteboard' : 'Whiteboard',
-        tooltip: _whiteboardActive ? 'Disable whiteboard' : 'Enable whiteboard',
+        label: _whiteboardActive ? l10n.whiteboard : l10n.whiteboard,
+        tooltip: _whiteboardActive ? l10n.disableWhiteboard : l10n.enableWhiteboard,
         onTap: _toggleWhiteboard,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: Icons.close,
-        label: 'Close',
-        tooltip: 'Close session',
+        label: l10n.close,
+        tooltip: l10n.closeSession,
         onTap: () => _webrtc.dispose(),
         group: ToolbarGroup.end,
       ),
@@ -678,18 +685,19 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   }
 
   Widget _buildFloatingToolbar(bool privacyEnabled) {
+    final l10n = AppLocalizations.of(context)!;
     final actions = <ToolbarAction>[
       ToolbarAction(
         icon: Icons.hd,
-        label: 'Quality',
-        tooltip: 'Quality settings',
+        label: l10n.quality,
+        tooltip: l10n.qualitySettings,
         onTap: _showQualitySettings,
         group: ToolbarGroup.display,
       ),
       ToolbarAction(
         icon: privacyEnabled ? Icons.visibility_off : Icons.visibility,
-        label: privacyEnabled ? 'Hide screen' : 'Privacy',
-        tooltip: privacyEnabled ? 'Disable privacy' : 'Enable privacy',
+        label: privacyEnabled ? l10n.hideScreen : l10n.privacy,
+        tooltip: privacyEnabled ? l10n.disablePrivacy : l10n.enablePrivacy,
         onTap: () async {
           final sp = context.read<SessionProvider>();
           await sp.togglePrivacy(!privacyEnabled);
@@ -698,78 +706,78 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       ),
       ToolbarAction(
         icon: _audioEnabled ? Icons.mic : Icons.mic_off,
-        label: _audioEnabled ? 'Mute' : 'Unmute',
-        tooltip: _audioEnabled ? 'Mute audio' : 'Unmute audio',
+        label: _audioEnabled ? l10n.mute : l10n.unmute,
+        tooltip: _audioEnabled ? l10n.muteAudio : l10n.unmuteAudio,
         onTap: _toggleAudio,
         group: ToolbarGroup.audio,
       ),
       ToolbarAction(
         icon: Icons.folder_open,
-        label: 'Files',
-        tooltip: 'File transfers',
+        label: l10n.files,
+        tooltip: l10n.fileTransfers,
         onTap: _showFileTransfers,
         group: ToolbarGroup.files,
       ),
       ToolbarAction(
         icon: Icons.playlist_play,
-        label: 'Recordings',
-        tooltip: 'Recordings',
+        label: l10n.recordings,
+        tooltip: l10n.recordings,
         onTap: _showRecordings,
         group: ToolbarGroup.files,
       ),
       ToolbarAction(
         icon: Icons.fiber_manual_record,
-        label: 'Record',
-        tooltip: 'Start recording',
+        label: l10n.record,
+        tooltip: l10n.startRecording,
         onTap: _showRecording,
         group: ToolbarGroup.files,
       ),
       ToolbarAction(
         icon: Icons.lock_outline,
-        label: 'Password',
-        tooltip: 'Session password',
+        label: l10n.password,
+        tooltip: l10n.sessionPassword,
         onTap: _setSessionPassword,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: Icons.chat_bubble_outline,
-        label: 'Chat',
-        tooltip: 'Chat',
+        label: l10n.chat,
+        tooltip: l10n.chat,
         onTap: _showChat,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: Icons.content_paste,
-        label: 'Clipboard',
-        tooltip: 'Clipboard',
+        label: l10n.clipboard,
+        tooltip: l10n.clipboard,
         onTap: _showClipboard,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: Icons.print,
-        label: 'Print',
-        tooltip: 'Remote print',
+        label: l10n.print,
+        tooltip: l10n.remotePrint,
         onTap: _showRemotePrint,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: Icons.camera_alt_outlined,
-        label: 'Camera',
-        tooltip: 'Remote camera',
+        label: l10n.camera,
+        tooltip: l10n.remoteCamera,
         onTap: _showRemoteCamera,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: Icons.terminal,
-        label: 'Terminal',
-        tooltip: 'Remote terminal',
+        label: l10n.terminal,
+        tooltip: l10n.remoteTerminal,
         onTap: _showRemoteTerminal,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
         icon: _whiteboardActive ? Icons.brush : Icons.brush_outlined,
-        label: _whiteboardActive ? 'Whiteboard' : 'Whiteboard',
-        tooltip: _whiteboardActive ? 'Disable whiteboard' : 'Enable whiteboard',
+        label: _whiteboardActive ? l10n.whiteboard : l10n.whiteboard,
+        tooltip: _whiteboardActive ? l10n.disableWhiteboard : l10n.enableWhiteboard,
         onTap: _toggleWhiteboard,
         group: ToolbarGroup.tools,
       ),
@@ -794,19 +802,20 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   }
 
   Widget _buildScreenSelector() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Select screens to share',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1D1D1F)),
+          Text(
+            l10n.selectScreensToShare,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1D1D1F)),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Choose one or more displays to control remotely.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF636366)),
+          Text(
+            l10n.chooseDisplays,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF636366)),
           ),
           const SizedBox(height: 16),
           Expanded(
@@ -826,7 +835,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
               style: ElevatedButton.styleFrom(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: Text(_selectedScreenIds.isEmpty ? 'Select at least one screen' : 'Start Session'),
+              child: Text(_selectedScreenIds.isEmpty ? l10n.selectAtLeastOneScreen : l10n.startSession),
             ),
           ),
         ],
@@ -836,6 +845,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   Widget _buildSessionView() {
     final sessionProvider = context.watch<SessionProvider>();
+    final l10n = AppLocalizations.of(context)!;
     final streams = _webrtc.remoteStreams;
 
     if (sessionProvider.reconnectionState == ReconnectionState.failed) {
@@ -845,20 +855,20 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
           children: [
             const Icon(Icons.wifi_off, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
-            const Text('Connection lost', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+            Text(l10n.connectionLost, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            Text('Failed after ${sessionProvider.reconnectAttempts} attempts'),
+            Text(l10n.failedAfterAttempts(sessionProvider.reconnectAttempts)),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: _retryConnection,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(l10n.retry),
             ),
             const SizedBox(height: 12),
             TextButton.icon(
               onPressed: () => GoRouter.of(context).go('/devices'),
               icon: const Icon(Icons.arrow_back),
-              label: const Text('Return to devices'),
+              label: Text(l10n.returnToDevices),
             ),
           ],
         ),
@@ -870,10 +880,10 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         child: sessionProvider.reconnectionState == ReconnectionState.reconnecting
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Reconnecting...'),
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(l10n.reconnecting),
                 ],
               )
             : const CircularProgressIndicator(),
@@ -890,7 +900,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 color: const Color(0xFFFF3B30),
                 child: Text(
-                  'Reconnecting... (attempt ${sessionProvider.reconnectAttempts + 1})',
+                  l10n.reconnectingAttempt(sessionProvider.reconnectAttempts + 1),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
                 ),
@@ -971,9 +981,10 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     }
 
     if (mounted) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Queued ${files.length} file(s) for upload'),
+          content: Text(l10n.queuedFiles(files.length)),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -984,6 +995,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     final cs = Theme.of(context).colorScheme;
     final size = MediaQuery.of(context).size;
     final fileCount = _dragFiles.length;
+    final l10n = AppLocalizations.of(context)!;
     final sizeText = _dragTotalSize > 0
         ? '${(_dragTotalSize / 1024 / 1024).toStringAsFixed(1)} MB'
         : '';
@@ -1014,7 +1026,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                   const Icon(Icons.cloud_upload_rounded, color: Colors.white, size: 32),
                   const SizedBox(height: 8),
                   Text(
-                    'Drop to send',
+                    l10n.dropToSend,
                     style: TextStyle(color: cs.onPrimary, fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   if (fileCount > 0) ...[
@@ -1128,40 +1140,41 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     final sessionProvider = context.read<SessionProvider>();
     final session = sessionProvider.activeSession;
     if (session == null) return;
+    final l10n = AppLocalizations.of(context)!;
 
     final controller = TextEditingController();
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Send Print Job'),
+        title: Text(l10n.sendPrintJob),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
               value: 'image',
-              decoration: InputDecoration(labelText: 'Format'),
+              decoration: InputDecoration(labelText: l10n.format),
               items: [
-                DropdownMenuItem(value: 'image', child: Text('Image (PNG)')),
-                DropdownMenuItem(value: 'pdf', child: Text('PDF')),
-                DropdownMenuItem(value: 'txt', child: Text('Text')),
+                DropdownMenuItem(value: 'image', child: Text(l10n.imagePng)),
+                DropdownMenuItem(value: 'pdf', child: Text(l10n.pdf)),
+                DropdownMenuItem(value: 'txt', child: Text(l10n.text)),
               ],
               onChanged: null,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
-              decoration: const InputDecoration(labelText: 'File name'),
+              decoration: InputDecoration(labelText: l10n.fileName),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           TextButton(
             onPressed: () {
               final fileName = controller.text.isEmpty ? 'print_job' : controller.text;
               Navigator.pop(ctx, fileName);
             },
-            child: const Text('Capture & Send'),
+            child: Text(l10n.captureAndSend),
           ),
         ],
       ),
@@ -1183,14 +1196,15 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       }
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Print job sent to controller')),
+          SnackBar(content: Text(l10n.printJobSent)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Send failed: $e')),
+          SnackBar(content: Text(l10n.sendFailed(e.toString()))),
         );
       }
     }

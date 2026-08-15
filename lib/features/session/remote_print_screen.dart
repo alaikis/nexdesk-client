@@ -12,6 +12,7 @@ import '../../features/session/session_provider.dart';
 import '../../platform/windows_print_service.dart';
 import '../../platform/macos_print_service.dart';
 import '../../platform/linux_print_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class PrintJobItem {
   String id;
@@ -155,8 +156,9 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
 
   Future<void> _printJob(PrintJobItem job) async {
     if (_selectedPrinter == null) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a printer first')),
+        SnackBar(content: Text(l10n.selectPrinterFirst)),
       );
       return;
     }
@@ -192,17 +194,18 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
       }
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         if (success) {
           job.status = 'completed';
           job.printerName = _selectedPrinter;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Sent to $_selectedPrinter')),
+            SnackBar(content: Text(l10n.sentToPrinter(_selectedPrinter!))),
           );
         } else {
           job.status = 'failed';
-          job.errorMessage = 'Print failed';
+          job.errorMessage = l10n.printFailed;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Print failed')),
+            SnackBar(content: Text(l10n.printFailed)),
           );
         }
         setState(() {});
@@ -225,8 +228,9 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cancel failed: $e')),
+          SnackBar(content: Text(l10n.cancelFailed(e.toString()))),
         );
       }
     }
@@ -240,14 +244,16 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
       final file = File(filePath);
       await file.writeAsBytes(job.fileBytes!);
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Saved to $filePath')),
+          SnackBar(content: Text(l10n.savedToFile(filePath))),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Save failed: $e')),
+          SnackBar(content: Text(l10n.saveFailed(e.toString()))),
         );
       }
     }
@@ -255,14 +261,15 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Remote Print'),
+        title: Text(l10n.remotePrintTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadJobs,
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
           ),
         ],
       ),
@@ -277,9 +284,9 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: _selectedPrinter,
-                          decoration: const InputDecoration(
-                            labelText: 'Printer',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l10n.printerLabel,
+                            border: const OutlineInputBorder(),
                           ),
                           items: _printers
                               .map((p) => DropdownMenuItem(value: p, child: Text(p)))
@@ -291,14 +298,14 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                       ElevatedButton.icon(
                         onPressed: _loadPrinters,
                         icon: const Icon(Icons.search),
-                        label: const Text('Refresh'),
+                        label: Text(l10n.refresh),
                       ),
                     ],
                   ),
                 ),
                 Expanded(
                   child: _jobs.isEmpty
-                      ? const Center(child: Text('No print jobs'))
+                      ? Center(child: Text(l10n.noPrintJobs))
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: _jobs.length,
@@ -319,19 +326,19 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                                       IconButton(
                                         icon: const Icon(Icons.print, color: Color(0xFF007AFF)),
                                         onPressed: () => _printJob(job),
-                                        tooltip: 'Print',
+                                        tooltip: l10n.printJob,
                                       ),
                                     if (job.status == 'pending' || job.status == 'printing')
                                       IconButton(
                                         icon: const Icon(Icons.cancel, color: Color(0xFFFF3B30)),
                                         onPressed: () => _cancelJob(job),
-                                        tooltip: 'Cancel',
+                                        tooltip: l10n.cancelJob,
                                       ),
                                     if (job.fileBytes != null && job.fileBytes!.isNotEmpty)
                                       IconButton(
                                         icon: const Icon(Icons.download, color: Color(0xFF34C759)),
                                         onPressed: () => _saveToFile(job),
-                                        tooltip: 'Save',
+                                        tooltip: l10n.saveJob,
                                       ),
                                   ],
                                 ),

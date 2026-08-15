@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'nex_button.dart';
+import '../l10n/app_localizations.dart';
 
 class EmptyState extends StatelessWidget {
   final String? message;
@@ -11,6 +12,7 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 48),
@@ -18,7 +20,7 @@ class EmptyState extends StatelessWidget {
           children: [
             Icon(Icons.devices_other, size: 48, color: cs.outline),
             const SizedBox(height: 16),
-            Text(message ?? 'No devices yet', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15)),
+            Text(l10n.noDevicesYet, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15)),
             if (buttonText != null && onButtonPressed != null) ...[
               const SizedBox(height: 16),
               NexButton(text: buttonText!, fullWidth: false, onPressed: onButtonPressed),

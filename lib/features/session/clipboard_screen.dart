@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/clipboard_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class ClipboardScreen extends StatefulWidget {
   final String sessionId;
@@ -46,23 +47,26 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
   Future<void> _copyToRemote() async {
     await _clipboardService.copyToRemote(widget.sessionId, widget.deviceId);
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Copied to remote')),
+      SnackBar(content: Text(l10n.copiedToRemote)),
     );
   }
 
   Future<void> _pasteFromRemote(String text) async {
     await _clipboardService.pasteFromRemote(widget.sessionId, widget.deviceId, text);
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pasted from remote')),
+      SnackBar(content: Text(l10n.pastedFromRemote)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Clipboard')),
+      appBar: AppBar(title: Text(l10n.clipboardTitle)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -75,7 +79,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                         child: ElevatedButton.icon(
                           onPressed: _copyToRemote,
                           icon: const Icon(Icons.copy),
-                          label: const Text('Copy to Remote'),
+                          label: Text(l10n.copyToRemote),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -86,20 +90,20 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                             final text = await showDialog<String>(
                               context: context,
                               builder: (ctx) => AlertDialog(
-                                title: const Text('Paste text'),
+                                title: Text(l10n.pasteText),
                                 content: TextField(
                                   controller: controller,
                                   maxLines: 5,
-                                  decoration: const InputDecoration(labelText: 'Text'),
+                                  decoration: InputDecoration(labelText: l10n.textLabel),
                                 ),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx),
-                                    child: const Text('Cancel'),
+                                    child: Text(l10n.cancel),
                                   ),
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx, controller.text),
-                                    child: const Text('Paste'),
+                                    child: Text(l10n.paste),
                                   ),
                                 ],
                               ),
@@ -109,7 +113,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                             }
                           },
                           icon: const Icon(Icons.paste),
-                          label: const Text('Paste from Remote'),
+                          label: Text(l10n.pasteFromRemote),
                         ),
                       ),
                     ],
@@ -117,7 +121,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                 ),
                 Expanded(
                   child: _history.isEmpty
-                      ? const Center(child: Text('No clipboard history'))
+                      ? Center(child: Text(l10n.noClipboardHistory))
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: _history.length,

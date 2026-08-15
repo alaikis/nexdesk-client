@@ -8,6 +8,7 @@ import '../../core/signaling_service.dart';
 import '../../widgets/nex_card.dart';
 import '../../widgets/nex_button.dart';
 import '../../theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 
 class WhiteboardScreen extends StatefulWidget {
   final SignalingService signaling;
@@ -88,6 +89,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
 
   Widget _buildToolbar(ColorScheme cs) {
     final selectedTool = _tool;
+    final l10n = AppLocalizations.of(context)!;
     return Positioned(
       left: 0,
       right: 0,
@@ -102,14 +104,14 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
               children: [
                 _ToolButton(
                   icon: Icons.edit,
-                  label: 'Pen',
+                  label: l10n.penTool,
                   selected: selectedTool == _Tool.pen,
                   onTap: () => setState(() => _tool = _Tool.pen),
                 ),
                 const SizedBox(width: NexSpacing.sm),
                 _ToolButton(
                   icon: Icons.backspace,
-                  label: 'Eraser',
+                  label: l10n.eraserTool,
                   selected: selectedTool == _Tool.eraser,
                   onTap: () => setState(() => _tool = _Tool.eraser),
                 ),
@@ -160,14 +162,14 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                 const SizedBox(width: NexSpacing.sm),
                 _ToolButton(
                   icon: Icons.undo,
-                  label: 'Undo',
+                  label: l10n.undo,
                   selected: false,
                   onTap: _undo,
                 ),
                 const SizedBox(width: NexSpacing.sm),
                 _ToolButton(
                   icon: Icons.delete_outline,
-                  label: 'Clear',
+                  label: l10n.clearAll,
                   selected: false,
                   destructive: true,
                   onTap: _clearAll,

@@ -15,6 +15,7 @@ import '../../widgets/device_card.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/sidebar.dart';
+import '../../l10n/app_localizations.dart';
 
 class DeviceListScreen extends StatefulWidget {
   const DeviceListScreen({super.key});
@@ -72,8 +73,9 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
     try {
       final ok = await context.read<DeviceProvider>().wakeDevice(deviceId);
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ok ? 'Magic packet sent' : 'Failed to wake device')),
+          SnackBar(content: Text(ok ? l10n.magicPacketSent : l10n.failedToWakeDevice)),
         );
       }
     } finally {
@@ -85,9 +87,10 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
     final sessionProvider = context.read<SessionProvider>();
     final res = await sessionProvider.startSession(deviceId);
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     if (res == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to start session')),
+        SnackBar(content: Text(l10n.failedToStartSession)),
       );
       return;
     }
@@ -97,8 +100,9 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   Future<void> _copyCode(String code) async {
     await Clipboard.setData(ClipboardData(text: code));
     if (mounted) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Copied'), duration: Duration(seconds: 1)),
+        SnackBar(content: Text(l10n.copied), duration: const Duration(seconds: 1)),
       );
     }
   }
@@ -138,14 +142,18 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
     try {
       await context.read<DeviceProvider>().toggleFavorite(deviceId);
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        final provider = context.read<DeviceProvider>();
+        final device = provider.devices.firstWhere((d) => d.id == deviceId, orElse: () => Device(id: '', name: '', os: '', online: false, favorite: false));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.read<DeviceProvider>().devices.firstWhere((d) => d.id == deviceId, orElse: () => Device(id: '', name: '', os: '', online: false, favorite: false)).favorite ? 'Added to favorites' : 'Removed from favorites')),
+          SnackBar(content: Text(device.favorite ? l10n.addedToFavorites : l10n.removedFromFavorites)),
         );
       }
     } on ApiException catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update favorite: $e')),
+          SnackBar(content: Text(l10n.failedToUpdateFavorite(e.toString()))),
         );
       }
     }
@@ -178,21 +186,20 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
 
   Future<void> _batchFavorite() async {
     final provider = context.read<DeviceProvider>();
-    final count = _selectedDeviceIds.length;
     for (final id in _selectedDeviceIds) {
       await provider.toggleFavorite(id);
     }
     _exitSelectionMode();
     if (mounted) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$count devices updated')),
+        SnackBar(content: Text(l10n.favorite)),
       );
     }
   }
 
   Future<void> _batchUnfavorite() async {
     final provider = context.read<DeviceProvider>();
-    final count = _selectedDeviceIds.length;
     for (final id in _selectedDeviceIds) {
       final device = provider.devices.firstWhere((d) => d.id == id, orElse: () => Device(id: '', name: '', os: '', online: false, favorite: false, tags: const []));
       if (device.favorite) {
@@ -201,8 +208,9 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
     }
     _exitSelectionMode();
     if (mounted) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$count devices updated')),
+        SnackBar(content: Text(l10n.unfavorite)),
       );
     }
   }
@@ -211,8 +219,9 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
     try {
       await context.read<DeviceProvider>().renameDevice(deviceId, name);
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Renamed to "$name"')),
+          SnackBar(content: Text(l10n.renamedTo(name))),
         );
       }
       if (_selectedDevice?.id == deviceId) {
@@ -220,8 +229,9 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
       }
     } on ApiException catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to rename: $e')),
+          SnackBar(content: Text(l10n.failedToRename(e.toString()))),
         );
       }
     }
@@ -230,10 +240,11 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   Future<void> _showEditTagsDialog(Device device) async {
     final tags = List<String>.from(device.tags);
     final controller = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
     final result = await showDialog<List<String>>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Tags'),
+        title: Text(l10n.editTags),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -250,7 +261,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
             const SizedBox(height: 12),
             NexInput(
               controller: controller,
-              hintText: 'Add tag',
+              hintText: l10n.addTag,
               onChanged: (value) {
                 if (value.endsWith(',')) {
                   final newTag = value.replaceAll(',', '').trim();
@@ -264,12 +275,12 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => context.pop(), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () {
               context.pop(tags);
             },
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -279,7 +290,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
         await context.read<DeviceProvider>().updateDeviceTags(device.id, result);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Tags updated for ${device.name}')),
+            SnackBar(content: Text(l10n.tagsUpdatedFor(device.name))),
           );
         }
         if (_selectedDevice?.id == device.id) {
@@ -288,7 +299,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
       } on ApiException catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to update tags: $e')),
+            SnackBar(content: Text(l10n.failedToUpdateTags(e.toString()))),
           );
         }
       }
@@ -297,19 +308,20 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
 
   Future<void> _showCreateGroupDialog() async {
     final nameController = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Create Group'),
-        content: NexInput(controller: nameController, hintText: 'Group name'),
+        title: Text(l10n.createGroup),
+        content: NexInput(controller: nameController, hintText: l10n.groupName),
         actions: [
-          TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => context.pop(), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () {
               if (nameController.text.trim().isEmpty) return;
               context.pop(nameController.text.trim());
             },
-            child: const Text('Create'),
+            child: Text(l10n.create),
           ),
         ],
       ),
@@ -319,13 +331,13 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
         await context.read<GroupProvider>().createGroup(result);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Group "$result" created')),
+            SnackBar(content: Text(l10n.groupCreated(result))),
           );
         }
       } on ApiException catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to create group: $e')),
+            SnackBar(content: Text(l10n.failedToCreateGroup(e.toString()))),
           );
         }
       }
@@ -334,19 +346,20 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
 
   Future<void> _showRenameGroupDialog(Group group) async {
     final nameController = TextEditingController(text: group.name);
+    final l10n = AppLocalizations.of(context)!;
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Rename Group'),
-        content: NexInput(controller: nameController, hintText: 'Group name'),
+        title: Text(l10n.renameGroup),
+        content: NexInput(controller: nameController, hintText: l10n.groupName),
         actions: [
-          TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => context.pop(), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () {
               if (nameController.text.trim().isEmpty) return;
               context.pop(nameController.text.trim());
             },
-            child: const Text('Rename'),
+            child: Text(l10n.renameCtx),
           ),
         ],
       ),
@@ -356,13 +369,13 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
         await context.read<GroupProvider>().renameGroup(group.id, result);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Group renamed to "$result"')),
+            SnackBar(content: Text(l10n.groupRenamed(result))),
           );
         }
       } on ApiException catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to rename group: $e')),
+            SnackBar(content: Text(l10n.failedToRenameGroup(e.toString()))),
           );
         }
       }
@@ -370,17 +383,18 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   }
 
   Future<void> _showDeleteGroupDialog(Group group) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Group'),
-        content: Text('Are you sure you want to delete "${group.name}"?'),
+        title: Text(l10n.deleteGroup),
+        content: Text(l10n.deleteGroupConfirm(group.name)),
         actions: [
-          TextButton(onPressed: () => context.pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => context.pop(false), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () => context.pop(true),
             style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -390,13 +404,13 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
         await context.read<GroupProvider>().deleteGroup(group.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Group "${group.name}" deleted')),
+            SnackBar(content: Text(l10n.groupDeleted(group.name))),
           );
         }
       } on ApiException catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete group: $e')),
+            SnackBar(content: Text(l10n.failedToDeleteGroup(e.toString()))),
           );
         }
       }
@@ -405,10 +419,11 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
 
   Future<void> _showAssignDeviceDialog(Device device) async {
     final groupProvider = context.read<GroupProvider>();
+    final l10n = AppLocalizations.of(context)!;
     if (groupProvider.groups.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No groups available. Create one first.')),
+          SnackBar(content: Text(l10n.noGroupsAvailable)),
         );
       }
       return;
@@ -416,7 +431,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
     final selected = await showDialog<int?>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Add ${device.name} to group'),
+        title: Text(l10n.addToGroup(device.name)),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -426,14 +441,14 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
               final group = groupProvider.groups[index];
               return ListTile(
                 title: Text(group.name),
-                trailing: Text('${group.deviceCount} devices'),
+                trailing: Text('${group.deviceCount} ${l10n.devices}'),
                 onTap: () => context.pop(group.id),
               );
             },
           ),
         ),
         actions: [
-          TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => context.pop(), child: Text(l10n.cancel)),
         ],
       ),
     );
@@ -444,13 +459,13 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
         await groupProvider.assignDevice(deviceId, selected);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${device.name} added to group')),
+            SnackBar(content: Text(l10n.addedToGroup(device.name))),
           );
         }
       } on ApiException catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to add to group: $e')),
+            SnackBar(content: Text(l10n.failedToAddToGroup(e.toString()))),
           );
         }
       }
@@ -458,16 +473,17 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   }
 
   Future<void> _showUnassignDeviceDialog(Device device) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove from group'),
-        content: Text('Remove ${device.name} from its group?'),
+        title: Text(l10n.removeFromGroup),
+        content: Text(l10n.removeFromGroupConfirm(device.name)),
         actions: [
-          TextButton(onPressed: () => context.pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => context.pop(false), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () => context.pop(true),
-            child: const Text('Remove'),
+            child: Text(l10n.remove),
           ),
         ],
       ),
@@ -479,13 +495,13 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
         await context.read<GroupProvider>().unassignDevice(deviceId);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${device.name} removed from group')),
+            SnackBar(content: Text(l10n.removedFromGroup(device.name))),
           );
         }
       } on ApiException catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to remove from group: $e')),
+            SnackBar(content: Text(l10n.failedToRemoveFromGroup(e.toString()))),
           );
         }
       }
@@ -493,6 +509,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   }
 
   void _showDeviceContextMenu(Device device) {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -501,7 +518,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
           children: [
             ListTile(
               leading: const Icon(Icons.group_add),
-              title: const Text('Add to group'),
+              title: Text(l10n.addToGroupCtx),
               onTap: () {
                 context.pop();
                 _showAssignDeviceDialog(device);
@@ -509,7 +526,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
             ),
             ListTile(
               leading: const Icon(Icons.group_remove),
-              title: const Text('Remove from group'),
+              title: Text(l10n.removeFromGroupCtx),
               onTap: () {
                 context.pop();
                 _showUnassignDeviceDialog(device);
@@ -517,7 +534,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
             ),
             ListTile(
               leading: const Icon(Icons.edit),
-              title: const Text('Rename'),
+              title: Text(l10n.renameCtx),
               onTap: () {
                 context.pop();
                 _showRenameDeviceDialog(device);
@@ -525,7 +542,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
             ),
             ListTile(
               leading: const Icon(Icons.label),
-              title: const Text('Edit tags'),
+              title: Text(l10n.editTagsCtx),
               onTap: () {
                 context.pop();
                 _showEditTagsDialog(device);
@@ -539,19 +556,20 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
 
   Future<void> _showRenameDeviceDialog(Device device) async {
     final nameController = TextEditingController(text: device.name);
+    final l10n = AppLocalizations.of(context)!;
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Rename Device'),
-        content: NexInput(controller: nameController, hintText: 'Device name'),
+        title: Text(l10n.renameDevice),
+        content: NexInput(controller: nameController, hintText: l10n.deviceName),
         actions: [
-          TextButton(onPressed: () => context.pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => context.pop(), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () {
               if (nameController.text.trim().isEmpty) return;
               context.pop(nameController.text.trim());
             },
-            child: const Text('Rename'),
+            child: Text(l10n.renameCtx),
           ),
         ],
       ),
@@ -566,6 +584,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
     final devices = context.watch<DeviceProvider>();
     final groups = context.watch<GroupProvider>();
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Row(
@@ -579,11 +598,11 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
               if (index == 3) context.go('/settings');
             },
             onLogout: _logout,
-            items: const [
-              SidebarItem(icon: Icons.computer, label: 'Devices'),
-              SidebarItem(icon: Icons.history, label: 'Sessions'),
-              SidebarItem(icon: Icons.folder_shared, label: 'Shares'),
-              SidebarItem(icon: Icons.settings, label: 'Settings'),
+            items: [
+              SidebarItem(icon: Icons.computer, label: l10n.devices),
+              SidebarItem(icon: Icons.history, label: l10n.sessions),
+              SidebarItem(icon: Icons.folder_shared, label: l10n.shares),
+              SidebarItem(icon: Icons.settings, label: l10n.settings),
             ],
           ),
           Expanded(
@@ -597,21 +616,21 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                       Expanded(
                         child: NexInput(
                           controller: _searchController,
-                          hintText: 'Search devices...',
+                          hintText: l10n.searchDevices,
                           prefixIcon: Icons.search,
                         ),
                       ),
                       const SizedBox(width: 12),
                       PopupMenuButton<String>(
                         icon: const Icon(Icons.groups, size: 20),
-                        tooltip: 'Group management',
+                        tooltip: l10n.groupManagement,
                         onSelected: (value) {
                           if (value == 'create') {
                             _showCreateGroupDialog();
                           }
                         },
                         itemBuilder: (context) => [
-                          const PopupMenuItem(value: 'create', child: Text('Create group')),
+                          PopupMenuItem(value: 'create', child: Text(l10n.createGroupMenu)),
                           const PopupMenuDivider(),
                           if (groups.groups.isNotEmpty)
                             ...groups.groups.map((g) => PopupMenuItem(
@@ -641,74 +660,74 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                     ],
                   ),
                 ),
-                 if (groups.groups.isNotEmpty)
-                   Padding(
-                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                     child: Wrap(
-                       spacing: 8,
-                       children: [
-                         FilterChip(
-                           label: const Text('All'),
-                           selected: groups.selectedGroupId == null,
-                           onSelected: (_) => _selectGroup(null),
-                         ),
-                         const FilterChip(
-                           label: Text('Ungrouped'),
-                           selected: false,
-                           onSelected: null,
-                         ),
-                         ...groups.groups.map((g) => FilterChip(
-                               label: Text(g.name),
-                               selected: groups.selectedGroupId == '${g.id}',
-                               onSelected: (_) => _selectGroup('${g.id}'),
-                             )),
-                       ],
-                     ),
-                   ),
-                 if (_showFavoritesOnly || _isSelectionMode)
-                   Padding(
-                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                     child: Wrap(
-                       spacing: 8,
-                       children: [
-                         FilterChip(
-                           label: const Text('Favorites'),
-                           selected: _showFavoritesOnly,
-                           onSelected: (_) => setState(() => _showFavoritesOnly = !_showFavoritesOnly),
-                         ),
-                       ],
-                     ),
-                   ),
-                 const SizedBox(height: 12),
-                 if (_isSelectionMode)
-                   Container(
-                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                     color: cs.surfaceContainerHighest,
-                     child: Row(
-                       children: [
-                         Text('${_selectedDeviceIds.length} selected', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
-                         const Spacer(),
-                         TextButton.icon(
-                           onPressed: _selectedDeviceIds.isEmpty ? null : _batchFavorite,
-                           icon: Icon(Icons.star, size: 18, color: cs.primary),
-                           label: const Text('Favorite'),
-                         ),
-                         const SizedBox(width: 8),
-                         TextButton.icon(
-                           onPressed: _selectedDeviceIds.isEmpty ? null : _batchUnfavorite,
-                           icon: Icon(Icons.star_border, size: 18, color: cs.onSurfaceVariant),
-                           label: const Text('Unfavorite'),
-                         ),
-                         const SizedBox(width: 8),
-                         TextButton.icon(
-                           onPressed: _exitSelectionMode,
-                           icon: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
-                           label: const Text('Cancel'),
-                         ),
-                       ],
-                     ),
-                   ),
-                 const SizedBox(height: 12),
+                  if (groups.groups.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                      child: Wrap(
+                        spacing: 8,
+                        children: [
+                          FilterChip(
+                            label: Text(l10n.filterAll),
+                            selected: groups.selectedGroupId == null,
+                            onSelected: (_) => _selectGroup(null),
+                          ),
+                          FilterChip(
+                            label: Text(l10n.filterUngrouped),
+                            selected: false,
+                            onSelected: null,
+                          ),
+                          ...groups.groups.map((g) => FilterChip(
+                                label: Text(g.name),
+                                selected: groups.selectedGroupId == '${g.id}',
+                                onSelected: (_) => _selectGroup('${g.id}'),
+                              )),
+                        ],
+                      ),
+                    ),
+                  if (_showFavoritesOnly || _isSelectionMode)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                      child: Wrap(
+                        spacing: 8,
+                        children: [
+                          FilterChip(
+                            label: Text(l10n.favorites),
+                            selected: _showFavoritesOnly,
+                            onSelected: (_) => setState(() => _showFavoritesOnly = !_showFavoritesOnly),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                  if (_isSelectionMode)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      color: cs.surfaceContainerHighest,
+                      child: Row(
+                        children: [
+                          Text(l10n.selectedCount(_selectedDeviceIds.length), style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: _selectedDeviceIds.isEmpty ? null : _batchFavorite,
+                            icon: Icon(Icons.star, size: 18, color: cs.primary),
+                            label: Text(l10n.favorite),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: _selectedDeviceIds.isEmpty ? null : _batchUnfavorite,
+                            icon: Icon(Icons.star_border, size: 18, color: cs.onSurfaceVariant),
+                            label: Text(l10n.unfavorite),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: _exitSelectionMode,
+                            icon: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+                            label: Text(l10n.cancel),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 12),
                 Expanded(
                   child: ListenableBuilder(
                     listenable: devices,
@@ -742,6 +761,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
       (d) => d.id == currentDeviceId,
       orElse: () => Device(id: '', name: '', os: '', online: false, code: '', favorite: false, tags: const []),
     );
+    final l10n = AppLocalizations.of(context)!;
 
     final displayDevices = groups.selectedGroupId == null
         ? (_showFavoritesOnly ? devices.favoriteDevices : devices.filteredDevices)
@@ -761,44 +781,44 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                 const SizedBox(height: 20),
               ],
                  if (displayOnline.isNotEmpty) ...[
-                 SectionHeader(title: 'Online (${displayOnline.length})'),
-                 const SizedBox(height: 8),
-                 ...displayOnline.map((d) => DeviceCard(
-                       device: d,
-                       onConnect: () => _startSession(d.id),
-                       onCopy: () => _copyCode(d.code),
-                       onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
-                       wakingDeviceId: _wakingDeviceId,
-                       isSelected: _isSelectionMode ? _selectedDeviceIds.contains(d.id) : _isSelected(d),
-                       onTap: _isSelectionMode ? () => _toggleSelection(d.id) : () => _selectDevice(d),
-                       onLongPress: _isSelectionMode ? () => _showDeviceContextMenu(d) : () {
-                         _enterSelectionMode(d.id);
-                       },
-                       onToggleFavorite: () => _toggleFavorite(d.id),
-                       onRename: (name) => _renameDevice(d.id, name),
-                       inSelectionMode: _isSelectionMode,
-                     )),
-                 const SizedBox(height: 20),
-               ],
-               if (displayOffline.isNotEmpty) ...[
-                 SectionHeader(title: 'Offline (${displayOffline.length})'),
-                 const SizedBox(height: 8),
-                 ...displayOffline.map((d) => DeviceCard(
-                       device: d,
-                       onConnect: () => _startSession(d.id),
-                       onCopy: () => _copyCode(d.code),
-                       onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
-                       wakingDeviceId: _wakingDeviceId,
-                       isSelected: _isSelectionMode ? _selectedDeviceIds.contains(d.id) : _isSelected(d),
-                       onTap: _isSelectionMode ? () => _toggleSelection(d.id) : () => _selectDevice(d),
-                       onLongPress: _isSelectionMode ? () => _showDeviceContextMenu(d) : () {
-                         _enterSelectionMode(d.id);
-                       },
-                       onToggleFavorite: () => _toggleFavorite(d.id),
-                       onRename: (name) => _renameDevice(d.id, name),
-                       inSelectionMode: _isSelectionMode,
-                     )),
-               ],
+                SectionHeader(title: l10n.online(displayOnline.length)),
+                const SizedBox(height: 8),
+                ...displayOnline.map((d) => DeviceCard(
+                      device: d,
+                      onConnect: () => _startSession(d.id),
+                      onCopy: () => _copyCode(d.code),
+                      onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
+                      wakingDeviceId: _wakingDeviceId,
+                      isSelected: _isSelectionMode ? _selectedDeviceIds.contains(d.id) : _isSelected(d),
+                      onTap: _isSelectionMode ? () => _toggleSelection(d.id) : () => _selectDevice(d),
+                      onLongPress: _isSelectionMode ? () => _showDeviceContextMenu(d) : () {
+                        _enterSelectionMode(d.id);
+                      },
+                      onToggleFavorite: () => _toggleFavorite(d.id),
+                      onRename: (name) => _renameDevice(d.id, name),
+                      inSelectionMode: _isSelectionMode,
+                    )),
+                const SizedBox(height: 20),
+              ],
+              if (displayOffline.isNotEmpty) ...[
+                SectionHeader(title: l10n.offline(displayOffline.length)),
+                const SizedBox(height: 8),
+                ...displayOffline.map((d) => DeviceCard(
+                      device: d,
+                      onConnect: () => _startSession(d.id),
+                      onCopy: () => _copyCode(d.code),
+                      onWake: d.wolEnabled ? () => _wakeDevice(d.id) : null,
+                      wakingDeviceId: _wakingDeviceId,
+                      isSelected: _isSelectionMode ? _selectedDeviceIds.contains(d.id) : _isSelected(d),
+                      onTap: _isSelectionMode ? () => _toggleSelection(d.id) : () => _selectDevice(d),
+                      onLongPress: _isSelectionMode ? () => _showDeviceContextMenu(d) : () {
+                        _enterSelectionMode(d.id);
+                      },
+                      onToggleFavorite: () => _toggleFavorite(d.id),
+                      onRename: (name) => _renameDevice(d.id, name),
+                      inSelectionMode: _isSelectionMode,
+                    )),
+              ],
               if (displayDevices.isEmpty && !_groupDevicesLoading)
                 EmptyState(),
             ],
@@ -864,6 +884,7 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final device = widget.device;
     return Container(
       margin: const EdgeInsets.only(right: 20, bottom: 20),
@@ -918,12 +939,12 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
                       size: 18,
                       color: device.favorite ? Colors.amber : cs.onSurfaceVariant,
                     ),
-                    tooltip: device.favorite ? 'Remove from favorites' : 'Add to favorites',
+                    tooltip: device.favorite ? l10n.removeFromFavoritesTooltip : l10n.addToFavoritesTooltip,
                   ),
                 IconButton(
                   onPressed: widget.onClose,
                   icon: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
-                  tooltip: 'Close',
+                  tooltip: l10n.close,
                 ),
               ],
             ),
@@ -933,62 +954,62 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _DetailRow(label: 'OS', value: device.os),
+                _DetailRow(label: l10n.osLabel, value: device.os),
                 const SizedBox(height: 12),
-                _DetailRow(label: 'Status', value: device.online ? 'Online' : 'Offline'),
+                _DetailRow(label: l10n.statusLabel, value: device.online ? l10n.onlineStatus : l10n.offlineStatus),
                 const SizedBox(height: 12),
-                _DetailRow(label: 'Device Code', value: device.code.isEmpty ? 'Not set' : device.code),
+                _DetailRow(label: l10n.deviceCodeLabel, value: device.code.isEmpty ? l10n.notSet : device.code),
                 if (device.tags.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  _DetailRow(label: 'Tags', value: device.tags.join(', ')),
+                  _DetailRow(label: l10n.tagsLabel, value: device.tags.join(', ')),
                 ],
                 const SizedBox(height: 24),
-                Text('Actions', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+                Text(l10n.actions, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
                 const SizedBox(height: 12),
                 _ActionButton(
                   icon: Icons.connect_without_contact,
-                  label: 'Connect',
+                  label: l10n.connect,
                   onTap: widget.onConnect,
                 ),
                 const SizedBox(height: 8),
                 _ActionButton(
                   icon: Icons.copy,
-                  label: 'Copy Code',
+                  label: l10n.copyCode,
                   onTap: widget.onCopy,
                 ),
                 if (widget.onWake != null) ...[
                   const SizedBox(height: 8),
                   _ActionButton(
                     icon: Icons.power_settings_new,
-                    label: 'Wake Device',
+                    label: l10n.wakeDevice,
                     onTap: widget.onWake,
                   ),
                 ],
                 const SizedBox(height: 8),
                 _ActionButton(
                   icon: Icons.restart_alt,
-                  label: 'Restart',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Restart command sent')),
-                    );
-                  },
+                  label: l10n.restart,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.restartCommandSent)),
+                      );
+                    },
                 ),
                 const SizedBox(height: 8),
                 _ActionButton(
                   icon: Icons.share,
-                  label: 'Share Files',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('File sharing coming soon')),
-                    );
-                  },
+                  label: l10n.shareFiles,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.fileSharingComingSoon)),
+                      );
+                    },
                 ),
                 if (widget.onEditTags != null) ...[
                   const SizedBox(height: 8),
                   _ActionButton(
                     icon: Icons.label,
-                    label: 'Edit Tags',
+                    label: l10n.editTagsAction,
                     onTap: widget.onEditTags,
                   ),
                 ],

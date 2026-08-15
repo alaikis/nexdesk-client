@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -13,11 +14,41 @@ import 'features/settings/settings_screen.dart';
 import 'features/shares/share_list_screen.dart';
 import 'features/shares/share_browser_screen.dart';
 import 'features/screen_wall/screen_wall_screen.dart';
+import 'l10n/app_localizations.dart';
 
-class NexApp extends StatelessWidget {
+class NexApp extends StatefulWidget {
   const NexApp({super.key});
 
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  State<NexApp> createState() => _NexAppState();
+}
+
+class _NexAppState extends State<NexApp> {
+  Locale _locale = const Locale('en');
+  static _NexAppState? _instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _instance = this;
+    _loadLocale();
+  }
+
+  static Future<void> setLocale(Locale locale) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('nex_language', locale.languageCode);
+    _instance?.setState(() => _instance?._locale = locale);
+  }
+
+  Future<void> _loadLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final langCode = prefs.getString('nex_language');
+    if (langCode != null && mounted) {
+      setState(() => _locale = Locale(langCode));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,10 +119,13 @@ class NexApp extends StatelessWidget {
     );
 
     return MaterialApp.router(
-      title: 'NEX',
+      title: AppLocalizations.of(context)?.appName ?? 'NEX',
       theme: NexTheme.light(),
       darkTheme: NexTheme.dark(),
       themeMode: ThemeMode.system,
+      locale: _locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
     );
   }

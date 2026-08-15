@@ -11,6 +11,7 @@ import '../../widgets/nex_card.dart';
 import '../../widgets/local_device_card.dart';
 import '../../widgets/sidebar.dart';
 import '../../widgets/bottom_nav_bar.dart';
+import '../../l10n/app_localizations.dart';
 
 enum ConnectMode { control, file, view, collab }
 
@@ -73,9 +74,10 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
     final sessionProvider = context.read<SessionProvider>();
     final res = await sessionProvider.startSession(deviceId);
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     if (res == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to start session')),
+        SnackBar(content: Text(l10n.failedToStartSession)),
       );
       return;
     }
@@ -85,8 +87,9 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
   Future<void> _copyCode(String code) async {
     await Clipboard.setData(ClipboardData(text: code));
     if (mounted) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Copied'), duration: Duration(seconds: 1)),
+        SnackBar(content: Text(l10n.copied), duration: const Duration(seconds: 1)),
       );
     }
   }
@@ -95,33 +98,34 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
     _connectController.clear();
     final devices = context.read<DeviceProvider>().devices;
     final recent = devices.take(5).toList();
+    final l10n = AppLocalizations.of(context)!;
 
     final result = await showDialog<String>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Connect'),
+          title: Text(l10n.connect),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
                 controller: _connectController,
-                decoration: const InputDecoration(
-                  labelText: 'Device Code',
-                  hintText: 'Enter code',
+                decoration: InputDecoration(
+                  labelText: l10n.deviceCodeLabel,
+                  hintText: l10n.enterCode,
                   isDense: true,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
                 textCapitalization: TextCapitalization.characters,
               ),
               const SizedBox(height: 12),
               SegmentedButton<ConnectMode>(
-                segments: const [
-                  ButtonSegment(value: ConnectMode.control, label: Text('Control'), icon: Icon(Icons.computer, size: 16)),
-                  ButtonSegment(value: ConnectMode.file, label: Text('File'), icon: Icon(Icons.folder_open, size: 16)),
-                  ButtonSegment(value: ConnectMode.view, label: Text('View'), icon: Icon(Icons.visibility, size: 16)),
-                  ButtonSegment(value: ConnectMode.collab, label: Text('Collab'), icon: Icon(Icons.people, size: 16)),
+                segments: [
+                  ButtonSegment(value: ConnectMode.control, label: Text(l10n.connectModeControl), icon: Icon(Icons.computer, size: 16)),
+                  ButtonSegment(value: ConnectMode.file, label: Text(l10n.connectModeFile), icon: Icon(Icons.folder_open, size: 16)),
+                  ButtonSegment(value: ConnectMode.view, label: Text(l10n.connectModeView), icon: Icon(Icons.visibility, size: 16)),
+                  ButtonSegment(value: ConnectMode.collab, label: Text(l10n.connectModeCollab), icon: Icon(Icons.people, size: 16)),
                 ],
                 selected: {_connectMode},
                 onSelectionChanged: (Set<ConnectMode> selection) {
@@ -130,7 +134,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
               ),
               if (recent.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                Text('Recent', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                Text(l10n.recent, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -146,10 +150,10 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
             FilledButton(
               onPressed: () => Navigator.pop(context, _connectController.text.trim()),
-              child: const Text('Connect'),
+              child: Text(l10n.connect),
             ),
           ],
         ),
@@ -164,8 +168,9 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
         await _startSession(target.id);
       } else {
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Device not found')),
+            SnackBar(content: Text(l10n.deviceNotFound)),
           );
         }
       }
@@ -181,6 +186,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
       (d) => d.id == currentDeviceId,
       orElse: () => Device(id: '', name: '', os: '', online: false, code: '', favorite: false, tags: const []),
     );
+    final l10n = AppLocalizations.of(context)!;
 
     Widget content = SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -204,7 +210,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                   children: [
                     Icon(Icons.connect_without_contact, size: 18, color: Theme.of(context).colorScheme.primary),
                     const SizedBox(width: 8),
-                    Text('Quick Connect', style: Theme.of(context).textTheme.titleSmall),
+                    Text(l10n.quickConnect, style: Theme.of(context).textTheme.titleSmall),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -214,7 +220,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                       child: OutlinedButton.icon(
                         onPressed: () => _showConnectDialog(),
                         icon: const Icon(Icons.computer, size: 18),
-                        label: const Text('Control'),
+                        label: Text(l10n.control),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Theme.of(context).colorScheme.primary,
                         ),
@@ -225,7 +231,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                       child: OutlinedButton.icon(
                         onPressed: () => _showConnectDialog(),
                         icon: const Icon(Icons.folder_open, size: 18),
-                        label: const Text('Files'),
+                        label: Text(l10n.files),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Theme.of(context).colorScheme.primary,
                         ),
@@ -236,7 +242,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                       child: OutlinedButton.icon(
                         onPressed: () => _showConnectDialog(),
                         icon: const Icon(Icons.visibility, size: 18),
-                        label: const Text('View'),
+                        label: Text(l10n.view),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Theme.of(context).colorScheme.primary,
                         ),
@@ -253,11 +259,11 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('This Device', style: Theme.of(context).textTheme.titleSmall),
+                Text(l10n.thisDevice, style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 12),
-                _InfoRow(label: 'Client ID', value: auth.deviceId ?? 'Not set'),
+                _InfoRow(label: l10n.clientIdLabel, value: auth.deviceId ?? l10n.notSet),
                 const SizedBox(height: 8),
-                _InfoRow(label: 'Control Password', value: currentDevice.hasControlPassword ? 'Set' : 'Not set'),
+                _InfoRow(label: l10n.controlPasswordLabel, value: currentDevice.hasControlPassword ? l10n.set : l10n.notSet),
               ],
             ),
           ),
@@ -283,13 +289,13 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                     if (index == 5) context.go('/settings');
                   },
                   onLogout: _logout,
-                  items: const [
-                    SidebarItem(icon: Icons.computer, label: 'Devices'),
-                    SidebarItem(icon: Icons.grid_view, label: 'Screen Wall'),
-                    SidebarItem(icon: Icons.list, label: 'All Devices'),
-                    SidebarItem(icon: Icons.history, label: 'Sessions'),
-                    SidebarItem(icon: Icons.folder_shared, label: 'Shares'),
-                    SidebarItem(icon: Icons.settings, label: 'Settings'),
+                  items: [
+                    SidebarItem(icon: Icons.computer, label: l10n.devices),
+                    SidebarItem(icon: Icons.grid_view, label: l10n.screenWall),
+                    SidebarItem(icon: Icons.list, label: l10n.allDevices),
+                    SidebarItem(icon: Icons.history, label: l10n.sessions),
+                    SidebarItem(icon: Icons.folder_shared, label: l10n.shares),
+                    SidebarItem(icon: Icons.settings, label: l10n.settings),
                   ],
                 ),
                 Expanded(child: content),
@@ -309,13 +315,13 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                 if (index == 4) context.go('/shares');
                 if (index == 5) context.go('/settings');
               },
-              items: const [
-                BottomNavItem(icon: Icons.computer, label: 'Devices'),
-                BottomNavItem(icon: Icons.grid_view, label: 'Screen Wall'),
-                BottomNavItem(icon: Icons.list, label: 'All Devices'),
-                BottomNavItem(icon: Icons.history, label: 'Sessions'),
-                BottomNavItem(icon: Icons.folder_shared, label: 'Shares'),
-                BottomNavItem(icon: Icons.settings, label: 'Settings'),
+              items: [
+                BottomNavItem(icon: Icons.computer, label: l10n.devices),
+                BottomNavItem(icon: Icons.grid_view, label: l10n.screenWall),
+                BottomNavItem(icon: Icons.list, label: l10n.allDevices),
+                BottomNavItem(icon: Icons.history, label: l10n.sessions),
+                BottomNavItem(icon: Icons.folder_shared, label: l10n.shares),
+                BottomNavItem(icon: Icons.settings, label: l10n.settings),
               ],
             ),
           );

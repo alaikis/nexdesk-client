@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/two_factor_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class TwoFactorScreen extends StatefulWidget {
   const TwoFactorScreen({super.key});
@@ -33,13 +34,14 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
     final secret = await _service.setupTOTP();
     final otpauthUrl = await _service.getOtpAuthUrl();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _secret = secret;
       _otpauthUrl = otpauthUrl;
     });
     if (secret != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Scan this secret with your authenticator app')),
+        SnackBar(content: Text(l10n.scanSecret)),
       );
     }
   }
@@ -47,14 +49,15 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
   Future<void> _enable() async {
     final ok = await _service.enableTOTP();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     if (ok) {
       setState(() => _enabled = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('2FA enabled')),
+        SnackBar(content: Text(l10n.twoFactorEnabled)),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to enable 2FA')),
+        SnackBar(content: Text(l10n.failedToEnable2FA)),
       );
     }
   }
@@ -62,22 +65,24 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
   Future<void> _disable() async {
     final ok = await _service.disableTOTP();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     if (ok) {
       setState(() => _enabled = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('2FA disabled')),
+        SnackBar(content: Text(l10n.twoFactorDisabled)),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to disable 2FA')),
+        SnackBar(content: Text(l10n.failedToDisable2FA)),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Two-Factor Authentication')),
+      appBar: AppBar(title: Text(l10n.twoFactorAuthTitle)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -100,7 +105,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            _enabled ? '2FA is enabled' : '2FA is disabled',
+                            _enabled ? l10n.twoFactorIsEnabled : l10n.twoFactorIsDisabled,
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -109,7 +114,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                   ),
                   const SizedBox(height: 24),
                   if (_secret != null) ...[
-                    const Text('Secret key:', style: TextStyle(fontWeight: FontWeight.w600)),
+                    Text(l10n.secretKey, style: const TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
                     SelectableText(
                       _secret!,
@@ -117,7 +122,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                     ),
                     const SizedBox(height: 16),
                     if (_otpauthUrl != null) ...[
-                      const Text('Manual entry URL:', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(l10n.manualEntryUrl, style: const TextStyle(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       SelectableText(
                         _otpauthUrl!,
@@ -130,14 +135,14 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                     ElevatedButton.icon(
                       onPressed: _setup,
                       icon: const Icon(Icons.qr_code_scanner),
-                      label: const Text('Setup Authenticator'),
+                      label: Text(l10n.setupAuthenticator),
                     ),
                     if (_secret != null) ...[
                       const SizedBox(height: 12),
                       ElevatedButton.icon(
                         onPressed: _enable,
                         icon: const Icon(Icons.verified_user),
-                        label: const Text('Enable 2FA'),
+                        label: Text(l10n.enable2FA),
                       ),
                     ],
                   ] else ...[
@@ -148,7 +153,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                         backgroundColor: const Color(0xFFFF3B30),
                         foregroundColor: Colors.white,
                       ),
-                      label: const Text('Disable 2FA'),
+                      label: Text(l10n.disable2FA),
                     ),
                   ],
                 ],

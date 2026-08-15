@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 class NexSidebar extends StatelessWidget {
   final int selectedIndex;
@@ -17,6 +18,7 @@ class NexSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: 72,
       color: cs.surface,
@@ -39,7 +41,7 @@ class NexSidebar extends StatelessWidget {
             IconButton(
               onPressed: onLogout,
               icon: Icon(Icons.logout, size: 20, color: cs.onSurfaceVariant),
-              tooltip: 'Logout',
+              tooltip: l10n.logout,
             ),
             const SizedBox(height: 4),
           ],

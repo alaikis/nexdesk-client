@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'share_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 class ShareBrowserScreen extends StatefulWidget {
   final int shareId;
@@ -17,27 +18,27 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
     final files = context.watch<ShareProvider>().currentFiles;
     final path = context.watch<ShareProvider>().currentPath;
     final loading = context.watch<ShareProvider>().loading;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(path),
-        actions: [
-          IconButton(
-            onPressed: () async {
-              final url = await context.read<ShareProvider>().getDownloadUrl(widget.shareId, path);
-              if (url != null && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download: $url')));
-              }
-            },
-            icon: const Icon(Icons.download),
-            tooltip: 'Download',
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(path)),
+      actions: [
+        IconButton(
+          onPressed: () async {
+            final url = await context.read<ShareProvider>().getDownloadUrl(widget.shareId, path);
+            if (url != null && mounted) {
+              final l10n = AppLocalizations.of(context)!;
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.downloadLink(url))));
+            }
+          },
+          icon: const Icon(Icons.download),
+          tooltip: l10n.download,
+        ),
+      ],
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : files.isEmpty
-              ? const Center(child: Text('Empty folder'))
+              ? Center(child: Text(l10n.emptyFolder))
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: files.length,
@@ -48,14 +49,15 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
                       child: ListTile(
                         leading: Icon(file.isDir ? Icons.folder : Icons.insert_drive_file),
                         title: Text(file.name),
-                        subtitle: Text(file.isDir ? 'Folder' : '${file.size} bytes'),
+                        subtitle: Text(file.isDir ? l10n.folder : '${file.size} ${l10n.bytes}'),
                         trailing: file.isDir
                             ? null
                             : IconButton(
                                 onPressed: () async {
                                   final url = await context.read<ShareProvider>().getDownloadUrl(widget.shareId, file.path);
                                   if (url != null && mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download: $url')));
+                                    final l10n = AppLocalizations.of(context)!;
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.downloadLink(url))));
                                   }
                                 },
                                 icon: const Icon(Icons.download),

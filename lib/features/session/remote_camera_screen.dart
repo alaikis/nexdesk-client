@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/signaling_service.dart';
 import '../../features/session/session_provider.dart';
 import '../../core/secure_storage_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class RemoteCameraScreen extends StatefulWidget {
   final String sessionId;
@@ -216,14 +217,15 @@ class _RemoteCameraScreenState extends State<RemoteCameraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Remote Camera'),
+        title: Text(l10n.remoteCameraTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.pop(context),
-            tooltip: 'Close',
+            tooltip: l10n.close,
           ),
         ],
       ),

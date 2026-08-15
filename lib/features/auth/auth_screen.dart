@@ -6,6 +6,7 @@ import '../../core/error_handler.dart';
 import '../../widgets/nex_input.dart';
 import '../../widgets/nex_button.dart';
 import '../../widgets/nex_card.dart';
+import '../../l10n/app_localizations.dart';
 
 enum AuthMode { login, register }
 
@@ -44,7 +45,7 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                 const FlutterLogo(size: 48),
                 const SizedBox(height: 24),
                 Text(
-                  isLogin ? 'Sign in to NEX' : 'Create your account',
+                  isLogin ? AppLocalizations.of(context)!.signInToNex : AppLocalizations.of(context)!.createAccount,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: cs.primary,
                       ),
@@ -53,8 +54,8 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                 const SizedBox(height: 8),
                 Text(
                   isLogin
-                      ? 'Access your remote devices securely.'
-                      : 'Start controlling devices with WebRTC.',
+                      ? AppLocalizations.of(context)!.accessRemoteDevices
+                      : AppLocalizations.of(context)!.startControllingDevices,
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -67,7 +68,7 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                       if (!isLogin) ...[
                         NexInput(
                           controller: _nameController,
-                          label: 'Name',
+                          label: AppLocalizations.of(context)!.nameLabel,
                           prefixIcon: Icons.person_outline,
                           errorText: _nameError,
                         ),
@@ -75,7 +76,7 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                       ],
                       NexInput(
                         controller: _emailController,
-                        label: 'Email',
+                        label: AppLocalizations.of(context)!.emailLabel,
                         prefixIcon: Icons.mail_outline,
                         keyboardType: TextInputType.emailAddress,
                         errorText: _emailError,
@@ -83,7 +84,7 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                       const SizedBox(height: 16),
                       NexInput(
                         controller: _passwordController,
-                        label: 'Password',
+                        label: AppLocalizations.of(context)!.passwordLabel,
                         prefixIcon: Icons.lock_outline,
                         obscureText: true,
                         errorText: _passwordError,
@@ -93,13 +94,13 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Text(
-                            'Request timed out. Please try again.',
+                            AppLocalizations.of(context)!.requestTimedOut,
                             style: TextStyle(color: cs.error, fontSize: 13),
                             textAlign: TextAlign.center,
                           ),
                         ),
                       NexButton(
-                        text: isLogin ? 'Sign In' : 'Create Account',
+                        text: isLogin ? AppLocalizations.of(context)!.signIn : AppLocalizations.of(context)!.createAccountBtn,
                         fullWidth: true,
                         loading: _loading,
                         onPressed: _loading ? null : _submit,
@@ -115,8 +116,8 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                   },
                   child: Text(
                     isLogin
-                        ? "Don't have an account? Sign up"
-                        : 'Already have an account? Sign in',
+                        ? AppLocalizations.of(context)!.noAccountSignUp
+                        : AppLocalizations.of(context)!.hasAccountSignIn,
                     style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                   ),
                 ),
@@ -143,21 +144,21 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
 
     bool valid = true;
     if (email.isEmpty) {
-      setState(() => _emailError = 'Email is required');
+      setState(() => _emailError = AppLocalizations.of(context)!.emailRequired);
       valid = false;
     } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email)) {
-      setState(() => _emailError = 'Enter a valid email');
+      setState(() => _emailError = AppLocalizations.of(context)!.validEmail);
       valid = false;
     }
     if (password.isEmpty) {
-      setState(() => _passwordError = 'Password is required');
+      setState(() => _passwordError = AppLocalizations.of(context)!.passwordRequired);
       valid = false;
     } else if (password.length < 8) {
-      setState(() => _passwordError = 'Password must be at least 8 characters');
+      setState(() => _passwordError = AppLocalizations.of(context)!.passwordMinLength);
       valid = false;
     }
     if (!isLogin && name.isEmpty) {
-      setState(() => _nameError = 'Name is required');
+      setState(() => _nameError = AppLocalizations.of(context)!.nameRequired);
       valid = false;
     }
     if (!valid) return;
@@ -178,7 +179,7 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
     } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Request failed: ${e.toString().replaceAll('Exception: ', '')}')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.requestFailed(e.toString().replaceAll('Exception: ', '')))),
         );
       }
       ok = false;
@@ -191,7 +192,7 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
     } else if (auth.requires2FA) {
       if (mounted) context.go('/2fa');
     } else {
-      final message = auth.lastError ?? (isLogin ? 'Login failed' : 'Registration failed');
+      final message = auth.lastError ?? (isLogin ? AppLocalizations.of(context)!.loginFailed : AppLocalizations.of(context)!.registrationFailed);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message)),

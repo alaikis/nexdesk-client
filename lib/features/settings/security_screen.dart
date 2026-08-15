@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
+import '../../l10n/app_localizations.dart';
 
 class SecuritySettingsScreen extends StatefulWidget {
   final String deviceId;
@@ -42,13 +43,15 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       setState(() => _hasLockPassword = true);
       _lockPasswordController.clear();
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lock password set')),
+        SnackBar(content: Text(l10n.lockPasswordSet)),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: ${e.message}')),
+        SnackBar(content: Text(l10n.failed(e.message))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -61,13 +64,15 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       await _api.removeLockPassword(widget.deviceId);
       setState(() => _hasLockPassword = false);
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lock password removed')),
+        SnackBar(content: Text(l10n.lockPasswordRemoved)),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: ${e.message}')),
+        SnackBar(content: Text(l10n.failed(e.message))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -82,13 +87,15 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       await _api.setAllowedUsers(widget.deviceId, ids);
       setState(() => _allowedUsers = raw);
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Allowed users updated')),
+        SnackBar(content: Text(l10n.allowedUsersUpdated)),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: ${e.message}')),
+        SnackBar(content: Text(l10n.failed(e.message))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -103,13 +110,15 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       await _api.setBlockedUsers(widget.deviceId, ids);
       setState(() => _blockedUsers = raw);
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Blocked users updated')),
+        SnackBar(content: Text(l10n.blockedUsersUpdated)),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: ${e.message}')),
+        SnackBar(content: Text(l10n.failed(e.message))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -119,14 +128,15 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Security Settings')),
+      appBar: AppBar(title: Text(l10n.securitySettings)),
       body: _saving
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                Text('Connection Security', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                Text(l10n.connectionSecurity, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: cs.onSurface)),
                 const SizedBox(height: 20),
                 _buildLockCard(cs),
                 const SizedBox(height: 16),
@@ -141,6 +151,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Widget _buildLockCard(ColorScheme cs) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -153,7 +164,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    _hasLockPassword ? 'Lock password enabled' : 'Lock password disabled',
+                    _hasLockPassword ? l10n.lockPasswordEnabled : l10n.lockPasswordDisabled,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -164,16 +175,16 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               TextField(
                 controller: _lockPasswordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'New lock password',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.newLockPassword,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: _setLockPassword,
                 icon: const Icon(Icons.lock_open),
-                label: const Text('Set Lock Password'),
+                label: Text(l10n.setLockPassword),
               ),
             ] else ...[
               ElevatedButton.icon(
@@ -183,7 +194,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   backgroundColor: const Color(0xFFFF3B30),
                   foregroundColor: Colors.white,
                 ),
-                label: const Text('Remove Lock Password'),
+                label: Text(l10n.removeLockPassword),
               ),
             ],
           ],
@@ -193,6 +204,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Widget _buildAllowedCard(ColorScheme cs) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -203,8 +215,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               children: [
                 Icon(Icons.check_circle, color: const Color(0xFF34C759)),
                 const SizedBox(width: 12),
-                const Expanded(
-                  child: Text('Allowed Users', style: TextStyle(fontWeight: FontWeight.w600)),
+                Expanded(
+                  child: Text(l10n.allowedUsers, style: const TextStyle(fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -212,8 +224,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             TextField(
               controller: _allowedController,
               decoration: InputDecoration(
-                labelText: 'Allowed user IDs (comma separated)',
-                hintText: _allowedUsers.isEmpty ? 'e.g. 1, 2, 3' : _allowedUsers,
+                labelText: l10n.allowedUserIds,
+                hintText: _allowedUsers.isEmpty ? l10n.allowedUsersExample : _allowedUsers,
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -221,7 +233,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             ElevatedButton.icon(
               onPressed: _saveAllowedUsers,
               icon: const Icon(Icons.save),
-              label: const Text('Save Allowed Users'),
+              label: Text(l10n.saveAllowedUsers),
             ),
           ],
         ),
@@ -230,6 +242,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Widget _buildBlockedCard(ColorScheme cs) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -240,8 +253,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               children: [
                 Icon(Icons.block, color: const Color(0xFFFF3B30)),
                 const SizedBox(width: 12),
-                const Expanded(
-                  child: Text('Blocked Users', style: TextStyle(fontWeight: FontWeight.w600)),
+                Expanded(
+                  child: Text(l10n.blockedUsers, style: const TextStyle(fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -249,8 +262,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             TextField(
               controller: _blockedController,
               decoration: InputDecoration(
-                labelText: 'Blocked user IDs (comma separated)',
-                hintText: _blockedUsers.isEmpty ? 'e.g. 4, 5' : _blockedUsers,
+                labelText: l10n.blockedUserIds,
+                hintText: _blockedUsers.isEmpty ? l10n.blockedUsersExample : _blockedUsers,
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -258,7 +271,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             ElevatedButton.icon(
               onPressed: _saveBlockedUsers,
               icon: const Icon(Icons.save),
-              label: const Text('Save Blocked Users'),
+              label: Text(l10n.saveBlockedUsers),
             ),
           ],
         ),
@@ -267,6 +280,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Widget _buildInfoCard(ColorScheme cs) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -277,17 +291,17 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               children: [
                 Icon(Icons.info_outline, color: cs.primary),
                 const SizedBox(width: 12),
-                const Expanded(
-                  child: Text('Connection Permissions', style: TextStyle(fontWeight: FontWeight.w600)),
+                Expanded(
+                  child: Text(l10n.connectionPermissions, style: const TextStyle(fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            const Text('When a lock password is set, remote connections must provide the password.'),
+            Text(l10n.lockPasswordInfo),
             const SizedBox(height: 8),
-            const Text('Allowed users restrict connections to only the specified users.'),
+            Text(l10n.allowedUsersInfo),
             const SizedBox(height: 8),
-            const Text('Blocked users prevent specific users from connecting.'),
+            Text(l10n.blockedUsersInfo),
           ],
         ),
       ),
