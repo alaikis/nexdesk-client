@@ -267,6 +267,14 @@ class ApiClient {
     return res['devices'] as List<dynamic>;
   }
 
+  Future<void> updateDeviceTags(String deviceId, List<String> tags) async {
+    await post('/devices/$deviceId/tags', {'tags': tags});
+  }
+
+  Future<void> renameDevice(String deviceId, String name) async {
+    await patch('/devices/$deviceId', {'name': name});
+  }
+
   Future<Map<String, dynamic>> createSession(String controlleeDeviceId) async {
     final controllerId = await StorageService.getString('device_id');
     if (controllerId == null) throw ApiException(400, 'Missing local device id');

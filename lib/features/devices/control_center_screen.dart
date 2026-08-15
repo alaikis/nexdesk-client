@@ -158,7 +158,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
     if (result != null && result.isNotEmpty) {
       final target = context.read<DeviceProvider>().devices.firstWhere(
         (d) => d.code.toLowerCase() == result.toLowerCase(),
-        orElse: () => Device(id: '', name: '', os: '', online: false, code: ''),
+        orElse: () => Device(id: '', name: '', os: '', online: false, code: '', favorite: false, tags: const []),
       );
       if (target.id.isNotEmpty) {
         await _startSession(target.id);
@@ -179,7 +179,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
     final currentDeviceId = auth.deviceId;
     final currentDevice = devices.devices.firstWhere(
       (d) => d.id == currentDeviceId,
-      orElse: () => Device(id: '', name: '', os: '', online: false, code: ''),
+      orElse: () => Device(id: '', name: '', os: '', online: false, code: '', favorite: false, tags: const []),
     );
 
     Widget content = SingleChildScrollView(

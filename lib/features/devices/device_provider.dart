@@ -13,6 +13,8 @@ class Device with ChangeNotifier {
   final bool wolEnabled;
   final String code;
   final bool hasControlPassword;
+  final bool favorite;
+  final List<String> tags;
 
   Device({
     required this.id,
@@ -22,6 +24,8 @@ class Device with ChangeNotifier {
     this.wolEnabled = false,
     this.code = '',
     this.hasControlPassword = false,
+    this.favorite = false,
+    this.tags = const [],
   });
 
   factory Device.fromJson(Map<String, dynamic> json) {
@@ -35,6 +39,10 @@ class Device with ChangeNotifier {
       hasControlPassword: json['control_password'] is bool
           ? json['control_password'] as bool
           : (json['control_password'] as String?)?.isNotEmpty ?? false,
+      favorite: json['favorite'] as bool? ?? false,
+      tags: json['tags'] is List
+          ? (json['tags'] as List).map((e) => e.toString()).toList()
+          : const [],
     );
   }
 }
@@ -116,6 +124,8 @@ class DeviceProvider with ChangeNotifier {
         'wol_enabled': d.wolEnabled,
         'code': d.code,
         'control_password': d.hasControlPassword,
+        'favorite': d.favorite,
+        'tags': d.tags,
       }).toList();
       await StorageService.setString(_cacheKey, jsonEncode(json));
     } on Exception catch (_) {
@@ -172,5 +182,77 @@ class DeviceProvider with ChangeNotifier {
     final id = int.tryParse(deviceId);
     if (id == null) return false;
     return await _api.wakeDevice(id);
+  }
+
+  List<Device> get favoriteDevices => _devices.where((d) => d.favorite).toList();
+
+  Future<void> toggleFavorite(String deviceId) async {
+    final index = _devices.indexWhere((d) => d.id == deviceId);
+    if (index < 0) return;
+    try {
+      final res = await _api.toggleFavorite(deviceId);
+      final favorite = res['favorite'] as bool? ?? !_devices[index].favorite;
+      _devices[index] = Device(
+        id: _devices[index].id,
+        name: _devices[index].name,
+        os: _devices[index].os,
+        online: _devices[index].online,
+        wolEnabled: _devices[index].wolEnabled,
+        code: _devices[index].code,
+        hasControlPassword: _devices[index].hasControlPassword,
+        favorite: favorite,
+        tags: _devices[index].tags,
+      );
+      await _cacheDevices(_devices);
+      notifyListeners();
+    } on ApiException catch (e) {
+      debugPrint('Toggle favorite failed: $e');
+    }
+  }
+
+  Future<void> updateDeviceTags(String deviceId, List<String> tags) async {
+    final index = _devices.indexWhere((d) => d.id == deviceId);
+    if (index < 0) return;
+    try {
+      await _api.updateDeviceTags(deviceId, tags);
+      _devices[index] = Device(
+        id: _devices[index].id,
+        name: _devices[index].name,
+        os: _devices[index].os,
+        online: _devices[index].online,
+        wolEnabled: _devices[index].wolEnabled,
+        code: _devices[index].code,
+        hasControlPassword: _devices[index].hasControlPassword,
+        favorite: _devices[index].favorite,
+        tags: tags,
+      );
+      await _cacheDevices(_devices);
+      notifyListeners();
+    } on ApiException catch (e) {
+      debugPrint('Update tags failed: $e');
+    }
+  }
+
+  Future<void> renameDevice(String deviceId, String name) async {
+    final index = _devices.indexWhere((d) => d.id == deviceId);
+    if (index < 0) return;
+    try {
+      await _api.renameDevice(deviceId, name);
+      _devices[index] = Device(
+        id: _devices[index].id,
+        name: name,
+        os: _devices[index].os,
+        online: _devices[index].online,
+        wolEnabled: _devices[index].wolEnabled,
+        code: _devices[index].code,
+        hasControlPassword: _devices[index].hasControlPassword,
+        favorite: _devices[index].favorite,
+        tags: _devices[index].tags,
+      );
+      await _cacheDevices(_devices);
+      notifyListeners();
+    } on ApiException catch (e) {
+      debugPrint('Rename device failed: $e');
+    }
   }
 }
