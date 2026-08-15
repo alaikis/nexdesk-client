@@ -5,6 +5,7 @@ import 'dart:io';
 import '../../core/api_client.dart';
 import '../../core/storage_service.dart';
 import '../../core/signaling_service.dart';
+import '../../core/quality_service.dart';
 import '../../widgets/floating_toolbar.dart';
 
 enum ReconnectionState { connecting, connected, reconnecting, failed }
@@ -173,6 +174,30 @@ class SessionProvider with ChangeNotifier {
       _persistSession();
       notifyListeners();
     }
+  }
+
+  QualityPreset _qualityPreset = QualityPreset.hd;
+
+  QualityPreset get qualityPreset => _qualityPreset;
+
+  Future<void> setQualityPreset(QualityPreset preset) async {
+    _qualityPreset = preset;
+    final sessionId = _activeSession?.id;
+    if (sessionId != null && _signaling != null) {
+      _signaling!.sendQualityPreset(sessionId, preset);
+    }
+    notifyListeners();
+  }
+
+  Map<String, dynamic> getQualityConstraints() {
+    final config = QualityProfileConfig.presetValues[_qualityPreset] ?? QualityProfileConfig.hd;
+    return {
+      'video': {
+        'width': {'ideal': config.width},
+        'height': {'ideal': config.height},
+        'frameRate': {'ideal': config.fps},
+      },
+    };
   }
 
   Future<void> toggleWhiteboard(bool enabled) async {

@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'log_service.dart';
+import 'quality_service.dart';
 
 enum SignalingMessageType {
   hello,
@@ -21,6 +22,7 @@ enum SignalingMessageType {
   chatMessage,
   privacy,
   whiteboard,
+  qualityPreset,
   error;
 
   factory SignalingMessageType.fromString(String value) {
@@ -301,6 +303,14 @@ class SignalingService {
       type: SignalingMessageType.whiteboard,
       sessionId: sessionId,
       payload: event,
+    ));
+  }
+
+  void sendQualityPreset(String sessionId, QualityPreset preset) {
+    send(SignalingMessage(
+      type: SignalingMessageType.qualityPreset,
+      sessionId: sessionId,
+      payload: {'preset': preset.name},
     ));
   }
 

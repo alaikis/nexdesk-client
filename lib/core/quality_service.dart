@@ -2,6 +2,43 @@ import 'dart:async';
 import 'api_client.dart';
 
 enum QualityProfile { auto, low, medium, high }
+enum QualityPreset { smooth, hd, ultraHd, original, custom }
+
+class QualityProfileConfig {
+  final int width;
+  final int height;
+  final int fps;
+  final int bitrate;
+  final String codec;
+
+  const QualityProfileConfig({
+    required this.width,
+    required this.height,
+    required this.fps,
+    required this.bitrate,
+    required this.codec,
+  });
+
+  static const smooth = QualityProfileConfig(width: 1280, height: 720, fps: 30, bitrate: 1000, codec: 'H264');
+  static const hd = QualityProfileConfig(width: 1920, height: 1080, fps: 60, bitrate: 4000, codec: 'H264');
+  static const ultraHd = QualityProfileConfig(width: 2560, height: 1440, fps: 120, bitrate: 8000, codec: 'H265');
+  static const original = QualityProfileConfig(width: 3840, height: 2160, fps: 144, bitrate: 20000, codec: 'H265');
+
+  static const presetValues = {
+    QualityPreset.smooth: smooth,
+    QualityPreset.hd: hd,
+    QualityPreset.ultraHd: ultraHd,
+    QualityPreset.original: original,
+  };
+
+  static const presetLabels = {
+    QualityPreset.smooth: 'Smooth',
+    QualityPreset.hd: 'HD',
+    QualityPreset.ultraHd: 'Ultra HD',
+    QualityPreset.original: 'Original',
+    QualityPreset.custom: 'Custom',
+  };
+}
 
 class AdaptiveBitrateController {
   static final AdaptiveBitrateController _instance = AdaptiveBitrateController._internal();
