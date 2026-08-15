@@ -9,6 +9,9 @@ class DeviceCard extends StatelessWidget {
   final VoidCallback onCopy;
   final VoidCallback? onWake;
   final String? wakingDeviceId;
+  final bool isSelected;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const DeviceCard({
     super.key,
@@ -17,14 +20,18 @@ class DeviceCard extends StatelessWidget {
     required this.onCopy,
     this.onWake,
     this.wakingDeviceId,
+    this.isSelected = false,
+    this.onTap,
+    this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return NexCard(
+    final card = NexCard(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
+      borderColor: isSelected ? cs.primary : null,
       child: Row(
         children: [
           Container(
@@ -78,5 +85,15 @@ class DeviceCard extends StatelessWidget {
         ],
       ),
     );
+    if (onTap != null && onLongPress != null) {
+      return GestureDetector(onTap: onTap, onLongPress: onLongPress, child: card);
+    }
+    if (onTap != null) {
+      return GestureDetector(onTap: onTap, child: card);
+    }
+    if (onLongPress != null) {
+      return GestureDetector(onLongPress: onLongPress, child: card);
+    }
+    return card;
   }
 }

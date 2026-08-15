@@ -393,4 +393,34 @@ class ApiClient {
     final res = await get('/shares/$shareId/download?path=${Uri.encodeQueryComponent(path)}');
     return res['download_url'] as String?;
   }
+
+  Future<List<dynamic>> listGroups() async {
+    final res = await get('/devices/groups');
+    return res['groups'] as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> createGroup(String name) async {
+    return post('/devices/groups', {'name': name});
+  }
+
+  Future<void> renameGroup(int groupId, String name) async {
+    await patch('/devices/groups/$groupId', {'name': name});
+  }
+
+  Future<void> deleteGroup(int groupId) async {
+    await delete('/devices/groups/$groupId');
+  }
+
+  Future<void> addDeviceToGroup(int deviceId, int groupId) async {
+    await post('/devices/groups/$groupId/devices', {'device_id': deviceId});
+  }
+
+  Future<void> removeDeviceFromGroup(int deviceId) async {
+    await delete('/devices/groups/0/devices/$deviceId');
+  }
+
+  Future<List<dynamic>> getGroupDevices(int groupId) async {
+    final res = await get('/devices/groups/$groupId/devices');
+    return res['devices'] as List<dynamic>;
+  }
 }
