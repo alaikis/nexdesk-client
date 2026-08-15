@@ -32,7 +32,7 @@ class NexCard extends StatelessWidget {
           border: Border.all(color: borderColor ?? cs.outline),
         ),
         child: Padding(
-          padding: padding ?? const EdgeInsets.all(NexSpacing.lg),
+          padding: padding ?? EdgeInsets.all(NexSpacing.lg),
           child: child,
         ),
       ),

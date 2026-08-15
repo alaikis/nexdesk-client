@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../features/devices/device_provider.dart';
 import 'nex_card.dart';
 import 'online_dot.dart';
+import '../theme/app_theme.dart';
 
 class LocalDeviceCard extends StatelessWidget {
   final Device device;
@@ -14,7 +15,7 @@ class LocalDeviceCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return NexCard(
       color: cs.primaryContainer.withValues(alpha: 0.15),
-      padding: const EdgeInsets.all(NexSpacing.lg),
+      padding: EdgeInsets.all(NexSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

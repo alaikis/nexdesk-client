@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/api_client.dart';
 import '../../core/secure_storage_service.dart';
+import '../../core/storage_service.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 

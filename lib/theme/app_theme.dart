@@ -77,7 +77,7 @@ class NexColors {
           backgroundColor: colors.primary,
           foregroundColor: colors.onPrimary,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xl, vertical: NexSpacing.md),
+          padding: EdgeInsets.symmetric(horizontal: NexSpacing.xl, vertical: NexSpacing.md),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.md)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
@@ -96,7 +96,7 @@ class NexColors {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(NexRadius.md), borderSide: BorderSide(color: colors.border)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(NexRadius.md), borderSide: BorderSide(color: colors.primary, width: 1.5)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(NexRadius.md), borderSide: BorderSide(color: colors.error)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: NexSpacing.md, vertical: NexSpacing.md),
+        contentPadding: EdgeInsets.symmetric(horizontal: NexSpacing.md, vertical: NexSpacing.md),
       ),
     );
   }
