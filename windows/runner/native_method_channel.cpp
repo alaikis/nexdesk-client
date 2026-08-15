@@ -13,11 +13,15 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <shellapi.h>
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "gdi32.lib")
+#pragma comment(lib, "shell32.lib")
+
+#include "resource.h"
 
 namespace {
 
@@ -285,6 +289,14 @@ void CleanupCapture(ScreenCaptureState& state) {
 
 }  // namespace
 
+// System tray state
+namespace {
+NOTIFYICONDATA g_tray_data = {};
+UINT g_tray_message_id = WM_USER + 100;
+bool g_tray_initialized = false;
+HWND g_tray_hwnd = nullptr;
+}  // namespace
+
 void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
   const flutter::StandardMethodCodec* codec = &flutter::StandardMethodCodec::GetInstance();
   auto messenger = controller->engine()->messenger();
@@ -460,6 +472,61 @@ void NativeMethodChannel::Register(flutter::FlutterViewController* controller) {
         result->Success(flutter::EncodableValue(true));
       } else if (call.method_name() == "setModifiers") {
         // Modifier state is handled at Dart layer by sending individual key events.
+        result->Success(flutter::EncodableValue(true));
+      } else {
+        result->NotImplemented();
+      }
+    });
+  }
+
+  // System tray channel
+  {
+    flutter::MethodChannel<flutter::EncodableValue> channel(
+        messenger,
+        "nex.flutter/system_tray_windows",
+        static_cast<const flutter::MethodCodec<flutter::EncodableValue>*>(codec));
+    channel.SetMethodCallHandler([controller](const flutter::MethodCall<flutter::EncodableValue>& call,
+                                    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+      if (call.method_name() == "init") {
+        HWND flutter_hwnd = FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", nullptr);
+        if (!flutter_hwnd) {
+          flutter_hwnd = controller->view()->GetNativeWindow();
+        }
+        g_tray_hwnd = flutter_hwnd;
+        ZeroMemory(&g_tray_data, sizeof(g_tray_data));
+        g_tray_data.cbSize = sizeof(NOTIFYICONDATA);
+        g_tray_data.hWnd = flutter_hwnd;
+        g_tray_data.uID = 1;
+        g_tray_data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+        g_tray_data.uCallbackMessage = g_tray_message_id;
+        g_tray_data.hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDI_APP_ICON));
+        wcscpy_s(g_tray_data.szTip, L"NEX");
+        Shell_NotifyIcon(NIM_ADD, &g_tray_data);
+        g_tray_initialized = true;
+        result->Success(flutter::EncodableValue(true));
+      } else if (call.method_name() == "show") {
+        if (g_tray_hwnd) {
+          ShowWindow(g_tray_hwnd, SW_SHOW);
+          SetForegroundWindow(g_tray_hwnd);
+        }
+        result->Success(flutter::EncodableValue(true));
+      } else if (call.method_name() == "hide") {
+        if (g_tray_hwnd) {
+          ShowWindow(g_tray_hwnd, SW_HIDE);
+        }
+        result->Success(flutter::EncodableValue(true));
+      } else if (call.method_name() == "toggle") {
+        if (g_tray_hwnd) {
+          bool visible = IsWindowVisible(g_tray_hwnd) != 0;
+          ShowWindow(g_tray_hwnd, visible ? SW_HIDE : SW_SHOW);
+          if (!visible) SetForegroundWindow(g_tray_hwnd);
+        }
+        result->Success(flutter::EncodableValue(true));
+      } else if (call.method_name() == "destroy") {
+        if (g_tray_initialized) {
+          Shell_NotifyIcon(NIM_DELETE, &g_tray_data);
+          g_tray_initialized = false;
+        }
         result->Success(flutter::EncodableValue(true));
       } else {
         result->NotImplemented();

@@ -23,6 +23,7 @@ import 'recording_screen.dart';
 import 'recording_list_screen.dart';
 import 'chat_panel.dart';
 import '../../widgets/floating_toolbar.dart';
+import 'whiteboard_screen.dart';
 
 class SessionScreen extends StatefulWidget {
   final String sessionId;
@@ -40,6 +41,9 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   InputRelayService? _inputRelay;
   SignalingService? _signaling;
   bool _audioEnabled = true;
+  bool _whiteboardActive = false;
+  String _localDeviceId = 'local';
+  final GlobalKey<WhiteboardScreenState> _whiteboardKey = GlobalKey<WhiteboardScreenState>();
 
   List<ScreenInfo> _screens = [];
   Set<int> _selectedScreenIds = {};
@@ -49,6 +53,14 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   void initState() {
     super.initState();
     _initScreens();
+    _localDeviceIdInit();
+  }
+
+  Future<void> _localDeviceIdInit() async {
+    final id = await SecureStorageService.getString('device_id');
+    if (mounted) {
+      setState(() => _localDeviceId = id ?? 'local');
+    }
   }
 
   Future<void> _initScreens() async {
@@ -118,6 +130,9 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
           if (mounted) {
             context.read<SessionProvider>().setPrivacyEnabled(enabled);
           }
+        },
+        onWhiteboard: (event) {
+          _handleWhiteboardEvent(event);
         },
         onReconnectAttempts: (attempts) {
           if (!mounted) return;
@@ -217,12 +232,21 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   void _toggleAudio() {
     setState(() => _audioEnabled = !_audioEnabled);
-    // Actually mute/unmute the audio track
     for (final stream in _webrtc.remoteStreams) {
       for (final track in stream.getAudioTracks()) {
         track.enabled = _audioEnabled;
       }
     }
+  }
+
+  void _toggleWhiteboard() {
+    setState(() => _whiteboardActive = !_whiteboardActive);
+    context.read<SessionProvider>().toggleWhiteboard(_whiteboardActive);
+  }
+
+  void _handleWhiteboardEvent(Map<String, dynamic> event) {
+    if (!_whiteboardActive) return;
+    _whiteboardKey.currentState?.handleRemoteEvent(event);
   }
 
   void _showChat() {
@@ -328,6 +352,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
           : Stack(
               children: [
                 _buildSessionView(),
+                if (_whiteboardActive && _signaling != null)
+                  WhiteboardScreen(
+                    key: _whiteboardKey,
+                    signaling: _signaling!,
+                    sessionId: widget.sessionId,
+                    localDeviceId: _localDeviceId,
+                  ),
                 if (toolbarMode == ToolbarMode.floating)
                   _buildFloatingToolbar(privacyEnabled)
                 else
@@ -403,6 +434,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         label: 'Clipboard',
         tooltip: 'Clipboard',
         onTap: _showClipboard,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
+        icon: _whiteboardActive ? Icons.brush : Icons.brush_outlined,
+        label: _whiteboardActive ? 'Whiteboard' : 'Whiteboard',
+        tooltip: _whiteboardActive ? 'Disable whiteboard' : 'Enable whiteboard',
+        onTap: _toggleWhiteboard,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
@@ -513,6 +551,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         label: 'Clipboard',
         tooltip: 'Clipboard',
         onTap: _showClipboard,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
+        icon: _whiteboardActive ? Icons.brush : Icons.brush_outlined,
+        label: _whiteboardActive ? 'Whiteboard' : 'Whiteboard',
+        tooltip: _whiteboardActive ? 'Disable whiteboard' : 'Enable whiteboard',
+        onTap: _toggleWhiteboard,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(

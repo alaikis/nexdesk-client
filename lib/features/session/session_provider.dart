@@ -17,6 +17,7 @@ class Session with ChangeNotifier {
   String status;
   bool relayUsed;
   bool privacyEnabled;
+  bool whiteboardEnabled;
 
   Session({
     required this.id,
@@ -27,6 +28,7 @@ class Session with ChangeNotifier {
     this.status = 'active',
     this.relayUsed = false,
     this.privacyEnabled = false,
+    this.whiteboardEnabled = false,
   });
 
   factory Session.fromJson(Map<String, dynamic> json) {
@@ -39,6 +41,7 @@ class Session with ChangeNotifier {
       status: json['status'] as String? ?? 'active',
       relayUsed: json['relay_used'] as bool? ?? false,
       privacyEnabled: json['privacy_enabled'] as bool? ?? false,
+      whiteboardEnabled: json['whiteboard_enabled'] as bool? ?? false,
     );
   }
 
@@ -52,6 +55,7 @@ class Session with ChangeNotifier {
       'status': status,
       'relay_used': relayUsed,
       'privacy_enabled': privacyEnabled,
+      'whiteboard_enabled': whiteboardEnabled,
     };
   }
 }
@@ -76,6 +80,7 @@ class SessionProvider with ChangeNotifier {
   int get reconnectAttempts => _reconnectAttempts;
   String? get activeSessionId => _activeSession?.id;
   bool get privacyEnabled => _activeSession?.privacyEnabled ?? false;
+  bool get whiteboardEnabled => _activeSession?.whiteboardEnabled ?? false;
   ToolbarMode get toolbarMode => _toolbarMode;
   Offset get toolbarPosition => _toolbarPosition;
 
@@ -163,6 +168,12 @@ class SessionProvider with ChangeNotifier {
       _persistSession();
       notifyListeners();
     }
+  }
+
+  Future<void> toggleWhiteboard(bool enabled) async {
+    _activeSession?.whiteboardEnabled = enabled;
+    await _persistSession();
+    notifyListeners();
   }
 
   SessionProvider() {

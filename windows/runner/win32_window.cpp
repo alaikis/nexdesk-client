@@ -216,6 +216,17 @@ Win32Window::MessageHandler(HWND hwnd,
     case WM_DWMCOLORIZATIONCOLORCHANGED:
       UpdateTheme(hwnd);
       return 0;
+
+    case WM_USER + 100: {
+      if (lparam == WM_LBUTTONUP || lparam == WM_LBUTTONDBLCLK) {
+        bool visible = IsWindowVisible(hwnd) != 0;
+        ShowWindow(hwnd, visible ? SW_HIDE : SW_SHOW);
+        if (!visible) {
+          SetForegroundWindow(hwnd);
+        }
+      }
+      return 0;
+    }
   }
 
   return DefWindowProc(window_handle_, message, wparam, lparam);

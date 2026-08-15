@@ -20,6 +20,7 @@ enum SignalingMessageType {
   inputEvent,
   chatMessage,
   privacy,
+  whiteboard,
   error;
 
   factory SignalingMessageType.fromString(String value) {
@@ -103,6 +104,7 @@ class SignalingService {
   final void Function(Uint8List publicKey, String fromDevice)? onKeyExchange;
   final void Function(bool enabled)? onPrivacyChanged;
   void Function(ChatMessage message)? onChatMessage;
+  final void Function(Map<String, dynamic> event)? onWhiteboard;
   final void Function(int attempts)? onReconnectAttempts;
   final void Function(int attempts)? onReconnectFailed;
 
@@ -128,6 +130,7 @@ class SignalingService {
     this.onKeyExchange,
     this.onPrivacyChanged,
     this.onChatMessage,
+    this.onWhiteboard,
     this.onReconnectAttempts,
     this.onReconnectFailed,
   });
@@ -206,6 +209,8 @@ class SignalingService {
       } else if (msg.type == SignalingMessageType.privacy) {
         final enabled = msg.payload['enabled'] as bool? ?? false;
         onPrivacyChanged?.call(enabled);
+      } else if (msg.type == SignalingMessageType.whiteboard) {
+        onWhiteboard?.call(Map<String, dynamic>.from(msg.payload));
       }
       _controller.add(msg);
     } catch (e) {
@@ -288,6 +293,14 @@ class SignalingService {
       type: SignalingMessageType.privacy,
       sessionId: sessionId,
       payload: {'enabled': enabled},
+    ));
+  }
+
+  void sendWhiteboard(String sessionId, Map<String, dynamic> event) {
+    send(SignalingMessage(
+      type: SignalingMessageType.whiteboard,
+      sessionId: sessionId,
+      payload: event,
     ));
   }
 
