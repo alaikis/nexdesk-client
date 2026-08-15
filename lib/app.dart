@@ -12,6 +12,7 @@ import 'features/sessions/session_list_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/shares/share_list_screen.dart';
 import 'features/shares/share_browser_screen.dart';
+import 'features/screen_wall/screen_wall_screen.dart';
 
 class NexApp extends StatelessWidget {
   const NexApp({super.key});
@@ -78,6 +79,10 @@ class NexApp extends StatelessWidget {
             final shareId = int.parse(state.pathParameters['id']!);
             return ShareBrowserScreen(shareId: shareId);
           },
+        ),
+        GoRoute(
+          path: '/screen-wall',
+          builder: (context, state) => const ScreenWallScreen(),
         ),
       ],
     );

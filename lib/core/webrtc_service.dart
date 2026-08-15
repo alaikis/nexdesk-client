@@ -20,19 +20,42 @@ class ScreenStream {
     required this.renderer,
   });
 
-  /// Get audio tracks from the underlying MediaStream
   List<MediaStreamTrack> getAudioTracks() => stream.getAudioTracks();
-
-  /// Get video tracks from the underlying MediaStream
   List<MediaStreamTrack> getVideoTracks() => stream.getVideoTracks();
+}
+
+class ScreenWallStream {
+  final String deviceId;
+  final RTCPeerConnection peerConnection;
+  final RTCVideoRenderer renderer;
+  MediaStream? remoteStream;
+  bool connected;
+  bool failed;
+
+  ScreenWallStream({
+    required this.deviceId,
+    required this.peerConnection,
+    required this.renderer,
+    this.remoteStream,
+    this.connected = false,
+    this.failed = false,
+  });
+
+  Future<void> dispose() async {
+    await remoteStream?.dispose();
+    await renderer.dispose();
+    await peerConnection.close();
+  }
 }
 
 class WebRtcService {
   RTCPeerConnection? _pc;
   final List<ScreenStream> _localStreams = [];
   final List<ScreenStream> _remoteStreams = [];
-
   final List<RTCIceCandidate> _remoteCandidates = [];
+
+  static const int _maxWallStreams = 16;
+  final Map<String, ScreenWallStream> _wallStreams = {};
 
   Future<void> initialize({
     required SessionRole role,
@@ -114,6 +137,82 @@ class WebRtcService {
   Future<void> updateQualityProfile(QualityProfile profile) async {
     _applyQualityProfile(profile);
   }
+
+  Future<ScreenWallStream> createWallStream(String deviceId) async {
+    if (_wallStreams.length >= _maxWallStreams) {
+      throw Exception('Maximum concurrent streams reached');
+    }
+    if (_wallStreams.containsKey(deviceId)) {
+      return _wallStreams[deviceId]!;
+    }
+
+    final iceServers = <Map<String, dynamic>>[
+      {'urls': 'stun:stun.l.google.com:19302'},
+    ];
+
+    try {
+      final turnCred = await ApiClient().getTurnCredential();
+      final username = turnCred['username'] as String?;
+      final credential = turnCred['credential'] as String?;
+      final uris = turnCred['uris'] as List<dynamic>?;
+      if (username != null && credential != null && uris != null) {
+        for (final uri in uris) {
+          iceServers.add({
+            'urls': uri as String,
+            'username': username,
+            'credential': credential,
+          });
+        }
+      }
+    } catch (e) {
+      // TURN credential fetch failed, continue with STUN only
+    }
+
+    final configuration = <String, dynamic>{
+      'iceServers': iceServers,
+    };
+
+    final pc = await createPeerConnection(configuration);
+    final renderer = RTCVideoRenderer();
+    await renderer.initialize();
+
+    final stream = ScreenWallStream(
+      deviceId: deviceId,
+      peerConnection: pc,
+      renderer: renderer,
+    );
+
+    pc.onIceCandidate = (candidate) {
+      // In production, send via signaling service
+    };
+
+    pc.onTrack = (RTCTrackEvent event) {
+      if (event.streams.isNotEmpty) {
+        stream.remoteStream = event.streams.first;
+        stream.connected = true;
+      }
+    };
+
+    pc.onConnectionStateChanged = (state) {
+      if (state == RTCConnectionState.RTCConnectionStateFailed) {
+        stream.failed = true;
+      }
+    };
+
+    _wallStreams[deviceId] = stream;
+    return stream;
+  }
+
+  Future<void> closeWallStream(String deviceId) async {
+    final stream = _wallStreams.remove(deviceId);
+    if (stream != null) {
+      await stream.dispose();
+    }
+  }
+
+  List<ScreenWallStream> get wallStreams => List.unmodifiable(_wallStreams.values);
+
+  ScreenWallStream? getWallStream(String deviceId) => _wallStreams[deviceId];
 
   Future<void> _captureScreens(List<int> selectedScreenIds, [Map<String, dynamic>? captureConstraints]) async {
     for (final screenId in selectedScreenIds) {
@@ -213,8 +312,12 @@ class WebRtcService {
     for (final s in _remoteStreams) {
       await s.renderer.dispose();
     }
+    for (final s in _wallStreams.values) {
+      await s.dispose();
+    }
     _localStreams.clear();
     _remoteStreams.clear();
+    _wallStreams.clear();
     await _pc?.close();
     _pc = null;
     _remoteCandidates.clear();

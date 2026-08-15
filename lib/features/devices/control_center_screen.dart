@@ -276,14 +276,16 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                   selectedIndex: _selectedNav,
                   onTap: (index) {
                     setState(() => _selectedNav = index);
-                    if (index == 1) context.go('/devices/list');
-                    if (index == 2) context.go('/sessions');
-                    if (index == 3) context.go('/shares');
-                    if (index == 4) context.go('/settings');
+                    if (index == 1) context.go('/screen-wall');
+                    if (index == 2) context.go('/devices/list');
+                    if (index == 3) context.go('/sessions');
+                    if (index == 4) context.go('/shares');
+                    if (index == 5) context.go('/settings');
                   },
                   onLogout: _logout,
                   items: const [
                     SidebarItem(icon: Icons.computer, label: 'Devices'),
+                    SidebarItem(icon: Icons.grid_view, label: 'Screen Wall'),
                     SidebarItem(icon: Icons.list, label: 'All Devices'),
                     SidebarItem(icon: Icons.history, label: 'Sessions'),
                     SidebarItem(icon: Icons.folder_shared, label: 'Shares'),
@@ -301,13 +303,15 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
               selectedIndex: _selectedNav,
               onTap: (index) {
                 setState(() => _selectedNav = index);
-                if (index == 1) context.go('/devices/list');
-                if (index == 2) context.go('/sessions');
-                if (index == 3) context.go('/shares');
-                if (index == 4) context.go('/settings');
+                if (index == 1) context.go('/screen-wall');
+                if (index == 2) context.go('/devices/list');
+                if (index == 3) context.go('/sessions');
+                if (index == 4) context.go('/shares');
+                if (index == 5) context.go('/settings');
               },
               items: const [
                 BottomNavItem(icon: Icons.computer, label: 'Devices'),
+                BottomNavItem(icon: Icons.grid_view, label: 'Screen Wall'),
                 BottomNavItem(icon: Icons.list, label: 'All Devices'),
                 BottomNavItem(icon: Icons.history, label: 'Sessions'),
                 BottomNavItem(icon: Icons.folder_shared, label: 'Shares'),
