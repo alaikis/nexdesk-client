@@ -24,6 +24,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
   Timer? _refreshTimer;
   Timer? _searchDebounce;
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _connectController = TextEditingController();
 
   @override
   void initState() {
@@ -44,7 +45,9 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
       if (mounted) {
         final auth = context.read<AuthProvider>();
         if (auth.deviceId != null) {
-          context.read<DeviceProvider>().ensureControlPassword(auth.deviceId!);
+          context.read<DeviceProvider>().ensureControlPassword(auth.deviceId!).then((_) {
+            if (mounted) context.read<DeviceProvider>().loadDevices();
+          });
         }
       }
     });
@@ -86,34 +89,49 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
   }
 
   Future<void> _showConnectDialog() async {
-    final codeController = TextEditingController();
+    _connectController.clear();
+    final devices = context.read<DeviceProvider>().devices;
+    final recent = devices.take(5).toList();
+
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Connect to Device'),
+        title: const Text('Connect'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Enter the device code to connect:'),
-            const SizedBox(height: 16),
             TextField(
-              controller: codeController,
+              controller: _connectController,
               decoration: const InputDecoration(
                 labelText: 'Device Code',
-                hintText: 'e.g. ABC123',
-                border: OutlineInputBorder(),
+                hintText: 'Enter code',
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               textCapitalization: TextCapitalization.characters,
             ),
+            if (recent.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('Recent', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: recent.map((d) => ActionChip(
+                  label: Text(d.code, style: const TextStyle(fontSize: 12)),
+                  onPressed: () {
+                    Navigator.pop(context, d.code);
+                  },
+                )).toList(),
+              ),
+            ],
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           FilledButton(
-            onPressed: () => Navigator.pop(context, codeController.text.trim()),
+            onPressed: () => Navigator.pop(context, _connectController.text.trim()),
             child: const Text('Connect'),
           ),
         ],
@@ -147,7 +165,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
     );
 
     Widget content = SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -156,15 +174,15 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
               device: currentDevice,
               onCopy: _copyCode,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
           ],
           NexCard(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Quick Actions', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     _QuickAction(
@@ -176,13 +194,13 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                         }
                       },
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     _QuickAction(
                       icon: Icons.connect_without_contact,
                       label: 'Connect',
                       onTap: () => _showConnectDialog(),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     _QuickAction(
                       icon: Icons.history,
                       label: 'Sessions',
@@ -193,7 +211,21 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          NexCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('This Device', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 12),
+                _InfoRow(label: 'Client ID', value: auth.deviceId ?? 'Not set'),
+                const SizedBox(height: 8),
+                _InfoRow(label: 'Control Password', value: currentDevice.hasControlPassword ? 'Set' : 'Not set'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -264,22 +296,46 @@ class _QuickAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        width: 100,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        width: 80,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 24, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 8),
-            Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 6),
+            Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(label, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+        ),
+        Expanded(
+          child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+        ),
+      ],
     );
   }
 }
