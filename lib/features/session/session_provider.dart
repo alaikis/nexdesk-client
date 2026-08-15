@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../../core/api_client.dart';
 import '../../core/storage_service.dart';
 import '../../core/signaling_service.dart';
+import '../../widgets/floating_toolbar.dart';
 
 enum ReconnectionState { connecting, connected, reconnecting, failed }
 
@@ -57,6 +58,8 @@ class Session with ChangeNotifier {
 
 class SessionProvider with ChangeNotifier {
   static const _storageKey = 'nex_active_session';
+  static const _toolbarModeKey = 'nex_toolbar_mode';
+  static const _toolbarPosKey = 'nex_toolbar_pos';
   final ApiClient _api = ApiClient();
 
   Session? _activeSession;
@@ -64,6 +67,8 @@ class SessionProvider with ChangeNotifier {
   ReconnectionState _reconnectionState = ReconnectionState.connected;
   int _reconnectAttempts = 0;
   SignalingService? _signaling;
+  ToolbarMode _toolbarMode = ToolbarMode.floating;
+  Offset _toolbarPosition = const Offset(20, 300);
 
   Session? get activeSession => _activeSession;
   List<Session> get history => List.unmodifiable(_history);
@@ -71,9 +76,66 @@ class SessionProvider with ChangeNotifier {
   int get reconnectAttempts => _reconnectAttempts;
   String? get activeSessionId => _activeSession?.id;
   bool get privacyEnabled => _activeSession?.privacyEnabled ?? false;
+  ToolbarMode get toolbarMode => _toolbarMode;
+  Offset get toolbarPosition => _toolbarPosition;
 
   void setSignalingService(SignalingService? service) {
     _signaling = service;
+  }
+
+  Future<void> setToolbarMode(ToolbarMode mode) async {
+    _toolbarMode = mode;
+    await _persistToolbarMode();
+    notifyListeners();
+  }
+
+  Future<void> setToolbarPosition(Offset position) async {
+    _toolbarPosition = position;
+    await _persistToolbarPosition();
+    notifyListeners();
+  }
+
+  Future<void> toggleToolbarMode() async {
+    final newMode = _toolbarMode == ToolbarMode.floating ? ToolbarMode.classic : ToolbarMode.floating;
+    await setToolbarMode(newMode);
+  }
+
+  Future<void> _loadToolbarState() async {
+    try {
+      final modeRaw = await StorageService.getString(_toolbarModeKey);
+      if (modeRaw == 'classic') {
+        _toolbarMode = ToolbarMode.classic;
+      }
+      final posRaw = await StorageService.getString(_toolbarPosKey);
+      if (posRaw != null) {
+        final parts = posRaw.split(',');
+        if (parts.length == 2) {
+          final dx = double.tryParse(parts[0]);
+          final dy = double.tryParse(parts[1]);
+          if (dx != null && dy != null) {
+            _toolbarPosition = Offset(dx, dy);
+          }
+        }
+      }
+    } catch (_) {
+      // Ignore corrupt storage
+    }
+  }
+
+  Future<void> _persistToolbarMode() async {
+    try {
+      await StorageService.setString(_toolbarModeKey, _toolbarMode == ToolbarMode.floating ? 'floating' : 'classic');
+    } catch (_) {
+      // Swallow storage errors
+    }
+  }
+
+  Future<void> _persistToolbarPosition() async {
+    try {
+      await StorageService.setString(_toolbarPosKey, '${_toolbarPosition.dx},${_toolbarPosition.dy}');
+    } catch (_) {
+      // Swallow storage errors
+    }
   }
 
   Future<void> togglePrivacy(bool enabled) async {
@@ -105,6 +167,7 @@ class SessionProvider with ChangeNotifier {
 
   SessionProvider() {
     _loadPersistedSession();
+    _loadToolbarState();
   }
 
   Future<void> _loadPersistedSession() async {

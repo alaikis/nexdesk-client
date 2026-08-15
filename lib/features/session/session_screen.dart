@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:go_router/go_router.dart';
@@ -23,6 +22,7 @@ import 'quality_settings_sheet.dart';
 import 'recording_screen.dart';
 import 'recording_list_screen.dart';
 import 'chat_panel.dart';
+import '../../widgets/floating_toolbar.dart';
 
 class SessionScreen extends StatefulWidget {
   final String sessionId;
@@ -39,7 +39,6 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   final E2eeService _e2ee = E2eeService();
   InputRelayService? _inputRelay;
   SignalingService? _signaling;
-  bool _e2eeReady = false;
   bool _audioEnabled = true;
 
   List<ScreenInfo> _screens = [];
@@ -113,7 +112,6 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         onKeyExchange: (publicKey, fromDevice) {
           // Derive session key from remote public key
           _e2ee.deriveSessionKey(publicKey);
-          _e2eeReady = true;
           debugPrint('E2EE session key derived from $fromDevice');
         },
         onPrivacyChanged: (enabled) {
@@ -310,96 +308,11 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   @override
   Widget build(BuildContext context) {
     final privacyEnabled = context.watch<SessionProvider>().privacyEnabled;
+    final toolbarMode = context.watch<SessionProvider>().toolbarMode;
     return Scaffold(
       appBar: AppBar(
         title: Text('Session ${widget.sessionId}'),
         actions: [
-          Semantics(
-            label: _e2eeReady ? 'End-to-end encryption enabled' : 'End-to-end encryption disabled',
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Icon(
-                _e2eeReady ? Icons.shield : Icons.shield_outlined,
-                color: _e2eeReady ? Colors.green : Colors.grey,
-                size: 20,
-              ),
-            ),
-          ),
-          Semantics(
-            label: 'Quality settings',
-            child: IconButton(
-              onPressed: () => _showQualitySettings(),
-              tooltip: 'Quality',
-              icon: const Icon(Icons.hd),
-            ),
-          ),
-           Semantics(
-             label: _audioEnabled ? 'Mute audio' : 'Unmute audio',
-             child: IconButton(
-               onPressed: _toggleAudio,
-               tooltip: _audioEnabled ? 'Mute' : 'Unmute',
-               icon: Icon(_audioEnabled ? Icons.mic : Icons.mic_off),
-             ),
-           ),
-          Semantics(
-            label: privacyEnabled ? 'Disable privacy screen' : 'Enable privacy screen',
-            child: IconButton(
-              onPressed: () async {
-                final sp = context.read<SessionProvider>();
-                await sp.togglePrivacy(!privacyEnabled);
-              },
-              tooltip: privacyEnabled ? 'Disable privacy' : 'Enable privacy',
-              icon: Icon(privacyEnabled ? Icons.visibility_off : Icons.visibility),
-            ),
-          ),
-          Semantics(
-            label: 'File transfers',
-            child: IconButton(
-              onPressed: () => _showFileTransfers(),
-              tooltip: 'Files',
-              icon: const Icon(Icons.folder_open),
-            ),
-          ),
-          Semantics(
-            label: 'Recordings',
-            child: IconButton(
-              onPressed: () => _showRecordings(),
-              tooltip: 'Recordings',
-              icon: const Icon(Icons.playlist_play),
-            ),
-          ),
-          Semantics(
-            label: 'Session password',
-            child: IconButton(
-              onPressed: _setSessionPassword,
-              tooltip: 'Password',
-              icon: const Icon(Icons.lock_outline),
-            ),
-          ),
-          Semantics(
-            label: 'Chat',
-            child: IconButton(
-              onPressed: () => _showChat(),
-              tooltip: 'Chat',
-              icon: const Icon(Icons.chat_bubble_outline),
-            ),
-          ),
-          Semantics(
-            label: 'Clipboard',
-            child: IconButton(
-              onPressed: () => _showClipboard(),
-              tooltip: 'Clipboard',
-              icon: const Icon(Icons.content_paste),
-            ),
-          ),
-          Semantics(
-            label: 'Start recording',
-            child: IconButton(
-              onPressed: () => _showRecording(),
-              tooltip: 'Record',
-              icon: const Icon(Icons.fiber_manual_record),
-            ),
-          ),
           Semantics(
             label: 'Close session',
             child: IconButton(
@@ -412,7 +325,213 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       ),
       body: _selectingScreens
           ? _buildScreenSelector()
-          : _buildSessionView(),
+          : Stack(
+              children: [
+                _buildSessionView(),
+                if (toolbarMode == ToolbarMode.floating)
+                  _buildFloatingToolbar(privacyEnabled)
+                else
+                  _buildClassicToolbar(privacyEnabled),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildClassicToolbar(bool privacyEnabled) {
+    final actions = <ToolbarAction>[
+      ToolbarAction(
+        icon: Icons.hd,
+        label: 'Quality',
+        tooltip: 'Quality settings',
+        onTap: _showQualitySettings,
+        group: ToolbarGroup.display,
+      ),
+      ToolbarAction(
+        icon: privacyEnabled ? Icons.visibility_off : Icons.visibility,
+        label: privacyEnabled ? 'Hide screen' : 'Privacy',
+        tooltip: privacyEnabled ? 'Disable privacy' : 'Enable privacy',
+        onTap: () async {
+          final sp = context.read<SessionProvider>();
+          await sp.togglePrivacy(!privacyEnabled);
+        },
+        group: ToolbarGroup.display,
+      ),
+      ToolbarAction(
+        icon: _audioEnabled ? Icons.mic : Icons.mic_off,
+        label: _audioEnabled ? 'Mute' : 'Unmute',
+        tooltip: _audioEnabled ? 'Mute audio' : 'Unmute audio',
+        onTap: _toggleAudio,
+        group: ToolbarGroup.audio,
+      ),
+      ToolbarAction(
+        icon: Icons.folder_open,
+        label: 'Files',
+        tooltip: 'File transfers',
+        onTap: _showFileTransfers,
+        group: ToolbarGroup.files,
+      ),
+      ToolbarAction(
+        icon: Icons.playlist_play,
+        label: 'Recordings',
+        tooltip: 'Recordings',
+        onTap: _showRecordings,
+        group: ToolbarGroup.files,
+      ),
+      ToolbarAction(
+        icon: Icons.fiber_manual_record,
+        label: 'Record',
+        tooltip: 'Start recording',
+        onTap: _showRecording,
+        group: ToolbarGroup.files,
+      ),
+      ToolbarAction(
+        icon: Icons.lock_outline,
+        label: 'Password',
+        tooltip: 'Session password',
+        onTap: _setSessionPassword,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
+        icon: Icons.chat_bubble_outline,
+        label: 'Chat',
+        tooltip: 'Chat',
+        onTap: _showChat,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
+        icon: Icons.content_paste,
+        label: 'Clipboard',
+        tooltip: 'Clipboard',
+        onTap: _showClipboard,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
+        icon: Icons.close,
+        label: 'Close',
+        tooltip: 'Close session',
+        onTap: () => _webrtc.dispose(),
+        group: ToolbarGroup.end,
+      ),
+    ];
+
+    final groups = <ToolbarGroup, List<ToolbarAction>>{};
+    for (final a in actions) {
+      groups.putIfAbsent(a.group, () => []).add(a);
+    }
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 16,
+      child: Center(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final entry in groups.entries) ...[
+                ...entry.value.map((action) => _ClassicToolbarButton(
+                  icon: action.icon,
+                  label: action.label,
+                  tooltip: action.tooltip,
+                  onTap: action.onTap,
+                  destructive: action.group == ToolbarGroup.end,
+                )),
+                if (entry.key != ToolbarGroup.end)
+                  const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingToolbar(bool privacyEnabled) {
+    final actions = <ToolbarAction>[
+      ToolbarAction(
+        icon: Icons.hd,
+        label: 'Quality',
+        tooltip: 'Quality settings',
+        onTap: _showQualitySettings,
+        group: ToolbarGroup.display,
+      ),
+      ToolbarAction(
+        icon: privacyEnabled ? Icons.visibility_off : Icons.visibility,
+        label: privacyEnabled ? 'Hide screen' : 'Privacy',
+        tooltip: privacyEnabled ? 'Disable privacy' : 'Enable privacy',
+        onTap: () async {
+          final sp = context.read<SessionProvider>();
+          await sp.togglePrivacy(!privacyEnabled);
+        },
+        group: ToolbarGroup.display,
+      ),
+      ToolbarAction(
+        icon: _audioEnabled ? Icons.mic : Icons.mic_off,
+        label: _audioEnabled ? 'Mute' : 'Unmute',
+        tooltip: _audioEnabled ? 'Mute audio' : 'Unmute audio',
+        onTap: _toggleAudio,
+        group: ToolbarGroup.audio,
+      ),
+      ToolbarAction(
+        icon: Icons.folder_open,
+        label: 'Files',
+        tooltip: 'File transfers',
+        onTap: _showFileTransfers,
+        group: ToolbarGroup.files,
+      ),
+      ToolbarAction(
+        icon: Icons.playlist_play,
+        label: 'Recordings',
+        tooltip: 'Recordings',
+        onTap: _showRecordings,
+        group: ToolbarGroup.files,
+      ),
+      ToolbarAction(
+        icon: Icons.fiber_manual_record,
+        label: 'Record',
+        tooltip: 'Start recording',
+        onTap: _showRecording,
+        group: ToolbarGroup.files,
+      ),
+      ToolbarAction(
+        icon: Icons.lock_outline,
+        label: 'Password',
+        tooltip: 'Session password',
+        onTap: _setSessionPassword,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
+        icon: Icons.chat_bubble_outline,
+        label: 'Chat',
+        tooltip: 'Chat',
+        onTap: _showChat,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
+        icon: Icons.content_paste,
+        label: 'Clipboard',
+        tooltip: 'Clipboard',
+        onTap: _showClipboard,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
+        icon: Icons.close,
+        label: 'Close',
+        tooltip: 'Close session',
+        onTap: () => _webrtc.dispose(),
+        group: ToolbarGroup.end,
+      ),
+    ];
+
+    return Positioned.fill(
+      child: FloatingToolbar(
+        actions: actions,
+        onToggleMode: () async {
+          final sp = context.read<SessionProvider>();
+          await sp.toggleToolbarMode();
+        },
+      ),
     );
   }
 
@@ -628,5 +747,66 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     _webrtc.dispose();
     _e2ee.dispose();
     super.dispose();
+  }
+}
+
+class _ClassicToolbarButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String tooltip;
+  final VoidCallback onTap;
+  final bool destructive;
+
+  const _ClassicToolbarButton({
+    required this.icon,
+    required this.label,
+    required this.tooltip,
+    required this.onTap,
+    this.destructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Semantics(
+      label: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: destructive ? cs.errorContainer : cs.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: destructive ? cs.error : cs.outline,
+                width: 0.5,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: destructive ? cs.onErrorContainer : cs.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: destructive ? cs.onErrorContainer : cs.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
