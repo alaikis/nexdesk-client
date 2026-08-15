@@ -20,6 +20,7 @@ class Session with ChangeNotifier {
   bool relayUsed;
   bool privacyEnabled;
   bool whiteboardEnabled;
+  bool cameraEnabled;
 
   Session({
     required this.id,
@@ -31,6 +32,7 @@ class Session with ChangeNotifier {
     this.relayUsed = false,
     this.privacyEnabled = false,
     this.whiteboardEnabled = false,
+    this.cameraEnabled = false,
   });
 
   factory Session.fromJson(Map<String, dynamic> json) {
@@ -44,6 +46,7 @@ class Session with ChangeNotifier {
       relayUsed: json['relay_used'] as bool? ?? false,
       privacyEnabled: json['privacy_enabled'] as bool? ?? false,
       whiteboardEnabled: json['whiteboard_enabled'] as bool? ?? false,
+      cameraEnabled: json['camera_enabled'] as bool? ?? false,
     );
   }
 
@@ -58,6 +61,7 @@ class Session with ChangeNotifier {
       'relay_used': relayUsed,
       'privacy_enabled': privacyEnabled,
       'whiteboard_enabled': whiteboardEnabled,
+      'camera_enabled': cameraEnabled,
     };
   }
 }
@@ -85,6 +89,7 @@ class SessionProvider with ChangeNotifier {
   String? get activeSessionId => _activeSession?.id;
   bool get privacyEnabled => _activeSession?.privacyEnabled ?? false;
   bool get whiteboardEnabled => _activeSession?.whiteboardEnabled ?? false;
+  bool get cameraEnabled => _activeSession?.cameraEnabled ?? false;
   ToolbarMode get toolbarMode => _toolbarMode;
   Offset get toolbarPosition => _toolbarPosition;
   List<_FileUpload> get uploads => List.unmodifiable(_uploads);
@@ -203,6 +208,12 @@ class SessionProvider with ChangeNotifier {
 
   Future<void> toggleWhiteboard(bool enabled) async {
     _activeSession?.whiteboardEnabled = enabled;
+    await _persistSession();
+    notifyListeners();
+  }
+
+  Future<void> setCameraEnabled(bool enabled) async {
+    _activeSession?.cameraEnabled = enabled;
     await _persistSession();
     notifyListeners();
   }

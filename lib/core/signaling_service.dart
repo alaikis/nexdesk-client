@@ -24,6 +24,7 @@ enum SignalingMessageType {
   whiteboard,
   qualityPreset,
   remotePrint,
+  remoteCamera,
   error;
 
   factory SignalingMessageType.fromString(String value) {
@@ -109,6 +110,7 @@ class SignalingService {
   void Function(ChatMessage message)? onChatMessage;
   final void Function(Map<String, dynamic> event)? onWhiteboard;
   final void Function(Map<String, dynamic> event)? onRemotePrint;
+  final void Function(Map<String, dynamic> event)? onRemoteCamera;
   final void Function(int attempts)? onReconnectAttempts;
   final void Function(int attempts)? onReconnectFailed;
 
@@ -136,6 +138,7 @@ class SignalingService {
     this.onChatMessage,
     this.onWhiteboard,
     this.onRemotePrint,
+    this.onRemoteCamera,
     this.onReconnectAttempts,
     this.onReconnectFailed,
   });
@@ -218,6 +221,8 @@ class SignalingService {
         onWhiteboard?.call(Map<String, dynamic>.from(msg.payload));
       } else if (msg.type == SignalingMessageType.remotePrint) {
         onRemotePrint?.call(Map<String, dynamic>.from(msg.payload));
+      } else if (msg.type == SignalingMessageType.remoteCamera) {
+        onRemoteCamera?.call(Map<String, dynamic>.from(msg.payload));
       }
       _controller.add(msg);
     } catch (e) {
@@ -323,6 +328,15 @@ class SignalingService {
     send(SignalingMessage(
       type: SignalingMessageType.remotePrint,
       to: toDevice,
+      payload: payload,
+    ));
+  }
+
+  void sendRemoteCamera(String toDevice, String sessionId, Map<String, dynamic> payload) {
+    send(SignalingMessage(
+      type: SignalingMessageType.remoteCamera,
+      to: toDevice,
+      sessionId: sessionId,
       payload: payload,
     ));
   }

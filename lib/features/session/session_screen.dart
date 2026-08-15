@@ -33,6 +33,7 @@ import '../../platform/windows_print_service.dart';
 import '../../platform/macos_print_service.dart';
 import '../../platform/linux_print_service.dart';
 import 'remote_print_screen.dart';
+import 'remote_camera_screen.dart';
 
 enum SharingSource { fullScreen, window }
 
@@ -284,6 +285,14 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         onReconnectFailed: (attempts) {
           if (!mounted) return;
           context.read<SessionProvider>().setReconnectionState(ReconnectionState.failed, attempts: attempts);
+        },
+        onRemoteCamera: (payload) {
+          if (!mounted) return;
+          final session = context.read<SessionProvider>().activeSession;
+          if (session == null) return;
+          if (_localDeviceId != session.controllerDeviceId) {
+            _showRemoteCamera();
+          }
         },
       );
       await _signaling!.connect();
@@ -607,6 +616,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
+        icon: Icons.camera_alt_outlined,
+        label: 'Camera',
+        tooltip: 'Remote camera',
+        onTap: _showRemoteCamera,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
         icon: _whiteboardActive ? Icons.brush : Icons.brush_outlined,
         label: _whiteboardActive ? 'Whiteboard' : 'Whiteboard',
         tooltip: _whiteboardActive ? 'Disable whiteboard' : 'Enable whiteboard',
@@ -728,6 +744,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         label: 'Print',
         tooltip: 'Remote print',
         onTap: _showRemotePrint,
+        group: ToolbarGroup.tools,
+      ),
+      ToolbarAction(
+        icon: Icons.camera_alt_outlined,
+        label: 'Camera',
+        tooltip: 'Remote camera',
+        onTap: _showRemoteCamera,
         group: ToolbarGroup.tools,
       ),
       ToolbarAction(
@@ -1060,6 +1083,19 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     } else {
       await _showSendPrintDialog();
     }
+  }
+
+  void _showRemoteCamera() {
+    final sessionProvider = context.read<SessionProvider>();
+    final session = sessionProvider.activeSession;
+    if (session == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RemoteCameraScreen(sessionId: widget.sessionId),
+      ),
+    );
   }
 
   Future<void> _showSendPrintDialog() async {
