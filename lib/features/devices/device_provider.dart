@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../core/api_client.dart';
 import '../../core/storage_service.dart';
 import '../../core/secure_storage_service.dart';
+import '../../core/device_fingerprint_service.dart';
 
 class Device with ChangeNotifier {
   final String id;
@@ -124,7 +125,8 @@ class DeviceProvider with ChangeNotifier {
 
   Future<bool> registerDevice(String name, String os) async {
     try {
-      final res = await _api.registerDevice(name: name, os: os, pubkey: '');
+      final fingerprint = await DeviceFingerprintService.getFingerprint();
+      final res = await _api.registerDevice(name: name, os: os, pubkey: '', fingerprint: fingerprint);
       final device = Device.fromJson(res);
       _devices.add(device);
       await SecureStorageService.setString('device_id', device.id);
@@ -134,6 +136,36 @@ class DeviceProvider with ChangeNotifier {
       debugPrint('Register device failed: $e');
       return false;
     }
+  }
+
+  Future<void> ensureControlPassword(String deviceId) async {
+    final device = _devices.firstWhere(
+      (d) => d.id == deviceId,
+      orElse: () => Device(id: '', name: '', os: '', online: false, code: '', hasControlPassword: true),
+    );
+    if (!device.hasControlPassword && deviceId.isNotEmpty) {
+      final password = _generatePassword();
+      try {
+        await _api.updateControlPassword(deviceId, password);
+        final updated = Device.fromJson(await _api.getDevice(deviceId));
+        final index = _devices.indexWhere((d) => d.id == deviceId);
+        if (index >= 0) {
+          _devices[index] = updated;
+          notifyListeners();
+        }
+      } on ApiException catch (e) {
+        debugPrint('Set control password failed: $e');
+      }
+    }
+  }
+
+  String _generatePassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    final buf = StringBuffer();
+    for (var i = 0; i < 12; i++) {
+      buf.write(chars[(DateTime.now().millisecondsSinceEpoch + i) % chars.length]);
+    }
+    return buf.toString();
   }
 
   Future<bool> wakeDevice(String deviceId) async {

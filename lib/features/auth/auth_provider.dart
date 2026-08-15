@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/api_client.dart';
 import '../../core/secure_storage_service.dart';
 import '../../core/storage_service.dart';
+import '../../core/device_fingerprint_service.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -136,17 +137,32 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> _ensureDeviceRegistered(String fallbackName) async {
     final clientId = await StorageService.getString('client_id');
+    final fingerprint = await DeviceFingerprintService.getFingerprint();
     final existing = await _api.listDevices();
     final known = existing.firstWhere(
       (d) => d['client_id']?.toString() == clientId,
       orElse: () => <String, dynamic>{},
     );
     if ((known as Map).isEmpty) {
+      final knownByFingerprint = existing.firstWhere(
+        (d) => d['fingerprint']?.toString() == fingerprint,
+        orElse: () => <String, dynamic>{},
+      );
+      if ((knownByFingerprint as Map).isNotEmpty) {
+        final existingId = knownByFingerprint['id']?.toString();
+        if (existingId != null) {
+          _deviceId = existingId;
+          await SecureStorageService.setString('device_id', _deviceId!);
+          _deviceName = fallbackName;
+          return;
+        }
+      }
       final res = await _api.registerDevice(
         name: fallbackName,
         os: _detectOS(),
         pubkey: '',
         clientId: clientId,
+        fingerprint: fingerprint,
       );
       final newDeviceId = res['id']?.toString();
       if (newDeviceId != null) {
