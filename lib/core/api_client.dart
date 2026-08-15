@@ -423,4 +423,20 @@ class ApiClient {
     final res = await get('/devices/groups/$groupId/devices');
     return res['devices'] as List<dynamic>;
   }
+
+  Future<void> setLockPassword(String deviceId, String password) async {
+    await post('/devices/$deviceId/lock', {'password': password});
+  }
+
+  Future<void> removeLockPassword(String deviceId) async {
+    await delete('/devices/$deviceId/lock');
+  }
+
+  Future<void> setAllowedUsers(String deviceId, List<int> userIds) async {
+    await post('/devices/$deviceId/allowed-users', {'user_ids': userIds});
+  }
+
+  Future<void> setBlockedUsers(String deviceId, List<int> userIds) async {
+    await post('/devices/$deviceId/blocked-users', {'user_ids': userIds});
+  }
 }

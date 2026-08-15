@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/nex_card.dart';
 import 'two_factor_screen.dart';
+import 'security_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -55,6 +56,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         NexCard(
           child: Column(
             children: [
+              ListTile(
+                title: const Text('Security'),
+                subtitle: const Text('Manage connection security settings'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SecuritySettingsScreen(
+                        deviceId: 'current',
+                        device: const {},
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const Divider(height: 1),
               ListTile(
                 title: const Text('Two-Factor Authentication'),
                 subtitle: const Text('Manage 2FA settings'),
