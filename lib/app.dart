@@ -14,6 +14,9 @@ import 'features/settings/settings_screen.dart';
 import 'features/shares/share_list_screen.dart';
 import 'features/shares/share_browser_screen.dart';
 import 'features/screen_wall/screen_wall_screen.dart';
+import 'features/meetings/meeting_list_screen.dart';
+import 'features/meetings/meeting_create_screen.dart';
+import 'features/meetings/meeting_room_screen.dart';
 import 'l10n/app_localizations.dart';
 
 class NexApp extends StatefulWidget {
@@ -114,6 +117,21 @@ class _NexAppState extends State<NexApp> {
         GoRoute(
           path: '/screen-wall',
           builder: (context, state) => const ScreenWallScreen(),
+        ),
+        GoRoute(
+          path: '/meetings',
+          builder: (context, state) => const MeetingListScreen(),
+        ),
+        GoRoute(
+          path: '/meeting-create',
+          builder: (context, state) => const MeetingCreateScreen(),
+        ),
+        GoRoute(
+          path: '/meeting-room/:id',
+          builder: (context, state) {
+            final id = int.parse(state.pathParameters['id']!);
+            return MeetingRoomScreen(meetingId: id);
+          },
         ),
       ],
     );
