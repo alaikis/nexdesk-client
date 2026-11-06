@@ -14,15 +14,38 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NavigationBar(
-      selectedIndex: selectedIndex,
-      onDestinationSelected: onTap,
-      destinations: items.map((item) {
-        return NavigationDestination(
-          icon: Icon(item.icon),
-          label: item.label,
-        );
-      }).toList(),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final selectedColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final unselectedColor = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final backgroundColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: NavigationBar(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onTap,
+          backgroundColor: Colors.transparent,
+          indicatorColor: selectedColor.withValues(alpha: 0.15),
+          height: 64,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: items.map((item) {
+            return NavigationDestination(
+              icon: Icon(item.icon, color: unselectedColor, size: 24),
+              selectedIcon: Icon(item.icon, color: selectedColor, size: 24),
+              label: item.label,
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 }

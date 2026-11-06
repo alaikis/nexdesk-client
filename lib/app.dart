@@ -23,6 +23,11 @@ class NexApp extends StatefulWidget {
   const NexApp({super.key});
 
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static _NexAppState? _instance;
+
+  static Future<void> setLocale(Locale locale) async {
+    await _instance?.setLocale(locale);
+  }
 
   @override
   State<NexApp> createState() => _NexAppState();
@@ -30,19 +35,18 @@ class NexApp extends StatefulWidget {
 
 class _NexAppState extends State<NexApp> {
   Locale _locale = const Locale('en');
-  static _NexAppState? _instance;
 
   @override
   void initState() {
     super.initState();
-    _instance = this;
+    NexApp._instance = this;
     _loadLocale();
   }
 
-  static Future<void> setLocale(Locale locale) async {
+  Future<void> setLocale(Locale locale) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('nex_language', locale.languageCode);
-    _instance?.setState(() => _instance?._locale = locale);
+    setState(() => _locale = locale);
   }
 
   Future<void> _loadLocale() async {

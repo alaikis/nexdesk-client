@@ -68,10 +68,10 @@ Future<void> main() async {
 
     if (UpdateService().updateAvailable && UpdateService().latestUpdate != null) {
       final update = UpdateService().latestUpdate!;
+      final info = await PackageInfo.fromPlatform();
       final ctx = NexApp.navigatorKey.currentContext;
       if (ctx != null && ctx.mounted) {
         final l10n = AppLocalizations.of(ctx);
-        final info = await PackageInfo.fromPlatform();
         showDialog(
           context: ctx,
           barrierDismissible: false,

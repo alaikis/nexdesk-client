@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/nex_card.dart';
+import '../../theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../app.dart';
 import 'two_factor_screen.dart';
@@ -57,98 +57,125 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Text(l10n.settings, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: cs.onSurface)),
-        const SizedBox(height: 20),
-        NexCard(
-          child: Column(
-            children: [
-              ListTile(
-                title: Text(l10n.security),
-                subtitle: Text(l10n.manageSecuritySettings),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SecuritySettingsScreen(
-                        deviceId: 'current',
-                        device: const {},
+    
+    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
+    final cardBackground = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final textTertiary = isDark ? const Color(0xFF636366) : const Color(0xFFAEAEB2);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+
+    return Container(
+      color: backgroundColor,
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text(
+            l10n.settings, 
+            style: TextStyle(
+              fontSize: 28, 
+              fontWeight: FontWeight.w700, 
+              color: textPrimary,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          NexCard(
+            color: cardBackground,
+            enableShadow: true,
+            child: Column(
+              children: [
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  title: Text(l10n.security, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary)),
+                  subtitle: Text(l10n.manageSecuritySettings, style: TextStyle(fontSize: 13, color: textSecondary)),
+                  trailing: Icon(Icons.chevron_right, color: textTertiary),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SecuritySettingsScreen(
+                          deviceId: 'current',
+                          device: const {},
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
-              const Divider(height: 1),
-              ListTile(
-                title: Text(l10n.twoFactorAuth),
-                subtitle: Text(l10n.manage2FASettings),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TwoFactorScreen()),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        NexCard(
-          child: Column(
-            children: [
-              ListTile(
-                title: Text(l10n.language),
-                subtitle: Text(l10n.selectLanguage),
-                trailing: PopupMenuButton<String>(
-                  onSelected: (value) => _changeLanguage(value),
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'en',
-                      child: Text(l10n.english),
-                    ),
-                    PopupMenuItem(
-                      value: 'zh',
-                      child: Text(l10n.chinese),
-                    ),
-                  ],
-                  child: const Icon(Icons.language),
+                    );
+                  },
                 ),
-              ),
-            ],
+                Divider(height: 1, color: dividerColor),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  title: Text(l10n.twoFactorAuth, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary)),
+                  subtitle: Text(l10n.manage2FASettings, style: TextStyle(fontSize: 13, color: textSecondary)),
+                  trailing: Icon(Icons.chevron_right, color: textTertiary),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TwoFactorScreen()),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        NexCard(
-          child: Column(
-            children: [
-              ListTile(
-                title: Text(l10n.privacyPolicy),
-                subtitle: Text(l10n.viewPrivacyPolicy),
-                trailing: const Icon(Icons.open_in_new),
-                onTap: () => _launchUrl('/legal/privacy'),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                title: Text(l10n.termsOfService),
-                subtitle: Text(l10n.viewTermsOfService),
-                trailing: const Icon(Icons.open_in_new),
-                onTap: () => _launchUrl('/legal/terms'),
-              ),
-            ],
+          const SizedBox(height: 12),
+          NexCard(
+            color: cardBackground,
+            enableShadow: true,
+            child: Column(
+              children: [
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  title: Text(l10n.language, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary)),
+                  subtitle: Text(l10n.selectLanguage, style: TextStyle(fontSize: 13, color: textSecondary)),
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) => _changeLanguage(value),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(value: 'en', child: Text(l10n.english)),
+                      PopupMenuItem(value: 'zh', child: Text(l10n.chinese)),
+                    ],
+                    child: const Icon(Icons.language),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(l10n.versionInfo(_version), style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-        ),
-      ],
+          const SizedBox(height: 12),
+          NexCard(
+            color: cardBackground,
+            enableShadow: true,
+            child: Column(
+              children: [
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  title: Text(l10n.privacyPolicy, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary)),
+                  subtitle: Text(l10n.viewPrivacyPolicy, style: TextStyle(fontSize: 13, color: textSecondary)),
+                  trailing: Icon(Icons.open_in_new, color: textTertiary),
+                  onTap: () => _launchUrl('/legal/privacy'),
+                ),
+                Divider(height: 1, color: dividerColor),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  title: Text(l10n.termsOfService, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary)),
+                  subtitle: Text(l10n.viewTermsOfService, style: TextStyle(fontSize: 13, color: textSecondary)),
+                  trailing: Icon(Icons.open_in_new, color: textTertiary),
+                  onTap: () => _launchUrl('/legal/terms'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              l10n.versionInfo(_version), 
+              style: TextStyle(fontSize: 13, color: textTertiary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

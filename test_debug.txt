@@ -1,0 +1,5 @@
+After pump: loading=true, devices=0
+After 100ms: loading=true, devices=0
+After 200ms: loading=true, devices=0
+After 300ms: loading=true, devices=0
+After 1.3s: loading=true, devices=0

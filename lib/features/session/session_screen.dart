@@ -993,7 +993,6 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   Widget _buildDragOverlay() {
     final cs = Theme.of(context).colorScheme;
-    final size = MediaQuery.of(context).size;
     final fileCount = _dragFiles.length;
     final l10n = AppLocalizations.of(context)!;
     final sizeText = _dragTotalSize > 0
@@ -1151,7 +1150,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
-              value: 'image',
+              initialValue: 'image',
               decoration: InputDecoration(labelText: l10n.format),
               items: [
                 DropdownMenuItem(value: 'image', child: Text(l10n.imagePng)),
@@ -1186,7 +1185,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
       if (_signaling != null) {
         final targetDevice = session.controllerDeviceId;
         _signaling!.sendRemotePrint(targetDevice, {
-          'job_id': '${DateTime.now().millisecondsSinceEpoch}_${_localDeviceId}',
+          'job_id': '${DateTime.now().millisecondsSinceEpoch}_$_localDeviceId',
           'file_name': result,
           'file_size': 0,
           'format': 'image',

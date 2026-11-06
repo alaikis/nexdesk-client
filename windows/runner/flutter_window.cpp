@@ -38,14 +38,6 @@ bool FlutterWindow::OnCreate() {
 
 void FlutterWindow::OnDestroy() {
   if (flutter_controller_) {
-    if (flutter_controller_->view()) {
-      HWND hwnd = flutter_controller_->view()->GetNativeWindow();
-      if (hwnd && g_drop_target) {
-        RevokeDragDrop(hwnd);
-        g_drop_target->Release();
-        g_drop_target = nullptr;
-      }
-    }
     flutter_controller_ = nullptr;
   }
 

@@ -83,6 +83,8 @@ class _ShareListScreenState extends State<ShareListScreen> {
   Widget build(BuildContext context) {
     final shares = context.watch<ShareProvider>().shares;
     final l10n = AppLocalizations.of(context)!;
+    final shareProvider = context.read<ShareProvider>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.shares)),
@@ -112,9 +114,9 @@ class _ShareListScreenState extends State<ShareListScreen> {
                     subtitle: Text(share.path),
                     trailing: IconButton(
                       onPressed: () async {
-                        final ok = await context.read<ShareProvider>().deleteShare(share.id);
+                        final ok = await shareProvider.deleteShare(share.id);
                         if (mounted && ok) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.shareDeleted)));
+                          scaffoldMessenger.showSnackBar(SnackBar(content: Text(l10n.shareDeleted)));
                         }
                       },
                       icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),

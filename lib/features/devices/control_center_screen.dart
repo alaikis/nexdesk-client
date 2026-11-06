@@ -99,6 +99,8 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
     final devices = context.read<DeviceProvider>().devices;
     final recent = devices.take(5).toList();
     final l10n = AppLocalizations.of(context)!;
+    final deviceProvider = context.read<DeviceProvider>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     final result = await showDialog<String>(
       context: context,
@@ -160,7 +162,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
       ),
     );
     if (result != null && result.isNotEmpty) {
-      final target = context.read<DeviceProvider>().devices.firstWhere(
+      final target = deviceProvider.devices.firstWhere(
         (d) => d.code.toLowerCase() == result.toLowerCase(),
         orElse: () => Device(id: '', name: '', os: '', online: false, code: '', favorite: false, tags: const []),
       );
@@ -168,8 +170,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
         await _startSession(target.id);
       } else {
         if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             SnackBar(content: Text(l10n.deviceNotFound)),
           );
         }
@@ -187,6 +188,13 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
       orElse: () => Device(id: '', name: '', os: '', online: false, code: '', favorite: false, tags: const []),
     );
     final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
+    final cardBackground = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
 
     Widget content = SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -202,15 +210,20 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
           ],
           NexCard(
             padding: const EdgeInsets.all(16),
-            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.08),
+            color: cardBackground,
+            enableShadow: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.connect_without_contact, size: 18, color: Theme.of(context).colorScheme.primary),
+                    Icon(Icons.connect_without_contact, size: 18, color: primaryColor),
                     const SizedBox(width: 8),
-                    Text(l10n.quickConnect, style: Theme.of(context).textTheme.titleSmall),
+                    Text(l10n.quickConnect, style: TextStyle(
+                      fontSize: 17, 
+                      fontWeight: FontWeight.w600, 
+                      color: textPrimary
+                    )),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -222,7 +235,11 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                         icon: const Icon(Icons.computer, size: 18),
                         label: Text(l10n.control),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: primaryColor,
+                          side: BorderSide(color: primaryColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
@@ -233,7 +250,11 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                         icon: const Icon(Icons.folder_open, size: 18),
                         label: Text(l10n.files),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: primaryColor,
+                          side: BorderSide(color: primaryColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
@@ -244,7 +265,11 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                         icon: const Icon(Icons.visibility, size: 18),
                         label: Text(l10n.view),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: primaryColor,
+                          side: BorderSide(color: primaryColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
@@ -256,14 +281,20 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
           const SizedBox(height: 16),
           NexCard(
             padding: const EdgeInsets.all(16),
+            color: cardBackground,
+            enableShadow: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.thisDevice, style: Theme.of(context).textTheme.titleSmall),
+                Text(l10n.thisDevice, style: TextStyle(
+                  fontSize: 17, 
+                  fontWeight: FontWeight.w600, 
+                  color: textPrimary
+                )),
                 const SizedBox(height: 12),
-                _InfoRow(label: l10n.clientIdLabel, value: auth.deviceId ?? l10n.notSet),
+                _InfoRow(label: l10n.clientIdLabel, value: auth.deviceId ?? l10n.notSet, textSecondary: textSecondary, textPrimary: textPrimary),
                 const SizedBox(height: 8),
-                _InfoRow(label: l10n.controlPasswordLabel, value: currentDevice.hasControlPassword ? l10n.set : l10n.notSet),
+                _InfoRow(label: l10n.controlPasswordLabel, value: currentDevice.hasControlPassword ? l10n.set : l10n.notSet, textSecondary: textSecondary, textPrimary: textPrimary),
               ],
             ),
           ),
@@ -334,21 +365,22 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
+  final Color textSecondary;
+  final Color textPrimary;
 
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({required this.label, required this.value, required this.textSecondary, required this.textPrimary});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: 120,
-          child: Text(label, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+          child: Text(label, style: TextStyle(fontSize: 13, color: textSecondary)),
         ),
         Expanded(
-          child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+          child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: textPrimary)),
         ),
       ],
     );

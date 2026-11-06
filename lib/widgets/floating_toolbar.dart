@@ -39,12 +39,10 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
   static const _posKey = 'nex_toolbar_pos';
   static const _modeKey = 'nex_toolbar_mode';
   static const _fabSize = 56.0;
-  static const _dragThreshold = 8.0;
 
   Offset _position = const Offset(20, 300);
   bool _expanded = false;
   bool _dragging = false;
-  double _dragOffset = 0.0;
   double _scale = 1.0;
   double _opacity = 1.0;
 
@@ -98,7 +96,6 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
         _position.dx + details.delta.dx,
         _position.dy + details.delta.dy,
       );
-      _dragOffset += details.delta.distance;
     });
   }
 

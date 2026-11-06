@@ -16,13 +16,13 @@ class NexColors {
   const NexColors.light()
       : primary = const Color(0xFF007AFF),
         onPrimary = Colors.white,
-        background = const Color(0xFFF5F5F7),
-        surface = const Color(0xFFF5F5F7),
+        background = const Color(0xFFFFFFFF),
+        surface = const Color(0xFFF2F2F7),
         card = Colors.white,
         border = const Color(0xFFE5E5EA),
         textPrimary = const Color(0xFF1D1D1F),
         textSecondary = const Color(0xFF6E6E73),
-        textTertiary = const Color(0xFF8E8E93),
+        textTertiary = const Color(0xFFAEAEB2),
         online = const Color(0xFF34C759),
         error = const Color(0xFFFF3B30);
 
@@ -30,12 +30,12 @@ class NexColors {
       : primary = const Color(0xFF0A84FF),
         onPrimary = Colors.white,
         background = const Color(0xFF000000),
-        surface = const Color(0xFF000000),
+        surface = const Color(0xFF1C1C1E),
         card = const Color(0xFF1C1C1E),
         border = const Color(0xFF38383A),
-        textPrimary = const Color(0xFFF5F5F7),
-        textSecondary = const Color(0xFFEBEBF5),
-        textTertiary = const Color(0xFF8E8E93),
+        textPrimary = const Color(0xFFFFFFFF),
+        textSecondary = const Color(0xFF98989D),
+        textTertiary = const Color(0xFF636366),
         online = const Color(0xFF30D158),
         error = const Color(0xFFFF453A);
 
@@ -148,8 +148,59 @@ class NexSpacing {
 }
 
 class NexRadius {
-  static const sm = 8.0;
-  static const md = 10.0;
-  static const lg = 12.0;
+  static const sm = 8.0;   // 按钮、小卡片
+  static const md = 12.0;  // 输入框、中卡片
+  static const lg = 16.0;  // 大卡片、弹窗
   static const xl = 16.0;
+  static const full = 9999.0; // 胶囊按钮、头像
+}
+
+class WiseColors {
+  WiseColors._();
+
+  // Light Mode
+  static const Color primaryLight = Color(0xFF007AFF);
+  static const Color primaryHoverLight = Color(0xFF0066CC);
+  static const Color successLight = Color(0xFF34C759);
+  static const Color warningLight = Color(0xFFFF9500);
+  static const Color destructiveLight = Color(0xFFFF3B30);
+  static const Color backgroundLight = Color(0xFFFFFFFF);
+  static const Color backgroundSubtleLight = Color(0xFFF2F2F7);
+  static const Color surfaceLight = Color(0xFFF2F2F7);
+  static const Color textPrimaryLight = Color(0xFF1D1D1F);
+  static const Color textSecondaryLight = Color(0xFF6E6E73);
+  static const Color textTertiaryLight = Color(0xFFAEAEB2);
+  static const Color borderLight = Color(0xFFE5E5EA);
+  static const Color borderStrongLight = Color(0xFFC7C7CC);
+
+  // Dark Mode
+  static const Color primaryDark = Color(0xFF0A84FF);
+  static const Color primaryHoverDark = Color(0xFF3399FF);
+  static const Color successDark = Color(0xFF30D158);
+  static const Color warningDark = Color(0xFFFF9F0A);
+  static const Color destructiveDark = Color(0xFFFF453A);
+  static const Color backgroundDark = Color(0xFF000000);
+  static const Color backgroundSubtleDark = Color(0xFF1C1C1E);
+  static const Color surfaceDark = Color(0xFF1C1C1E);
+  static const Color textPrimaryDark = Color(0xFFFFFFFF);
+  static const Color textSecondaryDark = Color(0xFF98989D);
+  static const Color textTertiaryDark = Color(0xFF636366);
+  static const Color borderDark = Color(0xFF38383A);
+  static const Color borderStrongDark = Color(0xFF48484A);
+}
+
+class WiseShadows {
+  WiseShadows._();
+
+  static List<BoxShadow> get sm => [
+    const BoxShadow(color: Color(0x0F000000), blurRadius: 3, offset: Offset(0, 1)),
+  ];
+
+  static List<BoxShadow> get md => [
+    const BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 4)),
+  ];
+
+  static List<BoxShadow> get lg => [
+    const BoxShadow(color: Color(0x1F000000), blurRadius: 40, offset: Offset(0, 12)),
+  ];
 }

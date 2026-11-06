@@ -3,12 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:nex/features/sessions/session_list_screen.dart';
 import 'package:nex/features/session/session_provider.dart';
+import 'package:nex/l10n/app_localizations.dart';
 
 void main() {
   group('SessionListScreen', () {
     testWidgets('shows empty state when no session history', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: ChangeNotifierProvider(
             create: (_) => SessionProvider(),
             child: const SessionListScreen(),
@@ -22,6 +25,8 @@ void main() {
     testWidgets('shows session list when history exists', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: ChangeNotifierProvider(
             create: (_) => SessionProvider(),
             child: const SessionListScreen(),

@@ -19,22 +19,27 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
     final path = context.watch<ShareProvider>().currentPath;
     final loading = context.watch<ShareProvider>().loading;
     final l10n = AppLocalizations.of(context)!;
+    final shareProvider = context.read<ShareProvider>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    final scaffoldActions = <Widget>[
+      IconButton(
+        onPressed: () async {
+          final url = await shareProvider.getDownloadUrl(widget.shareId, path);
+          if (url != null && mounted) {
+            scaffoldMessenger.showSnackBar(SnackBar(content: Text(l10n.downloadLink(url))));
+          }
+        },
+        icon: const Icon(Icons.download),
+        tooltip: l10n.download,
+      ),
+    ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(path)),
-      actions: [
-        IconButton(
-          onPressed: () async {
-            final url = await context.read<ShareProvider>().getDownloadUrl(widget.shareId, path);
-            if (url != null && mounted) {
-              final l10n = AppLocalizations.of(context)!;
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.downloadLink(url))));
-            }
-          },
-          icon: const Icon(Icons.download),
-          tooltip: l10n.download,
-        ),
-      ],
+      appBar: AppBar(
+        title: Text(path),
+        actions: scaffoldActions,
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : files.isEmpty
@@ -54,17 +59,16 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
                             ? null
                             : IconButton(
                                 onPressed: () async {
-                                  final url = await context.read<ShareProvider>().getDownloadUrl(widget.shareId, file.path);
+                                  final url = await shareProvider.getDownloadUrl(widget.shareId, file.path);
                                   if (url != null && mounted) {
-                                    final l10n = AppLocalizations.of(context)!;
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.downloadLink(url))));
+                                    scaffoldMessenger.showSnackBar(SnackBar(content: Text(l10n.downloadLink(url))));
                                   }
                                 },
                                 icon: const Icon(Icons.download),
                               ),
                         onTap: file.isDir
                             ? () {
-                                context.read<ShareProvider>().browseShare(widget.shareId, file.path);
+                                shareProvider.browseShare(widget.shareId, file.path);
                               }
                             : null,
                       ),

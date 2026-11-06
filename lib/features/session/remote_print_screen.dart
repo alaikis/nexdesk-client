@@ -283,7 +283,7 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _selectedPrinter,
+                           initialValue: _selectedPrinter,
                           decoration: InputDecoration(
                             labelText: l10n.printerLabel,
                             border: const OutlineInputBorder(),

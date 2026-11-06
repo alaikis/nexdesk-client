@@ -82,10 +82,10 @@ class DeviceProvider with ChangeNotifier {
       _devices = list.map((d) => Device.fromJson(d as Map<String, dynamic>)).toList();
       await _cacheDevices(_devices);
     } on ApiException catch (e) {
-      debugPrint('Load devices failed: $e');
       if (_devices.isEmpty) {
         _devices = await _loadCachedDevices();
       }
+      debugPrint('Load devices failed: $e');
     } finally {
       _loading = false;
       notifyListeners();

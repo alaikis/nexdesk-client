@@ -474,7 +474,7 @@ class ApiClient {
     final request = http.MultipartRequest('POST', Uri.parse('${AppConfig.apiBaseUrl}/sessions/$sessionId/files'));
     if (_token != null) request.headers['Authorization'] = 'Bearer $_token';
     if (_refreshToken != null) request.headers['X-Refresh-Token'] = _refreshToken!;
-    request.files.add(await http.MultipartFile.fromPath('file', filePath, filename: filename));
+    request.files.add(await http.MultipartFile.fromPath('file', file.path, filename: filename));
     final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
     final response = await http.Response.fromStream(streamedResponse);
     if (response.statusCode >= 200 && response.statusCode < 300) {

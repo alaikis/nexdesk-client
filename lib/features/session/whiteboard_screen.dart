@@ -1,12 +1,8 @@
-import 'dart:convert';
-import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../core/signaling_service.dart';
 import '../../widgets/nex_card.dart';
-import '../../widgets/nex_button.dart';
 import '../../theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -34,7 +30,6 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
   _Tool _tool = _Tool.pen;
   Color _color = const Color(0xFF007AFF);
   double _size = 4.0;
-  bool _eraserUsed = false;
 
   final List<_Stroke> _remoteStrokes = [];
   final Map<String, Color> _userColors = {};
@@ -69,7 +64,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
               ignoring: true,
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-                child: Container(color: cs.surface.withOpacity(0.9)),
+                child: Container(color: cs.surface.withValues(alpha: 0.9)),
               ),
             ),
             CustomPaint(
@@ -121,7 +116,6 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                     onTap: () => setState(() {
                       _tool = _Tool.pen;
                       _color = c;
-                      _eraserUsed = false;
                     }),
                     child: Container(
                       width: 28,
@@ -131,7 +125,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                         color: c,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: _color.value == c.value && selectedTool == _Tool.pen
+                          color: _color == c && selectedTool == _Tool.pen
                               ? cs.primary
                               : Colors.transparent,
                           width: 2,
@@ -507,9 +501,10 @@ class _ToolButton extends StatelessWidget {
 
 extension _ColorHex on Color {
   String toHex() {
-    final r = (red >> 0) & 0xFF;
-    final g = (green >> 0) & 0xFF;
-    final b = (blue >> 0) & 0xFF;
+    final argb = toARGB32();
+    final r = (argb >> 16) & 0xFF;
+    final g = (argb >> 8) & 0xFF;
+    final b = argb & 0xFF;
     return '#${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}';
   }
 }

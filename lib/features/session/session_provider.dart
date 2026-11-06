@@ -84,7 +84,7 @@ class SessionProvider with ChangeNotifier {
   SignalingService? _signaling;
   ToolbarMode _toolbarMode = ToolbarMode.floating;
   Offset _toolbarPosition = const Offset(20, 300);
-  final List<_FileUpload> _uploads = [];
+  final List<FileUpload> _uploads = [];
   String? _lastUploadError;
 
   Session? get activeSession => _activeSession;
@@ -98,7 +98,7 @@ class SessionProvider with ChangeNotifier {
   bool get terminalEnabled => _activeSession?.terminalEnabled ?? false;
   ToolbarMode get toolbarMode => _toolbarMode;
   Offset get toolbarPosition => _toolbarPosition;
-  List<_FileUpload> get uploads => List.unmodifiable(_uploads);
+  List<FileUpload> get uploads => List.unmodifiable(_uploads);
   String? get lastUploadError => _lastUploadError;
   SignalingService? get signalingService => _signaling;
 
@@ -315,13 +315,13 @@ class SessionProvider with ChangeNotifier {
       notifyListeners();
       return;
     }
-    final upload = _FileUpload(
+    final upload = FileUpload(
       id: const Uuid().v4(),
       filePath: filePath,
       fileName: file.path.split(Platform.pathSeparator).last,
       size: await file.length(),
       progress: 0.0,
-      status: _UploadStatus.uploading,
+      status: UploadStatus.uploading,
     );
     _uploads.add(upload);
     _lastUploadError = null;
@@ -331,13 +331,13 @@ class SessionProvider with ChangeNotifier {
         upload.progress = total > 0 ? sent / total : 0.0;
         notifyListeners();
       });
-      upload.status = _UploadStatus.done;
+      upload.status = UploadStatus.done;
       upload.progress = 1.0;
     } on ApiException catch (e) {
-      upload.status = _UploadStatus.failed;
+      upload.status = UploadStatus.failed;
       _lastUploadError = e.message;
     } catch (e) {
-      upload.status = _UploadStatus.failed;
+      upload.status = UploadStatus.failed;
       _lastUploadError = e.toString();
     } finally {
       notifyListeners();
@@ -345,14 +345,14 @@ class SessionProvider with ChangeNotifier {
   }
 }
 
-class _FileUpload {
+class FileUpload {
   final String id;
   final String filePath;
   final String fileName;
   final int size;
   double progress;
-  _UploadStatus status;
-  _FileUpload({required this.id, required this.filePath, required this.fileName, required this.size, this.progress = 0.0, this.status = _UploadStatus.uploading});
+  UploadStatus status;
+  FileUpload({required this.id, required this.filePath, required this.fileName, required this.size, this.progress = 0.0, this.status = UploadStatus.uploading});
 }
 
-enum _UploadStatus { uploading, done, failed }
+enum UploadStatus { uploading, done, failed }

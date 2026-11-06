@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 
-class NexSidebar extends StatelessWidget {
+class NexSidebar extends StatefulWidget {
   final int selectedIndex;
   final ValueChanged<int> onTap;
   final List<SidebarItem> items;
@@ -16,45 +16,68 @@ class NexSidebar extends StatelessWidget {
   });
 
   @override
+  State<NexSidebar> createState() => _NexSidebarState();
+}
+
+class _NexSidebarState extends State<NexSidebar> {
+  int? _hoveredIndex;
+
+  @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
+    
+    final backgroundColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final selectedBgColor = isDark ? const Color(0xFF0A84FF).withValues(alpha: 0.15) : const Color(0xFF007AFF).withValues(alpha: 0.1);
+    final selectedIconColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final iconColor = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final hoverBgColor = isDark ? const Color(0xFF38383A) : const Color(0xFFF2F2F7);
+
     return Container(
       width: 72,
-      color: cs.surface,
+      color: backgroundColor,
       child: Column(
         children: [
           const SizedBox(height: 12),
-          ...items.asMap().entries.map((entry) {
+          ...widget.items.asMap().entries.map((entry) {
             final index = entry.key;
             final item = entry.value;
-            final selected = index == selectedIndex;
-            return _SidebarTile(
-              icon: item.icon,
-              label: item.label,
-              selected: selected,
-              onTap: () => onTap(index),
+            final selected = index == widget.selectedIndex;
+            final isHovered = _hoveredIndex == index;
+            return MouseRegion(
+              onEnter: (_) => setState(() => _hoveredIndex = index),
+              onExit: (_) => setState(() => _hoveredIndex = null),
+              child: _SidebarTile(
+                icon: item.icon,
+                label: item.label,
+                selected: selected,
+                isHovered: isHovered,
+                selectedColor: selectedIconColor,
+                iconColor: iconColor,
+                hoverBgColor: hoverBgColor,
+                selectedBgColor: selectedBgColor,
+                onTap: () => widget.onTap(index),
+              ),
             );
           }),
           const Spacer(),
-          if (onLogout != null) ...[
+          if (widget.onLogout != null) ...[
             IconButton(
-              onPressed: onLogout,
-              icon: Icon(Icons.logout, size: 20, color: cs.onSurfaceVariant),
+              onPressed: widget.onLogout,
+              icon: Icon(Icons.logout, size: 20, color: iconColor),
               tooltip: l10n.logout,
             ),
             const SizedBox(height: 4),
           ],
-          // User avatar placeholder
           Container(
             width: 36,
             height: 36,
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: cs.primaryContainer,
+              color: selectedBgColor,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.person, size: 18, color: cs.onPrimaryContainer),
+            child: Icon(Icons.person, size: 18, color: selectedIconColor),
           ),
         ],
       ),
@@ -72,25 +95,40 @@ class _SidebarTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool selected;
+  final bool isHovered;
+  final Color selectedColor;
+  final Color iconColor;
+  final Color hoverBgColor;
+  final Color selectedBgColor;
   final VoidCallback onTap;
 
-  const _SidebarTile({required this.icon, required this.label, required this.selected, required this.onTap});
+  const _SidebarTile({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.isHovered,
+    required this.selectedColor,
+    required this.iconColor,
+    required this.hoverBgColor,
+    required this.selectedBgColor,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Tooltip(
       message: label,
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
           width: 72,
           height: 48,
           decoration: BoxDecoration(
-            color: selected ? cs.primaryContainer : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            color: selected ? selectedBgColor : (isHovered ? hoverBgColor : Colors.transparent),
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, size: 22, color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant),
+          child: Icon(icon, size: 22, color: selected ? selectedColor : iconColor),
         ),
       ),
     );

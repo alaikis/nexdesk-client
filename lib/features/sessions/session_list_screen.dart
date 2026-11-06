@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../session/session_provider.dart';
 import '../../widgets/nex_card.dart';
 import '../../widgets/sidebar.dart';
+import '../../widgets/empty_state.dart';
+import '../../theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
 class SessionListScreen extends StatefulWidget {
@@ -26,9 +28,16 @@ class _SessionListScreenState extends State<SessionListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final sessions = context.watch<SessionProvider>().history;
     final l10n = AppLocalizations.of(context)!;
+    
+    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
+    final cardBackground = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+
     return Scaffold(
       body: Row(
         children: [
@@ -46,20 +55,57 @@ class _SessionListScreenState extends State<SessionListScreen> {
             ],
           ),
           Expanded(
-            child: Center(
+            child: Container(
+              color: backgroundColor,
               child: sessions.isEmpty
-                  ? Text(l10n.noSessionHistory, style: TextStyle(color: cs.onSurfaceVariant))
+                  ? EmptyState(
+                      icon: Icons.history,
+                      title: l10n.noSessionHistory,
+                      message: l10n.noSessionHistoryDesc,
+                    )
                   : ListView.builder(
                       padding: const EdgeInsets.all(20),
                       itemCount: sessions.length,
                       itemBuilder: (context, index) {
                         final s = sessions[index];
-                        return NexCard(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            title: Text(l10n.sessionLabel(s.id)),
-                            subtitle: Text('${s.controllerDeviceId} → ${s.controlleeDeviceId}'),
-                            trailing: Text(s.status),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: NexCard(
+                            color: cardBackground,
+                            enableShadow: true,
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              title: Text(
+                                l10n.sessionLabel(s.id),
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${s.controllerDeviceId} → ${s.controlleeDeviceId}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: textSecondary,
+                                ),
+                              ),
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: primaryColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(NexRadius.full),
+                                ),
+                                child: Text(
+                                  s.status,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: primaryColor,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         );
                       },

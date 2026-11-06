@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:nex/features/session/session_screen.dart';
+import 'package:nex/features/session/session_provider.dart';
+import 'package:nex/l10n/app_localizations.dart';
 
 void main() {
   group('SessionScreen', () {
     testWidgets('renders screen selector title', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: SessionScreen(sessionId: 'test-session'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ChangeNotifierProvider(
+            create: (_) => SessionProvider(),
+            child: SessionScreen(sessionId: 'test-session'),
+          ),
         ),
       );
       expect(find.text('Select screens to share'), findsOneWidget);
@@ -16,7 +24,12 @@ void main() {
     testWidgets('shows start button or loading', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: SessionScreen(sessionId: 'test-session'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ChangeNotifierProvider(
+            create: (_) => SessionProvider(),
+            child: SessionScreen(sessionId: 'test-session'),
+          ),
         ),
       );
       expect(

@@ -1,14 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../features/devices/device_provider.dart';
 import '../../features/screen_wall/screen_wall_provider.dart';
-import '../../core/webrtc_service.dart';
 import '../../widgets/empty_state.dart';
-import '../../widgets/nex_button.dart';
 import '../../l10n/app_localizations.dart';
 
 class ScreenWallScreen extends StatefulWidget {
@@ -34,7 +31,6 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
   Widget build(BuildContext context) {
     final wallProvider = context.watch<ScreenWallProvider>();
     final deviceProvider = context.watch<DeviceProvider>();
-    final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
     final wallDevices = wallProvider.selectedDeviceIds

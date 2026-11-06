@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../features/devices/device_provider.dart';
 import 'nex_card.dart';
 import 'online_dot.dart';

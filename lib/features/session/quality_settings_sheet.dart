@@ -18,7 +18,6 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
   int _customHeight = 1080;
   int _customFps = 60;
   int _customBitrate = 4000;
-  String _customCodec = 'H264';
 
   @override
   void initState() {
@@ -29,10 +28,15 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
   Future<void> _loadCurrentPreset() async {
     final profile = await _qualityService.getProfile(widget.sessionId);
     setState(() {
-      if (profile == QualityProfile.auto) _preset = QualityPreset.custom;
-      else if (profile == QualityProfile.low) _preset = QualityPreset.smooth;
-      else if (profile == QualityProfile.medium) _preset = QualityPreset.hd;
-      else if (profile == QualityProfile.high) _preset = QualityPreset.original;
+      if (profile == QualityProfile.auto) {
+        _preset = QualityPreset.custom;
+      } else if (profile == QualityProfile.low) {
+        _preset = QualityPreset.smooth;
+      } else if (profile == QualityProfile.medium) {
+        _preset = QualityPreset.hd;
+      } else if (profile == QualityProfile.high) {
+        _preset = QualityPreset.original;
+      }
     });
   }
 
