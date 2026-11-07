@@ -39,9 +39,8 @@ class AuthProvider with ChangeNotifier {
         final meRes = await _api.get('/auth/me');
         _userId = meRes['id']?.toString();
         _email = meRes['email'] as String?;
-      } on ApiException catch (e) {
+      } on ApiException {
         _status = AuthStatus.unauthenticated;
-        _lastError = e.message;
         await SecureStorageService.delete('jwt_token');
       }
     } else {
@@ -66,12 +65,17 @@ class AuthProvider with ChangeNotifier {
     _pending2FATempToken = null;
     try {
       final res = await _api.register(email: email, password: password, name: name);
-      _userId = res['id']?.toString();
-      _email = email;
-      await _ensureDeviceRegistered(name);
-      _status = AuthStatus.authenticated;
-      notifyListeners();
-      return true;
+      final data = res['data'] as Map<String, dynamic>?;
+      if (data != null && data['access_token'] != null) {
+        _userId = data['user']?['id']?.toString() ?? data['open_id']?.toString();
+        _email = email;
+        await _ensureDeviceRegistered(name);
+        _status = AuthStatus.authenticated;
+        notifyListeners();
+        return true;
+      }
+      _lastError = res['msg'] as String? ?? 'Registration failed';
+      return false;
     } on ApiException catch (e) {
       _lastError = e.message;
       debugPrint('Register failed: $e');
@@ -88,12 +92,17 @@ class AuthProvider with ChangeNotifier {
         _pending2FATempToken = res['temp_token'] as String?;
         return false;
       }
-      _userId = (res['user'] as Map?)?['id']?.toString() ?? res['id']?.toString();
-      _email = email;
-      await _ensureDeviceRegistered(_email ?? 'My Device');
-      _status = AuthStatus.authenticated;
-      notifyListeners();
-      return true;
+      final data = res['data'] as Map<String, dynamic>?;
+      if (data != null && data['access_token'] != null) {
+        _userId = data['user']?['id']?.toString() ?? data['open_id']?.toString();
+        _email = email;
+        await _ensureDeviceRegistered(_email ?? 'My Device');
+        _status = AuthStatus.authenticated;
+        notifyListeners();
+        return true;
+      }
+      _lastError = res['msg'] as String? ?? 'Login failed';
+      return false;
     } on ApiException catch (e) {
       _lastError = e.message;
       debugPrint('Login failed: $e');
