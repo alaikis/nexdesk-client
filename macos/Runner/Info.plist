@@ -29,10 +29,10 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSCameraUsageDescription</key>
-	<string>NEX needs camera access for video streaming during remote sessions.</string>
+	<string>LitchiViewer needs camera access for video streaming during remote sessions.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>NEX needs microphone access for audio during remote sessions.</string>
+	<string>LitchiViewer needs microphone access for audio during remote sessions.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>NEX uses Bluetooth for WebRTC connectivity.</string>
+	<string>LitchiViewer uses Bluetooth for WebRTC connectivity.</string>
 </dict>
 </plist>

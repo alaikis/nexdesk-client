@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/file_transfer_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/app_theme.dart';
 
 class FileTransferScreen extends StatefulWidget {
   final String sessionId;
@@ -143,77 +144,190 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+    final successColor = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
+    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+
     return Scaffold(
+      backgroundColor: backgroundColor,
       appBar: AppBar(title: Text(l10n.fileTransfersTitle)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _transfers.isEmpty
-              ? Center(child: Text(l10n.noTransfersYet))
+              ? Center(
+                  child: Text(
+                    l10n.noTransfersYet,
+                    style: TextStyle(fontSize: 15, color: textSecondary),
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _transfers.length,
                   itemBuilder: (context, index) {
                     final transfer = _transfers[index];
-                    return Card(
+                    final isUpload = transfer.direction == TransferDirection.upload;
+                    return Container(
                       margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        leading: Icon(
-                          transfer.direction == TransferDirection.upload
-                              ? Icons.upload_file
-                              : Icons.download,
-                          color: const Color(0xFF007AFF),
-                        ),
-                        title: Text(transfer.fileName),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('${transfer.fileSize ~/ 1024} KB'),
-                            const SizedBox(height: 4),
-                            LinearProgressIndicator(value: transfer.progress),
-                            if (transfer.errorMessage != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                transfer.errorMessage!,
-                                style: const TextStyle(color: Colors.red, fontSize: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(NexRadius.md),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                isUpload ? Icons.upload_file : Icons.download,
+                                color: isUpload ? primaryColor : successColor,
+                                size: 24,
                               ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      transfer.fileName,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                        color: textPrimary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${transfer.fileSize ~/ 1024} KB',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _buildStatusBadge(transfer.status, isDark),
                             ],
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              transfer.status.name,
-                              style: TextStyle(
-                                color: transfer.status == TransferStatus.completed
-                                    ? const Color(0xFF34C759)
-                                    : Colors.orange,
+                          ),
+                          const SizedBox(height: 12),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(NexRadius.full),
+                            child: SizedBox(
+                              height: 4,
+                              child: LinearProgressIndicator(
+                                value: transfer.progress,
+                                backgroundColor: borderColor,
+                                valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                               ),
                             ),
-                            if (transfer.status == TransferStatus.transferring) ...[
-                              const SizedBox(width: 8),
-                              IconButton(
-                                onPressed: () => _cancel(transfer.id),
-                                tooltip: l10n.cancelTransfer,
-                                icon: const Icon(Icons.cancel, color: Colors.red),
-                              ),
-                            ] else if (transfer.status == TransferStatus.failed) ...[
-                              const SizedBox(width: 8),
-                              IconButton(
-                                onPressed: () => _retry(transfer.id),
-                                tooltip: l10n.retryTransfer,
-                                icon: const Icon(Icons.refresh, color: Color(0xFF007AFF)),
-                              ),
-                            ],
+                          ),
+                          if (transfer.errorMessage != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              transfer.errorMessage!,
+                              style: TextStyle(color: errorColor, fontSize: 12),
+                            ),
                           ],
-                        ),
+                          if (transfer.status == TransferStatus.transferring) ...[
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () => _cancel(transfer.id),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: errorColor,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                ),
+                                child: Text(
+                                  l10n.cancelTransfer,
+                                  style: TextStyle(
+                                    color: errorColor,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ] else if (transfer.status == TransferStatus.failed) ...[
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () => _retry(transfer.id),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: primaryColor,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                ),
+                                child: Text(
+                                  l10n.retryTransfer,
+                                  style: TextStyle(
+                                    color: primaryColor,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     );
                   },
-            ),
+                ),
       floatingActionButton: FloatingActionButton(
         onPressed: _pickAndUpload,
+        backgroundColor: primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(TransferStatus status, bool isDark) {
+    final successColor = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
+    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+
+    Color bgColor;
+    Color textColor;
+
+    switch (status) {
+      case TransferStatus.completed:
+        bgColor = successColor.withValues(alpha: 0.12);
+        textColor = successColor;
+        break;
+      case TransferStatus.failed:
+        bgColor = errorColor.withValues(alpha: 0.12);
+        textColor = errorColor;
+        break;
+      default:
+        bgColor = surfaceColor;
+        textColor = textSecondary;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(NexRadius.full),
+      ),
+      child: Text(
+        status.name,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }

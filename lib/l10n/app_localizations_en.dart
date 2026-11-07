@@ -9,10 +9,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'NEX';
+  String get appName => 'LitchiViewer';
 
   @override
-  String get signInToNex => 'Sign in to NEX';
+  String get signInToNex => 'Sign in to LitchiViewer';
 
   @override
   String get accessRemoteDevices => 'Access your remote devices securely.';
@@ -103,7 +103,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String versionInfo(Object version) {
-    return 'NEX version $version';
+    return 'LitchiViewer version $version';
   }
 
   @override

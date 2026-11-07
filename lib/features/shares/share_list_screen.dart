@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'share_provider.dart';
 import '../../features/devices/device_provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/app_theme.dart';
 
 class ShareListScreen extends StatefulWidget {
   const ShareListScreen({super.key});
@@ -31,38 +32,88 @@ class _ShareListScreenState extends State<ShareListScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(l10n.createShare),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: l10n.shareName),
+        builder: (context, setDialogState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
+          final textPrimary = isDark ? WiseColors.textPrimaryDark : WiseColors.textPrimaryLight;
+          final textSecondary = isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
+          final cardColor = isDark ? WiseColors.surfaceDark : WiseColors.backgroundLight;
+
+          return AlertDialog(
+            backgroundColor: cardColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(NexRadius.lg),
+            ),
+            title: Text(
+              l10n.createShare,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: textPrimary,
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: pathController,
-                decoration: InputDecoration(labelText: l10n.localPath),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  style: TextStyle(color: textPrimary, fontSize: 15),
+                  decoration: InputDecoration(
+                    labelText: l10n.shareName,
+                    labelStyle: TextStyle(color: textSecondary, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: pathController,
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontSize: 14,
+                    fontFamily: 'monospace',
+                  ),
+                  decoration: InputDecoration(
+                    labelText: l10n.localPath,
+                    labelStyle: TextStyle(color: textSecondary, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  decoration: InputDecoration(
+                    labelText: l10n.deviceLabel,
+                    labelStyle: TextStyle(color: textSecondary, fontSize: 13),
+                  ),
+                  style: TextStyle(color: textPrimary, fontSize: 15),
+                  items: devices.map((d) {
+                    return DropdownMenuItem(value: int.tryParse(d.id), child: Text(d.name));
+                  }).toList(),
+                  onChanged: (value) => setDialogState(() => selectedDeviceId = value),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(
+                  l10n.cancel,
+                  style: TextStyle(color: textSecondary, fontSize: 15, fontWeight: FontWeight.w500),
+                ),
               ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<int>(
-                decoration: InputDecoration(labelText: l10n.deviceLabel),
-                items: devices.map((d) {
-                  return DropdownMenuItem(value: int.tryParse(d.id), child: Text(d.name));
-                }).toList(),
-                onChanged: (value) => setDialogState(() => selectedDeviceId = value),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(NexRadius.md),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.create, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
               ),
             ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l10n.create),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
 
@@ -86,52 +137,212 @@ class _ShareListScreenState extends State<ShareListScreen> {
     final shareProvider = context.read<ShareProvider>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
+    final backgroundColor = isDark ? WiseColors.backgroundDark : WiseColors.backgroundSubtleLight;
+    final cardColor = isDark ? WiseColors.surfaceDark : WiseColors.backgroundLight;
+    final textPrimary = isDark ? WiseColors.textPrimaryDark : WiseColors.textPrimaryLight;
+    final textSecondary = isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
+    final textTertiary = isDark ? WiseColors.textTertiaryDark : WiseColors.textTertiaryLight;
+    final borderColor = isDark ? WiseColors.borderDark : WiseColors.borderLight;
+    final destructiveColor = isDark ? WiseColors.destructiveDark : WiseColors.destructiveLight;
+
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.shares)),
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: backgroundColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(
+          l10n.shares,
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            color: textPrimary,
+            letterSpacing: -0.5,
+          ),
+        ),
+      ),
       body: shares.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.folder_shared, size: 48, color: Theme.of(context).colorScheme.outline),
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: isDark ? 0.12 : 0.08),
+                      borderRadius: BorderRadius.circular(NexRadius.lg),
+                    ),
+                    child: Icon(Icons.folder_shared, size: 36, color: primaryColor),
+                  ),
                   const SizedBox(height: 16),
-                  Text(l10n.noSharesYet, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(onPressed: _createShare, icon: const Icon(Icons.add), label: Text(l10n.createShare)),
+                  Text(
+                    l10n.noSharesYet,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textSecondary),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(NexRadius.md),
+                      ),
+                    ),
+                    onPressed: _createShare,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(l10n.createShare, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  ),
                 ],
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               itemCount: shares.length,
               itemBuilder: (context, index) {
                 final share = shares[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    leading: Icon(Icons.folder, color: Theme.of(context).colorScheme.primary),
-                    title: Text(share.name),
-                    subtitle: Text(share.path),
-                    trailing: IconButton(
-                      onPressed: () async {
-                        final ok = await shareProvider.deleteShare(share.id);
-                        if (mounted && ok) {
-                          scaffoldMessenger.showSnackBar(SnackBar(content: Text(l10n.shareDeleted)));
-                        }
-                      },
-                      icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
-                    ),
-                    onTap: () {
-                      context.read<ShareProvider>().browseShare(share.id, '/');
-                      context.push('/shares/${share.id}');
-                    },
-                  ),
+                return _ShareCard(
+                  share: share,
+                  primaryColor: primaryColor,
+                  cardColor: cardColor,
+                  textPrimary: textPrimary,
+                  textSecondary: textSecondary,
+                  textTertiary: textTertiary,
+                  borderColor: borderColor,
+                  destructiveColor: destructiveColor,
+                  onTap: () {
+                    context.read<ShareProvider>().browseShare(share.id, '/');
+                    context.push('/shares/${share.id}');
+                  },
+                  onDelete: () async {
+                    final ok = await shareProvider.deleteShare(share.id);
+                    if (mounted && ok) {
+                      scaffoldMessenger.showSnackBar(SnackBar(content: Text(l10n.shareDeleted)));
+                    }
+                  },
                 );
               },
             ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(NexRadius.lg),
+        ),
         onPressed: _createShare,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class _ShareCard extends StatefulWidget {
+  final Share share;
+  final Color primaryColor;
+  final Color cardColor;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textTertiary;
+  final Color borderColor;
+  final Color destructiveColor;
+  final VoidCallback onTap;
+  final Future<void> Function() onDelete;
+
+  const _ShareCard({
+    required this.share,
+    required this.primaryColor,
+    required this.cardColor,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textTertiary,
+    required this.borderColor,
+    required this.destructiveColor,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  @override
+  State<_ShareCard> createState() => _ShareCardState();
+}
+
+class _ShareCardState extends State<_ShareCard> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: widget.cardColor,
+            borderRadius: BorderRadius.circular(NexRadius.lg),
+            border: Border.all(color: widget.borderColor),
+            boxShadow: _hovering ? WiseShadows.md : WiseShadows.sm,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: widget.primaryColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(NexRadius.md),
+                ),
+                child: Icon(Icons.folder, size: 20, color: widget.primaryColor),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.share.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: widget.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.share.path,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: widget.textSecondary,
+                        fontFamily: 'monospace',
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: widget.onDelete,
+                icon: Icon(Icons.delete_outline, size: 20),
+                color: widget.textTertiary,
+                style: IconButton.styleFrom(
+                  foregroundColor: widget.destructiveColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(NexRadius.sm),
+                  ),
+                ),
+                tooltip: 'Delete',
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import '../../core/signaling_service.dart';
 import '../../widgets/nex_card.dart';
@@ -43,6 +41,15 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
     Color(0xFFAF52DE),
   ];
 
+  static const _palette = <Color>[
+    Color(0xFF007AFF),
+    Color(0xFFFF3B30),
+    Color(0xFF34C759),
+    Color(0xFFFF9500),
+    Color(0xFFAF52DE),
+    Color(0xFF1D1D1F),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -51,7 +58,9 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final canvasColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+
     return Positioned.fill(
       child: GestureDetector(
         onPanStart: _onPanStart,
@@ -60,13 +69,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
         behavior: HitTestBehavior.opaque,
         child: Stack(
           children: [
-            IgnorePointer(
-              ignoring: true,
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-                child: Container(color: cs.surface.withValues(alpha: 0.9)),
-              ),
-            ),
+            Container(color: canvasColor),
             CustomPaint(
               painter: _WhiteboardPainter(
                 strokes: _strokes,
@@ -75,14 +78,19 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
               ),
               size: Size.infinite,
             ),
-            _buildToolbar(cs),
+            _buildToolbar(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildToolbar(ColorScheme cs) {
+  Widget _buildToolbar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+
     final selectedTool = _tool;
     final l10n = AppLocalizations.of(context)!;
     return Positioned(
@@ -91,6 +99,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
       bottom: 24,
       child: Center(
         child: NexCard(
+          color: cardColor,
           padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg, vertical: NexSpacing.md),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -111,7 +120,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                   onTap: () => setState(() => _tool = _Tool.eraser),
                 ),
                 const SizedBox(width: NexSpacing.sm),
-                ..._defaultColors.map(
+                ..._palette.map(
                   (c) => GestureDetector(
                     onTap: () => setState(() {
                       _tool = _Tool.pen;
@@ -126,7 +135,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: _color == c && selectedTool == _Tool.pen
-                              ? cs.primary
+                              ? primaryColor
                               : Colors.transparent,
                           width: 2,
                         ),
@@ -139,7 +148,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                   width: 120,
                   child: Row(
                     children: [
-                      const Icon(Icons.line_weight, size: 18, color: Colors.white70),
+                      Icon(Icons.line_weight, size: 18, color: textSecondary),
                       Expanded(
                         child: Slider(
                           value: _size,
@@ -147,6 +156,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                           max: 20,
                           divisions: 19,
                           label: _size.round().toString(),
+                          activeColor: primaryColor,
                           onChanged: (v) => setState(() => _size = v),
                         ),
                       ),
@@ -158,6 +168,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                   icon: Icons.undo,
                   label: l10n.undo,
                   selected: false,
+                  ghost: true,
                   onTap: _undo,
                 ),
                 const SizedBox(width: NexSpacing.sm),
@@ -165,6 +176,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                   icon: Icons.delete_outline,
                   label: l10n.clearAll,
                   selected: false,
+                  ghost: true,
                   destructive: true,
                   onTap: _clearAll,
                 ),
@@ -439,6 +451,7 @@ class _ToolButton extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final bool destructive;
+  final bool ghost;
 
   const _ToolButton({
     required this.icon,
@@ -446,50 +459,66 @@ class _ToolButton extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.destructive = false,
+    this.ghost = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+
+    Color bgColor;
+    Color iconColor;
+    Color textColor;
+    Color? borderCol;
+
+    if (ghost) {
+      bgColor = Colors.transparent;
+      borderCol = null;
+      if (destructive) {
+        iconColor = errorColor;
+        textColor = errorColor;
+      } else {
+        iconColor = textSecondary;
+        textColor = textSecondary;
+      }
+    } else if (selected) {
+      bgColor = primaryColor.withValues(alpha: 0.12);
+      iconColor = primaryColor;
+      textColor = primaryColor;
+      borderCol = null;
+    } else {
+      bgColor = surfaceColor;
+      iconColor = textPrimary;
+      textColor = textSecondary;
+      borderCol = borderColor;
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md, vertical: NexSpacing.sm),
         decoration: BoxDecoration(
-          color: destructive
-              ? cs.errorContainer
-              : selected
-                  ? cs.primaryContainer
-                  : cs.surfaceContainerHighest,
+          color: bgColor,
           borderRadius: BorderRadius.circular(NexRadius.md),
-          border: Border.all(
-            color: destructive ? cs.error : selected ? cs.primary : cs.outline,
-            width: 0.5,
-          ),
+          border: borderCol != null ? Border.all(color: borderCol, width: 0.5) : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: destructive
-                  ? cs.onErrorContainer
-                  : selected
-                      ? cs.onPrimaryContainer
-                      : cs.onSurfaceVariant,
-            ),
+            Icon(icon, size: 18, color: iconColor),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: destructive
-                    ? cs.onErrorContainer
-                    : selected
-                        ? cs.onPrimaryContainer
-                        : cs.onSurfaceVariant,
+                color: textColor,
               ),
             ),
           ],

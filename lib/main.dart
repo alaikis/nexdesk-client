@@ -15,50 +15,77 @@ import 'core/api_client.dart';
 import 'core/input_injector_service.dart';
 import 'core/update_service.dart';
 import 'core/system_tray_service.dart';
+import 'core/single_instance_service.dart';
 
 class _NexWindowListener extends WindowListener {
   @override
+  void onWindowClose() async {
+    await windowManager.hide();
+    await SystemTrayService.show();
+  }
+
+  @override
   void onWindowMinimize() {
-    SystemTrayService.hide();
   }
 
   @override
   void onWindowMaximize() {
-    SystemTrayService.show();
   }
 
   @override
   void onWindowRestore() {
-    SystemTrayService.show();
   }
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+    await windowManager.ensureInitialized();
+  }
+
   await PlatformService.initPlatform();
   await CrashReporter().init();
 
   if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-    await windowManager.ensureInitialized();
     const windowOptions = WindowOptions(
-      size: Size(1280, 800),
+      size: Size(960, 640),
       center: true,
-      minimumSize: Size(900, 600),
+      minimumSize: Size(800, 500),
+      titleBarStyle: TitleBarStyle.hidden,
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.setPreventClose(true);
       windowManager.show();
       windowManager.focus();
     });
   }
 
   final auth = AuthProvider();
-  await auth.init();
-
-  final deviceProvider = DeviceProvider()..loadDevices();
+  final deviceProvider = DeviceProvider();
   final sessionProvider = SessionProvider();
 
-  await _checkForUpdates();
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: auth),
+        ChangeNotifierProvider.value(value: deviceProvider),
+        ChangeNotifierProvider.value(value: sessionProvider),
+        ChangeNotifierProvider.value(value: ShareProvider()),
+      ],
+      child: const NexApp(),
+    ),
+  );
+
+  auth.init().then((_) {
+    deviceProvider.loadDevices();
+  }).catchError((e) {
+    debugPrint('Auth init failed: $e');
+  });
+
+  _checkForUpdates().catchError((e) {
+    debugPrint('Update check failed: $e');
+  });
 
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     if (Platform.isWindows) {
@@ -106,18 +133,6 @@ Future<void> main() async {
       }
     }
   });
-
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: auth),
-        ChangeNotifierProvider.value(value: deviceProvider),
-        ChangeNotifierProvider.value(value: sessionProvider),
-        ChangeNotifierProvider.value(value: ShareProvider()),
-      ],
-      child: const NexApp(),
-    ),
-  );
 
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     final inputInjector = InputInjectorService();

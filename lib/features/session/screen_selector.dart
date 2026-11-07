@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/screen_service.dart';
+import '../../theme/app_theme.dart';
 
 class ScreenSelector extends StatefulWidget {
   final List<ScreenInfo> screens;
@@ -39,14 +40,22 @@ class _ScreenSelectorState extends State<ScreenSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final textTertiary = isDark ? const Color(0xFF636366) : const Color(0xFFAEAEB2);
+    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 16 / 9,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: NexSpacing.md,
+        mainAxisSpacing: NexSpacing.md,
       ),
       itemCount: widget.screens.length,
       itemBuilder: (context, index) {
@@ -56,10 +65,10 @@ class _ScreenSelectorState extends State<ScreenSelector> {
           onTap: () => _toggle(screen.id),
           child: Container(
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF007AFF).withValues(alpha: 0.1) : Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              color: isSelected ? primaryColor.withValues(alpha: 0.1) : cardColor,
+              borderRadius: BorderRadius.circular(NexRadius.md),
               border: Border.all(
-                color: isSelected ? const Color(0xFF007AFF) : const Color(0xFFE5E5EA),
+                color: isSelected ? primaryColor : borderColor,
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -69,32 +78,44 @@ class _ScreenSelectorState extends State<ScreenSelector> {
                   child: Icon(
                     Icons.desktop_windows_outlined,
                     size: 32,
-                    color: isSelected ? const Color(0xFF007AFF) : const Color(0xFF8E8E93),
+                    color: isSelected ? primaryColor : textTertiary,
                   ),
                 ),
                 if (screen.isPrimary)
-                  const Positioned(
-                    top: 8,
-                    left: 8,
+                  Positioned(
+                    top: NexSpacing.sm,
+                    left: NexSpacing.sm,
                     child: Text(
                       'PRIMARY',
-                      style: TextStyle(fontSize: 10, color: Color(0xFF8E8E93), fontWeight: FontWeight.w600),
+                      style: TextStyle(fontSize: 10, color: textSecondary, fontWeight: FontWeight.w600),
                     ),
                   ),
                 Positioned(
-                  bottom: 8,
-                  left: 8,
-                  right: 8,
-                  child: Text(
-                    '${screen.name}\n${screen.width}×${screen.height}',
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF1D1D1F)),
+                  bottom: NexSpacing.sm,
+                  left: NexSpacing.sm,
+                  right: NexSpacing.sm,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        screen.name,
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: textPrimary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '${screen.width}×${screen.height}',
+                        style: TextStyle(fontSize: 11, color: textSecondary),
+                      ),
+                    ],
                   ),
                 ),
                 if (isSelected)
-                  const Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Icon(Icons.check_circle, color: Color(0xFF007AFF), size: 20),
+                  Positioned(
+                    top: NexSpacing.sm,
+                    right: NexSpacing.sm,
+                    child: Icon(Icons.check_circle, color: primaryColor, size: 20),
                   ),
               ],
             ),

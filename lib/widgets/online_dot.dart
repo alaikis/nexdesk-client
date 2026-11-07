@@ -18,7 +18,9 @@ class _OnlineDotState extends State<OnlineDot> with SingleTickerProviderStateMix
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.5, end: 1.0).animate(_controller);
+    _animation = Tween<double>(begin: 1.0, end: 1.3).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -29,26 +31,54 @@ class _OnlineDotState extends State<OnlineDot> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final color = widget.isOnline ? cs.primary : cs.onSurfaceVariant;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final onlineColor = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
+    final offlineColor = isDark ? const Color(0xFF636366) : const Color(0xFFAEAEB2);
+    final color = widget.isOnline ? onlineColor : offlineColor;
+
+    if (!widget.isOnline) {
+      return Container(
+        width: widget.size,
+        height: widget.size,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+        ),
+      );
+    }
+
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
-        return Container(
-          width: widget.size,
-          height: widget.size,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: widget.isOnline
-                ? [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.4 * _animation.value),
-                      blurRadius: 6 * _animation.value,
-                      spreadRadius: 2 * _animation.value,
-                    )
-                  ]
-                : null,
+        final scale = _animation.value;
+        final progress = (scale - 1.0) / 0.3;
+        final ringOpacity = (1.0 - progress).clamp(0.0, 1.0);
+        return SizedBox(
+          width: widget.size * 1.3,
+          height: widget.size * 1.3,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: widget.size,
+                  height: widget.size,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: ringOpacity * 0.5),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Container(
+                width: widget.size,
+                height: widget.size,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
           ),
         );
       },

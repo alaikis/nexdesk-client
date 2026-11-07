@@ -1,7 +1,7 @@
 {
   "@@locale": "zh",
-  "appName": "NEX",
-  "signInToNex": "登录 NEX",
+  "appName": "荔枝远程",
+  "signInToNex": "登录荔枝远程",
   "accessRemoteDevices": "安全访问您的远程设备。",
   "createAccount": "创建您的账户",
   "startControllingDevices": "开始使用 WebRTC 控制设备。",
@@ -30,7 +30,7 @@
   "viewPrivacyPolicy": "查看隐私政策",
   "termsOfService": "服务条款",
   "viewTermsOfService": "查看服务条款",
-  "versionInfo": "NEX 版本 {version}",
+  "versionInfo": "荔枝远程版本 {version}",
   "cannotOpenLink": "无法打开链接：{path}",
   "magicPacketSent": "已发送魔法包",
   "failedToWakeDevice": "唤醒设备失败",

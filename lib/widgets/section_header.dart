@@ -2,14 +2,27 @@ import 'package:flutter/material.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;
-  const SectionHeader({super.key, required this.title});
+  final Widget? trailing;
+  const SectionHeader({super.key, required this.title, this.trailing});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Text(
-      title,
-      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant, letterSpacing: 0.5),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textTertiary = isDark ? const Color(0xFF636366) : const Color(0xFFAEAEB2);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: textTertiary,
+            letterSpacing: 0.8,
+          ),
+        ),
+        if (trailing != null) trailing!,
+      ],
     );
   }
 }

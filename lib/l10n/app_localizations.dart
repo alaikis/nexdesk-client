@@ -101,13 +101,13 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'NEX'**
+  /// **'LitchiViewer'**
   String get appName;
 
   /// No description provided for @signInToNex.
   ///
   /// In en, this message translates to:
-  /// **'Sign in to NEX'**
+  /// **'Sign in to LitchiViewer'**
   String get signInToNex;
 
   /// No description provided for @accessRemoteDevices.
@@ -281,7 +281,7 @@ abstract class AppLocalizations {
   /// No description provided for @versionInfo.
   ///
   /// In en, this message translates to:
-  /// **'NEX version {version}'**
+  /// **'LitchiViewer version {version}'**
   String versionInfo(Object version);
 
   /// No description provided for @cannotOpenLink.

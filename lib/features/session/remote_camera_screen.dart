@@ -6,6 +6,7 @@ import '../../core/signaling_service.dart';
 import '../../features/session/session_provider.dart';
 import '../../core/secure_storage_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/app_theme.dart';
 
 class RemoteCameraScreen extends StatefulWidget {
   final String sessionId;
@@ -218,7 +219,13 @@ class _RemoteCameraScreenState extends State<RemoteCameraScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+
     return Scaffold(
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         title: Text(l10n.remoteCameraTitle),
         actions: [
@@ -236,17 +243,67 @@ class _RemoteCameraScreenState extends State<RemoteCameraScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      Icon(Icons.error_outline, size: 48, color: errorColor),
                       const SizedBox(height: 16),
-                      Text(_error!),
+                      Text(
+                        _error!,
+                        style: TextStyle(fontSize: 15, color: errorColor),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 )
-              : Center(
-                  child: _renderer != null
-                      ? RTCVideoView(_renderer!)
-                      : const CircularProgressIndicator(),
-                ),
+              : _renderer != null && _renderer!.srcObject != null
+                  ? Stack(
+                      children: [
+                        Container(
+                          color: Colors.black,
+                          child: Center(child: RTCVideoView(_renderer!)),
+                        ),
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          bottom: 24,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1C1C1E),
+                                borderRadius: BorderRadius.circular(NexRadius.md),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.refresh, color: Colors.white),
+                                    onPressed: _isController ? _requestCamera : null,
+                                    tooltip: l10n.refresh,
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close, color: Colors.white),
+                                    onPressed: () => Navigator.pop(context),
+                                    tooltip: l10n.close,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.videocam_off, size: 48, color: textSecondary),
+                          const SizedBox(height: 16),
+                          Text(
+                            l10n.camera,
+                            style: TextStyle(fontSize: 15, color: textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
     );
   }
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/nex_card.dart';
+import '../../widgets/nex_button.dart';
 
 class SecuritySettingsScreen extends StatefulWidget {
   final String deviceId;
@@ -127,183 +130,244 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
+    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final successColor = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
+    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+
     return Scaffold(
+      backgroundColor: backgroundColor,
       appBar: AppBar(title: Text(l10n.securitySettings)),
       body: _saving
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                Text(l10n.connectionSecurity, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                Text(
+                  l10n.connectionSecurity,
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: textPrimary),
+                ),
                 const SizedBox(height: 20),
-                _buildLockCard(cs),
+                _buildLockCard(isDark, primaryColor, textPrimary, textSecondary, successColor, errorColor),
                 const SizedBox(height: 16),
-                _buildAllowedCard(cs),
+                _buildAllowedCard(isDark, primaryColor, textPrimary, textSecondary, successColor),
                 const SizedBox(height: 16),
-                _buildBlockedCard(cs),
+                _buildBlockedCard(isDark, primaryColor, textPrimary, textSecondary, errorColor),
                 const SizedBox(height: 16),
-                _buildInfoCard(cs),
+                _buildInfoCard(isDark, primaryColor, textPrimary, textSecondary),
               ],
             ),
     );
   }
 
-  Widget _buildLockCard(ColorScheme cs) {
+  Widget _buildSectionIcon(IconData icon, Color color) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(NexRadius.md),
+      ),
+      child: Icon(icon, color: color, size: 22),
+    );
+  }
+
+  Widget _buildStatusBadge(String text, {required bool isSuccess, required bool isDark}) {
+    final successBg = isDark ? const Color(0xFF30D158).withOpacity(0.15) : const Color(0xFF34C759).withOpacity(0.12);
+    final successFg = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
+    final warningBg = isDark ? const Color(0xFFFF9F0A).withOpacity(0.15) : const Color(0xFFFF9500).withOpacity(0.12);
+    final warningFg = isDark ? const Color(0xFFFF9F0A) : const Color(0xFFFF9500);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isSuccess ? successBg : warningBg,
+        borderRadius: BorderRadius.circular(NexRadius.full),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: isSuccess ? successFg : warningFg,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLockCard(bool isDark, Color primaryColor, Color textPrimary, Color textSecondary, Color successColor, Color errorColor) {
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.lock, color: _hasLockPassword ? const Color(0xFF34C759) : cs.onSurfaceVariant),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _hasLockPassword ? l10n.lockPasswordEnabled : l10n.lockPasswordDisabled,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    return NexCard(
+      color: cardColor,
+      enableShadow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _buildSectionIcon(Icons.shield_outlined, _hasLockPassword ? successColor : primaryColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.lockPasswordDisabled.replaceAll('Disabled', '').replaceAll('Enabled', '').trim().isEmpty
+                          ? (_hasLockPassword ? l10n.lockPasswordEnabled : l10n.lockPasswordDisabled)
+                          : (_hasLockPassword ? l10n.lockPasswordEnabled : l10n.lockPasswordDisabled),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary),
+                    ),
+                    const SizedBox(height: 2),
+                    _buildStatusBadge(
+                      _hasLockPassword ? 'Enabled' : 'Disabled',
+                      isSuccess: _hasLockPassword,
+                      isDark: isDark,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (!_hasLockPassword) ...[
-              TextField(
-                controller: _lockPasswordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: l10n.newLockPassword,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: _setLockPassword,
-                icon: const Icon(Icons.lock_open),
-                label: Text(l10n.setLockPassword),
-              ),
-            ] else ...[
-              ElevatedButton.icon(
-                onPressed: _removeLockPassword,
-                icon: const Icon(Icons.lock_open),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF3B30),
-                  foregroundColor: Colors.white,
-                ),
-                label: Text(l10n.removeLockPassword),
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAllowedCard(ColorScheme cs) {
-    final l10n = AppLocalizations.of(context)!;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.check_circle, color: const Color(0xFF34C759)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(l10n.allowedUsers, style: const TextStyle(fontWeight: FontWeight.w600)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+          ),
+          const SizedBox(height: 16),
+          if (!_hasLockPassword) ...[
             TextField(
-              controller: _allowedController,
+              controller: _lockPasswordController,
+              obscureText: true,
               decoration: InputDecoration(
-                labelText: l10n.allowedUserIds,
-                hintText: _allowedUsers.isEmpty ? l10n.allowedUsersExample : _allowedUsers,
-                border: const OutlineInputBorder(),
+                labelText: l10n.newLockPassword,
               ),
             ),
             const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _saveAllowedUsers,
-              icon: const Icon(Icons.save),
-              label: Text(l10n.saveAllowedUsers),
+            NexButton(
+              text: l10n.setLockPassword,
+              icon: const Icon(Icons.lock_open, size: 18),
+              onPressed: _setLockPassword,
+            ),
+          ] else ...[
+            NexButton(
+              text: l10n.removeLockPassword,
+              icon: const Icon(Icons.lock_open, size: 18),
+              variant: NexButtonVariant.destructive,
+              onPressed: _removeLockPassword,
             ),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildBlockedCard(ColorScheme cs) {
+  Widget _buildAllowedCard(bool isDark, Color primaryColor, Color textPrimary, Color textSecondary, Color successColor) {
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.block, color: const Color(0xFFFF3B30)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(l10n.blockedUsers, style: const TextStyle(fontWeight: FontWeight.w600)),
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    return NexCard(
+      color: cardColor,
+      enableShadow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _buildSectionIcon(Icons.check_circle_outline, successColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.allowedUsers,
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _blockedController,
-              decoration: InputDecoration(
-                labelText: l10n.blockedUserIds,
-                hintText: _blockedUsers.isEmpty ? l10n.blockedUsersExample : _blockedUsers,
-                border: const OutlineInputBorder(),
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _allowedController,
+            decoration: InputDecoration(
+              labelText: l10n.allowedUserIds,
+              hintText: _allowedUsers.isEmpty ? l10n.allowedUsersExample : _allowedUsers,
             ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _saveBlockedUsers,
-              icon: const Icon(Icons.save),
-              label: Text(l10n.saveBlockedUsers),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          NexButton(
+            text: l10n.saveAllowedUsers,
+            icon: const Icon(Icons.save, size: 18),
+            onPressed: _saveAllowedUsers,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoCard(ColorScheme cs) {
+  Widget _buildBlockedCard(bool isDark, Color primaryColor, Color textPrimary, Color textSecondary, Color errorColor) {
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline, color: cs.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(l10n.connectionPermissions, style: const TextStyle(fontWeight: FontWeight.w600)),
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    return NexCard(
+      color: cardColor,
+      enableShadow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _buildSectionIcon(Icons.block, errorColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.blockedUsers,
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary),
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _blockedController,
+            decoration: InputDecoration(
+              labelText: l10n.blockedUserIds,
+              hintText: _blockedUsers.isEmpty ? l10n.blockedUsersExample : _blockedUsers,
             ),
-            const SizedBox(height: 12),
-            Text(l10n.lockPasswordInfo),
-            const SizedBox(height: 8),
-            Text(l10n.allowedUsersInfo),
-            const SizedBox(height: 8),
-            Text(l10n.blockedUsersInfo),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          NexButton(
+            text: l10n.saveBlockedUsers,
+            icon: const Icon(Icons.save, size: 18),
+            onPressed: _saveBlockedUsers,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(bool isDark, Color primaryColor, Color textPrimary, Color textSecondary) {
+    final l10n = AppLocalizations.of(context)!;
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    return NexCard(
+      color: cardColor,
+      enableShadow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _buildSectionIcon(Icons.info_outline, primaryColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.connectionPermissions,
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(l10n.lockPasswordInfo, style: TextStyle(fontSize: 13, color: textSecondary, height: 1.5)),
+          const SizedBox(height: 8),
+          Text(l10n.allowedUsersInfo, style: TextStyle(fontSize: 13, color: textSecondary, height: 1.5)),
+          const SizedBox(height: 8),
+          Text(l10n.blockedUsersInfo, style: TextStyle(fontSize: 13, color: textSecondary, height: 1.5)),
+        ],
       ),
     );
   }

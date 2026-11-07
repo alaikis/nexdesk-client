@@ -6,6 +6,7 @@ import '../../core/error_handler.dart';
 import '../../widgets/nex_input.dart';
 import '../../widgets/nex_button.dart';
 import '../../widgets/nex_card.dart';
+import '../../widgets/nex_scaffold.dart';
 import '../../theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -59,7 +60,7 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(
-                        Icons.remote_desktop,
+                        Icons.desktop_windows,
                         color: Colors.white,
                         size: 32,
                       ),

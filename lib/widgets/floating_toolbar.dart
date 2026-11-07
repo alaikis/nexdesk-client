@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/storage_service.dart';
+import '../core/storage_service.dart';
+import '../theme/app_theme.dart';
 
 enum ToolbarMode { floating, classic }
 
@@ -11,6 +12,7 @@ class ToolbarAction {
   final String tooltip;
   final VoidCallback onTap;
   final ToolbarGroup group;
+  final bool isActive;
 
   const ToolbarAction({
     required this.icon,
@@ -18,6 +20,7 @@ class ToolbarAction {
     required this.tooltip,
     required this.onTap,
     required this.group,
+    this.isActive = false,
   });
 }
 
@@ -35,10 +38,21 @@ class FloatingToolbar extends StatefulWidget {
   State<FloatingToolbar> createState() => _FloatingToolbarState();
 }
 
+// Always-dark floating overlay palette. The container is #1C1C1E regardless of
+// the surrounding theme, so sub-colors use dark-mode Wise values.
+const _containerColor = Color(0xFF1C1C1E);
+const _iconInactive = Color(0xFF98989D);
+const _hoverColor = Color(0xFF38383A);
+const _dividerColor = Color(0xFF38383A);
+const _labelColor = Color(0xFF98989D);
+const _dragHandleColor = Color(0xFF636366);
+const _destructiveColor = Color(0xFFFF453A);
+const _destructiveTint = Color(0x20FF453A);
+
 class _FloatingToolbarState extends State<FloatingToolbar> {
   static const _posKey = 'nex_toolbar_pos';
   static const _modeKey = 'nex_toolbar_mode';
-  static const _fabSize = 56.0;
+  static const _fabSize = 48.0;
 
   Offset _position = const Offset(20, 300);
   bool _expanded = false;
@@ -78,15 +92,16 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
     await StorageService.setString(_modeKey, 'floating');
   }
 
+  void _handleModeToggle() {
+    widget.onToggleMode();
+    _persistMode();
+  }
+
   void _handlePanStart(DragStartDetails details) {
-    if (_expanded) {
-      setState(() => _expanded = false);
-      return;
-    }
     setState(() {
       _dragging = true;
-      _scale = 0.92;
-      _opacity = 0.85;
+      _scale = _expanded ? 0.98 : 0.92;
+      _opacity = _expanded ? 0.92 : 0.85;
     });
   }
 
@@ -115,11 +130,6 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
     await _persistPosition();
   }
 
-  void _handleLongPress() {
-    widget.onToggleMode();
-    _persistMode();
-  }
-
   void _toggleExpand() {
     if (_dragging) return;
     setState(() => _expanded = !_expanded);
@@ -127,7 +137,6 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final groups = <ToolbarGroup, List<ToolbarAction>>{};
     for (final a in widget.actions) {
       groups.putIfAbsent(a.group, () => []).add(a);
@@ -143,149 +152,270 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
 
     final isRtl = Directionality.of(context) == TextDirection.rtl;
     final fabRight = isRtl ? null : _position.dx;
-    final fabLeft = isRtl ? null : (MediaQuery.of(context).size.width - _position.dx - _fabSize);
+    final fabLeft =
+        isRtl ? null : (MediaQuery.of(context).size.width - _position.dx - _fabSize);
     final fabTop = _position.dy;
 
     return Positioned(
       right: fabRight,
       left: fabLeft,
       top: fabTop,
-      child: GestureDetector(
-        onLongPress: _handleLongPress,
-        onPanStart: _handlePanStart,
-        onPanUpdate: _handlePanUpdate,
-        onPanEnd: _handlePanEnd,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 150),
-          opacity: _opacity,
-          child: Transform.scale(
-            scale: _scale,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (_expanded)
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOut,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.55,
-                        maxHeight: MediaQuery.of(context).size.height * 0.55,
-                      ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            for (final entry in groups.entries) ...[
-                              Padding(
-                                padding: const EdgeInsets.only(right: 12, top: 8),
-                                child: Text(
-                                  groupLabels[entry.key] ?? '',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: cs.onSurfaceVariant,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                              for (final action in entry.value)
-                                _ToolbarButton(
-                                  icon: action.icon,
-                                  label: action.label,
-                                  tooltip: action.tooltip,
-                                  onTap: () {
-                                    action.onTap();
-                                    if (mounted) setState(() => _expanded = false);
-                                  },
-                                  destructive: entry.key == ToolbarGroup.end,
-                                ),
-                              const SizedBox(height: 4),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Semantics(
-                  label: _expanded ? 'Close toolbar menu' : 'Open toolbar menu',
-                  child: FloatingActionButton(
-                    heroTag: 'floating_toolbar_fab',
-                    mini: false,
-                    onPressed: _toggleExpand,
-                    backgroundColor: cs.primaryContainer,
-                    foregroundColor: cs.onPrimaryContainer,
-                    elevation: 4,
-                    child: Icon(_expanded ? Icons.close : Icons.menu),
-                  ),
-                ),
-              ],
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 150),
+        opacity: _opacity,
+        child: Transform.scale(
+          scale: _scale,
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: isRtl ? Alignment.topLeft : Alignment.topRight,
+            child: _expanded
+                ? _buildExpandedPanel(context, groups, groupLabels)
+                : _buildCollapsedButton(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCollapsedButton() {
+    return GestureDetector(
+      onLongPress: _handleModeToggle,
+      onPanStart: _handlePanStart,
+      onPanUpdate: _handlePanUpdate,
+      onPanEnd: _handlePanEnd,
+      child: Container(
+        width: _fabSize,
+        height: _fabSize,
+        decoration: BoxDecoration(
+          color: _containerColor,
+          borderRadius: BorderRadius.circular(NexRadius.md),
+          boxShadow: WiseShadows.md,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _toggleExpand,
+            borderRadius: BorderRadius.circular(NexRadius.md),
+            child: const Center(
+              child: Icon(Icons.apps, color: Colors.white, size: 22),
             ),
           ),
         ),
       ),
     );
   }
+
+  Widget _buildExpandedPanel(
+    BuildContext context,
+    Map<ToolbarGroup, List<ToolbarAction>> groups,
+    Map<ToolbarGroup, String> groupLabels,
+  ) {
+    final media = MediaQuery.of(context).size;
+    final panelWidth = (media.width * 0.7).clamp(200.0, 320.0);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: panelWidth),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _containerColor,
+          borderRadius: BorderRadius.circular(NexRadius.md),
+          boxShadow: WiseShadows.md,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildDragHandle(),
+            _buildHeader(),
+            Container(height: 1, color: _dividerColor),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: media.height * 0.45),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: _buildGroupWidgets(groups, groupLabels),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDragHandle() {
+    return GestureDetector(
+      onPanStart: _handlePanStart,
+      onPanUpdate: _handlePanUpdate,
+      onPanEnd: _handlePanEnd,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (int i = 0; i < 5; i++)
+              Container(
+                width: 4,
+                height: 4,
+                margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                decoration: const BoxDecoration(
+                  color: _dragHandleColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: Row(
+        children: [
+          _ToolbarButton(
+            icon: Icons.layers_outlined,
+            tooltip: 'Switch to classic toolbar',
+            onTap: _handleModeToggle,
+            isActive: true,
+          ),
+          const Spacer(),
+          _ToolbarButton(
+            icon: Icons.expand_less,
+            tooltip: 'Collapse',
+            onTap: _toggleExpand,
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildGroupWidgets(
+    Map<ToolbarGroup, List<ToolbarAction>> groups,
+    Map<ToolbarGroup, String> groupLabels,
+  ) {
+    final widgets = <Widget>[];
+    final entries = groups.entries.toList();
+    for (var i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      if (i > 0) {
+        widgets.add(Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Container(height: 1, color: _dividerColor),
+        ));
+      }
+      widgets.add(Padding(
+        padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
+        child: Text(
+          (groupLabels[entry.key] ?? '').toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: _labelColor,
+            letterSpacing: 0.8,
+          ),
+        ),
+      ));
+      widgets.add(Padding(
+        padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+        child: Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            for (final action in entry.value)
+              _ToolbarButton(
+                icon: action.icon,
+                tooltip: action.tooltip,
+                onTap: () {
+                  action.onTap();
+                  if (mounted) setState(() => _expanded = false);
+                },
+                isActive: action.isActive,
+                isDestructive: entry.key == ToolbarGroup.end,
+              ),
+          ],
+        ),
+      ));
+    }
+    return widgets;
+  }
 }
 
-class _ToolbarButton extends StatelessWidget {
+class _ToolbarButton extends StatefulWidget {
   final IconData icon;
-  final String label;
   final String tooltip;
   final VoidCallback onTap;
-  final bool destructive;
+  final bool isActive;
+  final bool isDestructive;
 
   const _ToolbarButton({
     required this.icon,
-    required this.label,
     required this.tooltip,
     required this.onTap,
-    this.destructive = false,
+    this.isActive = false,
+    this.isDestructive = false,
   });
 
   @override
+  State<_ToolbarButton> createState() => _ToolbarButtonState();
+}
+
+class _ToolbarButtonState extends State<_ToolbarButton> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor =
+        isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final primaryTint =
+        isDark ? const Color(0x200A84FF) : const Color(0x20007AFF);
+
+    final Color bgColor;
+    final Color iconColor;
+    if (widget.isDestructive) {
+      bgColor = _destructiveTint;
+      iconColor = _destructiveColor;
+    } else if (widget.isActive) {
+      bgColor = primaryTint;
+      iconColor = primaryColor;
+    } else if (_hovered || _pressed) {
+      bgColor = _hoverColor;
+      iconColor = _iconInactive;
+    } else {
+      bgColor = Colors.transparent;
+      iconColor = _iconInactive;
+    }
+
     return Semantics(
-      label: tooltip,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            margin: const EdgeInsets.only(bottom: 2),
+      label: widget.tooltip,
+      button: true,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              color: destructive ? cs.errorContainer : cs.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: destructive ? cs.error : cs.outline,
-                width: 0.5,
-              ),
+              color: bgColor,
+              borderRadius: BorderRadius.circular(NexRadius.sm),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  size: 18,
-                  color: destructive ? cs.onErrorContainer : cs.onSurface,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: destructive ? cs.onErrorContainer : cs.onSurface,
-                  ),
-                ),
-              ],
-            ),
+            alignment: Alignment.center,
+            child: Icon(widget.icon, size: 20, color: iconColor),
           ),
         ),
       ),

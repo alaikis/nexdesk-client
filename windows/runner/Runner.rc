@@ -89,14 +89,14 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.elstella" "\0"
-            VALUE "FileDescription", "flutter_app" "\0"
-            VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "flutter_app" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.elstella. All rights reserved." "\0"
-            VALUE "OriginalFilename", "flutter_app.exe" "\0"
-            VALUE "ProductName", "flutter_app" "\0"
-            VALUE "ProductVersion", VERSION_AS_STRING "\0"
+        VALUE "CompanyName", "LitchiViewer" "\0"
+        VALUE "FileDescription", "LitchiViewer" "\0"
+        VALUE "FileVersion", VERSION_AS_STRING "\0"
+        VALUE "InternalName", "LitchiViewer" "\0"
+        VALUE "LegalCopyright", "Copyright (C) 2026 LitchiViewer. All rights reserved." "\0"
+        VALUE "OriginalFilename", "LitchiViewer.exe" "\0"
+        VALUE "ProductName", "LitchiViewer" "\0"
+        VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
     BLOCK "VarFileInfo"

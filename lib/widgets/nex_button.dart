@@ -27,47 +27,50 @@ class NexButton extends StatefulWidget {
 
 class _NexButtonState extends State<NexButton> {
   bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final disabled = widget.onPressed == null || widget.loading;
-    final isPrimary = widget.variant == NexButtonVariant.primary;
-    final isDestructive = widget.variant == NexButtonVariant.destructive;
+
+    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final primaryHover = isDark ? const Color(0xFF3399FF) : const Color(0xFF0066CC);
+    final destructiveColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    const destructiveHover = Color(0xFFD92E24);
+    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
+    final surfaceHover = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
 
     Color backgroundColor;
     Color foregroundColor;
+    Color? borderSideColor;
 
     if (disabled) {
-      backgroundColor = colors.surfaceContainerHighest;
-      foregroundColor = colors.onSurfaceVariant;
-    } else if (isDestructive) {
-      backgroundColor = _isHovered 
-          ? const Color(0xFFD92E24) 
-          : const Color(0xFFFF3B30);
+      backgroundColor = surfaceHover;
+      foregroundColor = textSecondary;
+    } else if (widget.variant == NexButtonVariant.destructive) {
+      backgroundColor = _isHovered ? destructiveHover : destructiveColor;
       foregroundColor = Colors.white;
-    } else if (isPrimary) {
-      backgroundColor = _isHovered 
-          ? const Color(0xFF0066CC) 
-          : const Color(0xFF007AFF);
+    } else if (widget.variant == NexButtonVariant.primary) {
+      backgroundColor = _isHovered ? primaryHover : primaryColor;
       foregroundColor = Colors.white;
     } else if (widget.variant == NexButtonVariant.secondary) {
-      backgroundColor = _isHovered 
-          ? const Color(0xFFE5E5EA) 
-          : const Color(0xFFF2F2F7);
-      foregroundColor = const Color(0xFF1D1D1F);
+      backgroundColor = _isHovered ? surfaceHover : surfaceColor;
+      foregroundColor = textPrimary;
     } else if (widget.variant == NexButtonVariant.outline) {
       backgroundColor = Colors.transparent;
-      foregroundColor = _isHovered 
-          ? const Color(0xFF0066CC) 
-          : const Color(0xFF007AFF);
+      foregroundColor = primaryColor;
+      borderSideColor = borderColor;
     } else {
-      backgroundColor = Colors.transparent;
-      foregroundColor = colors.onSurface;
+      backgroundColor = _isHovered ? surfaceColor : Colors.transparent;
+      foregroundColor = textPrimary;
     }
 
-    final height = widget.size == NexButtonSize.small ? 36.0 
-        : widget.size == NexButtonSize.large ? 52.0 
+    final height = widget.size == NexButtonSize.small ? 36.0
+        : widget.size == NexButtonSize.large ? 52.0
         : 44.0;
 
     final horizontalPadding = widget.size == NexButtonSize.small ? 16.0
@@ -80,47 +83,54 @@ class _NexButtonState extends State<NexButton> {
       child: SizedBox(
         width: widget.fullWidth ? double.infinity : null,
         height: height,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          child: ElevatedButton(
-            onPressed: disabled ? null : widget.onPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: backgroundColor,
-              foregroundColor: foregroundColor,
-              elevation: 0,
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(NexRadius.md),
-                side: widget.variant == NexButtonVariant.outline 
-                    ? BorderSide(color: disabled ? colors.outline : (isPrimary || isDestructive ? backgroundColor : const Color(0xFF007AFF)))
-                    : BorderSide.none,
+        child: Listener(
+          onPointerDown: (_) => setState(() => _isPressed = true),
+          onPointerUp: (_) => setState(() => _isPressed = false),
+          onPointerCancel: (_) => setState(() => _isPressed = false),
+          child: AnimatedScale(
+            scale: _isPressed && !disabled ? 0.97 : 1.0,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeInOut,
+            child: ElevatedButton(
+              onPressed: disabled ? null : widget.onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: backgroundColor,
+                foregroundColor: foregroundColor,
+                elevation: 0,
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(NexRadius.md),
+                  side: widget.variant == NexButtonVariant.outline && !disabled && borderSideColor != null
+                      ? BorderSide(color: borderSideColor)
+                      : BorderSide.none,
+                ),
+                textStyle: TextStyle(
+                  fontSize: widget.size == NexButtonSize.small ? 13
+                      : widget.size == NexButtonSize.large ? 17
+                      : 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              textStyle: TextStyle(
-                fontSize: widget.size == NexButtonSize.small ? 13 
-                    : widget.size == NexButtonSize.large ? 17 
-                    : 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            child: widget.loading
-                ? SizedBox(
-                    width: 20, 
-                    height: 20, 
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2, 
-                      color: foregroundColor,
-                    ),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.icon != null) ...[
-                        widget.icon!,
-                        const SizedBox(width: 8),
+              child: widget.loading
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: foregroundColor,
+                      ),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.icon != null) ...[
+                          widget.icon!,
+                          const SizedBox(width: 8),
+                        ],
+                        Text(widget.text),
                       ],
-                      Text(widget.text),
-                    ],
-                  ),
+                    ),
+            ),
           ),
         ),
       ),

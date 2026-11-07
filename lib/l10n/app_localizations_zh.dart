@@ -9,10 +9,10 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appName => 'NEX';
+  String get appName => '荔枝远程';
 
   @override
-  String get signInToNex => '登录 NEX';
+  String get signInToNex => '登录荔枝远程';
 
   @override
   String get accessRemoteDevices => '安全访问您的远程设备。';
@@ -102,7 +102,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String versionInfo(Object version) {
-    return 'NEX 版本 $version';
+    return '荔枝远程版本 $version';
   }
 
   @override

@@ -17,6 +17,7 @@ import 'features/screen_wall/screen_wall_screen.dart';
 import 'features/meetings/meeting_list_screen.dart';
 import 'features/meetings/meeting_create_screen.dart';
 import 'features/meetings/meeting_room_screen.dart';
+import 'widgets/window_title_bar.dart';
 import 'l10n/app_localizations.dart';
 
 class NexApp extends StatefulWidget {
@@ -141,7 +142,7 @@ class _NexAppState extends State<NexApp> {
     );
 
     return MaterialApp.router(
-      title: AppLocalizations.of(context)?.appName ?? 'NEX',
+      title: AppLocalizations.of(context)?.appName ?? 'LitchiViewer',
       theme: NexTheme.light(),
       darkTheme: NexTheme.dark(),
       themeMode: ThemeMode.system,
@@ -149,6 +150,17 @@ class _NexAppState extends State<NexApp> {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: Column(
+            children: [
+              const WindowTitleBar(),
+              Expanded(child: child ?? const ColoredBox(color: Colors.white, child: SizedBox.expand())),
+            ],
+          ),
+        );
+      },
     );
   }
 }

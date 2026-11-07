@@ -9,6 +9,7 @@ import '../../features/auth/auth_provider.dart';
 import '../../features/session/session_provider.dart';
 import '../../core/error_handler.dart';
 import '../../core/api_client.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/nex_input.dart';
 import '../../widgets/local_device_card.dart';
 import '../../widgets/device_card.dart';
@@ -393,7 +394,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
           TextButton(onPressed: () => context.pop(false), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () => context.pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).brightness == Brightness.dark ? WiseColors.destructiveDark : WiseColors.destructiveLight),
             child: Text(l10n.delete),
           ),
         ],
@@ -440,8 +441,8 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
             itemBuilder: (context, index) {
               final group = groupProvider.groups[index];
               return ListTile(
-                title: Text(group.name),
-                trailing: Text('${group.deviceCount} ${l10n.devices}'),
+                title: Text(group.name, style: TextStyle(fontSize: 15)),
+                trailing: Text('${group.deviceCount} ${l10n.devices}', style: TextStyle(fontSize: 13, color: Theme.of(context).brightness == Brightness.dark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight)),
                 onTap: () => context.pop(group.id),
               );
             },
@@ -510,39 +511,43 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
 
   void _showDeviceContextMenu(Device device) {
     final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
+    final textPrimary = isDark ? WiseColors.textPrimaryDark : WiseColors.textPrimaryLight;
     showModalBottomSheet(
       context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(NexRadius.lg))),
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.group_add),
-              title: Text(l10n.addToGroupCtx),
+              leading: Icon(Icons.group_add, color: primaryColor),
+              title: Text(l10n.addToGroupCtx, style: TextStyle(color: textPrimary)),
               onTap: () {
                 context.pop();
                 _showAssignDeviceDialog(device);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.group_remove),
-              title: Text(l10n.removeFromGroupCtx),
+              leading: Icon(Icons.group_remove, color: primaryColor),
+              title: Text(l10n.removeFromGroupCtx, style: TextStyle(color: textPrimary)),
               onTap: () {
                 context.pop();
                 _showUnassignDeviceDialog(device);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.edit),
-              title: Text(l10n.renameCtx),
+              leading: Icon(Icons.edit, color: primaryColor),
+              title: Text(l10n.renameCtx, style: TextStyle(color: textPrimary)),
               onTap: () {
                 context.pop();
                 _showRenameDeviceDialog(device);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.label),
-              title: Text(l10n.editTagsCtx),
+              leading: Icon(Icons.label, color: primaryColor),
+              title: Text(l10n.editTagsCtx, style: TextStyle(color: textPrimary)),
               onTap: () {
                 context.pop();
                 _showEditTagsDialog(device);
@@ -583,7 +588,11 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   Widget build(BuildContext context) {
     final devices = context.watch<DeviceProvider>();
     final groups = context.watch<GroupProvider>();
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
+    final textSecondary = isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
+    final surfaceColor = isDark ? WiseColors.surfaceDark : WiseColors.surfaceLight;
+    final borderColor = isDark ? WiseColors.borderDark : WiseColors.borderLight;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -622,7 +631,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                       ),
                       const SizedBox(width: 12),
                       PopupMenuButton<String>(
-                        icon: const Icon(Icons.groups, size: 20),
+                        icon: Icon(Icons.groups, size: 20, color: textSecondary),
                         tooltip: l10n.groupManagement,
                         onSelected: (value) {
                           if (value == 'create') {
@@ -670,16 +679,30 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                             label: Text(l10n.filterAll),
                             selected: groups.selectedGroupId == null,
                             onSelected: (_) => _selectGroup(null),
+                            backgroundColor: surfaceColor,
+                            selectedColor: primaryColor.withValues(alpha: 0.12),
+                            labelStyle: TextStyle(fontSize: 13, color: groups.selectedGroupId == null ? primaryColor : textSecondary),
+                            side: BorderSide(color: groups.selectedGroupId == null ? primaryColor : borderColor),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.sm)),
                           ),
                           FilterChip(
                             label: Text(l10n.filterUngrouped),
                             selected: false,
                             onSelected: null,
+                            backgroundColor: surfaceColor,
+                            labelStyle: TextStyle(fontSize: 13, color: textSecondary),
+                            side: BorderSide(color: borderColor),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.sm)),
                           ),
                           ...groups.groups.map((g) => FilterChip(
                                 label: Text(g.name),
                                 selected: groups.selectedGroupId == '${g.id}',
                                 onSelected: (_) => _selectGroup('${g.id}'),
+                                backgroundColor: surfaceColor,
+                                selectedColor: primaryColor.withValues(alpha: 0.12),
+                                labelStyle: TextStyle(fontSize: 13, color: groups.selectedGroupId == '${g.id}' ? primaryColor : textSecondary),
+                                side: BorderSide(color: groups.selectedGroupId == '${g.id}' ? primaryColor : borderColor),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.sm)),
                               )),
                         ],
                       ),
@@ -694,6 +717,11 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                             label: Text(l10n.favorites),
                             selected: _showFavoritesOnly,
                             onSelected: (_) => setState(() => _showFavoritesOnly = !_showFavoritesOnly),
+                            backgroundColor: surfaceColor,
+                            selectedColor: primaryColor.withValues(alpha: 0.12),
+                            labelStyle: TextStyle(fontSize: 13, color: _showFavoritesOnly ? primaryColor : textSecondary),
+                            side: BorderSide(color: _showFavoritesOnly ? primaryColor : borderColor),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.sm)),
                           ),
                         ],
                       ),
@@ -702,26 +730,29 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                   if (_isSelectionMode)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      color: cs.surfaceContainerHighest,
+                      decoration: BoxDecoration(
+                        color: surfaceColor,
+                        border: Border(bottom: BorderSide(color: borderColor)),
+                      ),
                       child: Row(
                         children: [
-                          Text(l10n.selectedCount(_selectedDeviceIds.length), style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                          Text(l10n.selectedCount(_selectedDeviceIds.length), style: TextStyle(fontSize: 13, color: textSecondary)),
                           const Spacer(),
                           TextButton.icon(
                             onPressed: _selectedDeviceIds.isEmpty ? null : _batchFavorite,
-                            icon: Icon(Icons.star, size: 18, color: cs.primary),
+                            icon: Icon(Icons.star, size: 18, color: primaryColor),
                             label: Text(l10n.favorite),
                           ),
                           const SizedBox(width: 8),
                           TextButton.icon(
                             onPressed: _selectedDeviceIds.isEmpty ? null : _batchUnfavorite,
-                            icon: Icon(Icons.star_border, size: 18, color: cs.onSurfaceVariant),
+                            icon: Icon(Icons.star_border, size: 18, color: textSecondary),
                             label: Text(l10n.unfavorite),
                           ),
                           const SizedBox(width: 8),
                           TextButton.icon(
                             onPressed: _exitSelectionMode,
-                            icon: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+                            icon: Icon(Icons.close, size: 18, color: textSecondary),
                             label: Text(l10n.cancel),
                           ),
                         ],
@@ -883,15 +914,21 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
+    final textSecondary = isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
+    final cardColor = isDark ? WiseColors.surfaceDark : WiseColors.backgroundLight;
+    final borderColor = isDark ? WiseColors.borderDark : WiseColors.borderLight;
+    final warningColor = isDark ? WiseColors.warningDark : WiseColors.warningLight;
     final l10n = AppLocalizations.of(context)!;
     final device = widget.device;
     return Container(
       margin: const EdgeInsets.only(right: 20, bottom: 20),
       decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.outline),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+        border: Border.all(color: borderColor),
+        boxShadow: WiseShadows.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -900,7 +937,7 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(Icons.computer, size: 20, color: cs.primary),
+                Icon(Icons.computer, size: 20, color: primaryColor),
                 const SizedBox(width: 8),
                 if (_isEditingName) ...[
                   Expanded(
@@ -910,7 +947,7 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
                       decoration: InputDecoration(
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        border: OutlineInputBorder(borderSide: BorderSide(color: cs.outline)),
+                        border: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
                       ),
                       onSubmitted: (value) {
                         if (value.trim().isNotEmpty) {
@@ -927,7 +964,7 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
                         _nameController.text = device.name;
                         setState(() => _isEditingName = true);
                       },
-                      child: Text(device.name, style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600, fontSize: 15)),
+                      child: Text(device.name, style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600, fontSize: 15)),
                     ),
                   ),
                 ],
@@ -937,19 +974,19 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
                     icon: Icon(
                       device.favorite ? Icons.star : Icons.star_border,
                       size: 18,
-                      color: device.favorite ? Colors.amber : cs.onSurfaceVariant,
+                      color: device.favorite ? warningColor : textSecondary,
                     ),
                     tooltip: device.favorite ? l10n.removeFromFavoritesTooltip : l10n.addToFavoritesTooltip,
                   ),
                 IconButton(
                   onPressed: widget.onClose,
-                  icon: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+                  icon: Icon(Icons.close, size: 18, color: textSecondary),
                   tooltip: l10n.close,
                 ),
               ],
             ),
           ),
-          Divider(height: 1, color: cs.outline),
+          Divider(height: 1, color: borderColor),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -964,7 +1001,7 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
                   _DetailRow(label: l10n.tagsLabel, value: device.tags.join(', ')),
                 ],
                 const SizedBox(height: 24),
-                Text(l10n.actions, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+                Text(l10n.actions, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textSecondary)),
                 const SizedBox(height: 12),
                 _ActionButton(
                   icon: Icons.connect_without_contact,
@@ -1030,16 +1067,18 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textSecondary = isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
+    final textPrimary = isDark ? WiseColors.textPrimaryDark : WiseColors.textPrimaryLight;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: 100,
-          child: Text(label, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+          child: Text(label, style: TextStyle(fontSize: 13, color: textSecondary)),
         ),
         Expanded(
-          child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: textPrimary)),
         ),
       ],
     );
@@ -1055,21 +1094,26 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
+    final textPrimary = isDark ? WiseColors.textPrimaryDark : WiseColors.textPrimaryLight;
+    final surfaceColor = isDark ? WiseColors.surfaceDark : WiseColors.surfaceLight;
+    final borderColor = isDark ? WiseColors.borderDark : WiseColors.borderLight;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(NexRadius.sm),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          color: surfaceColor,
+          borderRadius: BorderRadius.circular(NexRadius.sm),
+          border: Border.all(color: borderColor),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: cs.primary),
+            Icon(icon, size: 18, color: primaryColor),
             const SizedBox(width: 12),
-            Text(label, style: TextStyle(fontSize: 13, color: cs.onSurface)),
+            Text(label, style: TextStyle(fontSize: 13, color: textPrimary)),
           ],
         ),
       ),

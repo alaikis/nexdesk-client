@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
-  "appName": "NEX",
-  "signInToNex": "Sign in to NEX",
+  "appName": "LitchiViewer",
+  "signInToNex": "Sign in to LitchiViewer",
   "accessRemoteDevices": "Access your remote devices securely.",
   "createAccount": "Create your account",
   "startControllingDevices": "Start controlling devices with WebRTC.",
@@ -30,7 +30,7 @@
   "viewPrivacyPolicy": "View privacy policy",
   "termsOfService": "Terms of Service",
   "viewTermsOfService": "View terms of service",
-  "versionInfo": "NEX version {version}",
+  "versionInfo": "LitchiViewer version {version}",
   "cannotOpenLink": "Cannot open link: {path}",
   "magicPacketSent": "Magic packet sent",
   "failedToWakeDevice": "Failed to wake device",

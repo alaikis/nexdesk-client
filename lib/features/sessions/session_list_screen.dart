@@ -61,7 +61,6 @@ class _SessionListScreenState extends State<SessionListScreen> {
                   ? EmptyState(
                       icon: Icons.history,
                       title: l10n.noSessionHistory,
-                      message: l10n.noSessionHistoryDesc,
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.all(20),

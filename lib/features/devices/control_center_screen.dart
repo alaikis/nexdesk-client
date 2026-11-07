@@ -11,6 +11,7 @@ import '../../widgets/nex_card.dart';
 import '../../widgets/local_device_card.dart';
 import '../../widgets/sidebar.dart';
 import '../../widgets/bottom_nav_bar.dart';
+import '../../widgets/nex_scaffold.dart';
 import '../../l10n/app_localizations.dart';
 
 enum ConnectMode { control, file, view, collab }

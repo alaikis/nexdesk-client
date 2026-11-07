@@ -13,6 +13,8 @@ import '../../platform/windows_print_service.dart';
 import '../../platform/macos_print_service.dart';
 import '../../platform/linux_print_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/nex_button.dart';
 
 class PrintJobItem {
   String id;
@@ -262,7 +264,19 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+    final successColor = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
+    final warningColor = isDark ? const Color(0xFFFF9F0A) : const Color(0xFFFF9500);
+    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+
     return Scaffold(
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         title: Text(l10n.remotePrintTitle),
         actions: [
@@ -283,10 +297,23 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                           initialValue: _selectedPrinter,
+                          initialValue: _selectedPrinter,
                           decoration: InputDecoration(
                             labelText: l10n.printerLabel,
-                            border: const OutlineInputBorder(),
+                            filled: true,
+                            fillColor: cardColor,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(NexRadius.md),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(NexRadius.md),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(NexRadius.md),
+                              borderSide: BorderSide(color: primaryColor, width: 1.5),
+                            ),
                           ),
                           items: _printers
                               .map((p) => DropdownMenuItem(value: p, child: Text(p)))
@@ -295,53 +322,129 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      ElevatedButton.icon(
+                      TextButton.icon(
                         onPressed: _loadPrinters,
-                        icon: const Icon(Icons.search),
-                        label: Text(l10n.refresh),
+                        icon: Icon(Icons.search, color: primaryColor, size: 18),
+                        label: Text(
+                          l10n.refresh,
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Expanded(
                   child: _jobs.isEmpty
-                      ? Center(child: Text(l10n.noPrintJobs))
+                      ? Center(
+                          child: Text(
+                            l10n.noPrintJobs,
+                            style: TextStyle(fontSize: 15, color: textSecondary),
+                          ),
+                        )
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: _jobs.length,
                           itemBuilder: (context, index) {
                             final job = _jobs[index];
-                            return Card(
+                            return Container(
                               margin: const EdgeInsets.only(bottom: 12),
-                              child: ListTile(
-                                leading: _buildFormatIcon(job.format),
-                                title: Text(job.fileName),
-                                subtitle: Text(
-                                  '${job.format.toUpperCase()} • ${_formatSize(job.fileSize)} • ${job.status}',
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (job.status == 'pending')
-                                      IconButton(
-                                        icon: const Icon(Icons.print, color: Color(0xFF007AFF)),
-                                        onPressed: () => _printJob(job),
-                                        tooltip: l10n.printJob,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: cardColor,
+                                borderRadius: BorderRadius.circular(NexRadius.md),
+                                border: Border.all(color: borderColor),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      _buildFormatIcon(
+                                        job.format,
+                                        errorColor,
+                                        warningColor,
+                                        primaryColor,
                                       ),
-                                    if (job.status == 'pending' || job.status == 'printing')
-                                      IconButton(
-                                        icon: const Icon(Icons.cancel, color: Color(0xFFFF3B30)),
-                                        onPressed: () => _cancelJob(job),
-                                        tooltip: l10n.cancelJob,
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              job.fileName,
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w500,
+                                                color: textPrimary,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '${job.format.toUpperCase()} • ${_formatSize(job.fileSize)}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    if (job.fileBytes != null && job.fileBytes!.isNotEmpty)
-                                      IconButton(
-                                        icon: const Icon(Icons.download, color: Color(0xFF34C759)),
-                                        onPressed: () => _saveToFile(job),
-                                        tooltip: l10n.saveJob,
-                                      ),
+                                      _buildStatusBadge(job.status, isDark),
+                                    ],
+                                  ),
+                                  if (job.errorMessage != null) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      job.errorMessage!,
+                                      style: TextStyle(color: errorColor, fontSize: 12),
+                                    ),
                                   ],
-                                ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      if (job.status == 'pending')
+                                        NexButton(
+                                          text: l10n.printJob,
+                                          variant: NexButtonVariant.primary,
+                                          size: NexButtonSize.small,
+                                          icon: const Icon(Icons.print, size: 16),
+                                          onPressed: () => _printJob(job),
+                                        ),
+                                      if (job.status == 'pending' || job.status == 'printing') ...[
+                                        if (job.status == 'pending') const SizedBox(width: 8),
+                                        TextButton(
+                                          onPressed: () => _cancelJob(job),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: errorColor,
+                                          ),
+                                          child: Text(
+                                            l10n.cancelJob,
+                                            style: TextStyle(
+                                              color: errorColor,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      if (job.fileBytes != null && job.fileBytes!.isNotEmpty) ...[
+                                        const SizedBox(width: 8),
+                                        IconButton(
+                                          icon: Icon(Icons.download, color: successColor, size: 20),
+                                          onPressed: () => _saveToFile(job),
+                                          tooltip: l10n.saveJob,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
                               ),
                             );
                           },
@@ -352,15 +455,66 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
     );
   }
 
-  Widget _buildFormatIcon(String format) {
+  Widget _buildFormatIcon(
+    String format,
+    Color errorColor,
+    Color warningColor,
+    Color primaryColor,
+  ) {
     switch (format.toLowerCase()) {
       case 'pdf':
-        return const Icon(Icons.picture_as_pdf, color: Color(0xFFFF3B30), size: 32);
+        return Icon(Icons.picture_as_pdf, color: errorColor, size: 32);
       case 'image':
-        return const Icon(Icons.image, color: Color(0xFF007AFF), size: 32);
+        return Icon(Icons.image, color: warningColor, size: 32);
       default:
-        return const Icon(Icons.description, color: Color(0xFF8E8E93), size: 32);
+        return Icon(Icons.description, color: primaryColor, size: 32);
     }
+  }
+
+  Widget _buildStatusBadge(String status, bool isDark) {
+    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final successColor = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
+    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+
+    Color bgColor;
+    Color textColor;
+
+    switch (status) {
+      case 'printing':
+        bgColor = primaryColor.withValues(alpha: 0.12);
+        textColor = primaryColor;
+        break;
+      case 'completed':
+        bgColor = successColor.withValues(alpha: 0.12);
+        textColor = successColor;
+        break;
+      case 'failed':
+      case 'cancelled':
+        bgColor = errorColor.withValues(alpha: 0.12);
+        textColor = errorColor;
+        break;
+      default:
+        bgColor = surfaceColor;
+        textColor = textSecondary;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(NexRadius.full),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
   }
 
   String _formatSize(int bytes) {

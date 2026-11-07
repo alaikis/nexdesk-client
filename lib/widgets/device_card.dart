@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../features/devices/device_provider.dart';
+import '../theme/app_theme.dart';
+import 'nex_button.dart';
 import 'nex_card.dart';
 import 'online_dot.dart';
 import '../l10n/app_localizations.dart';
@@ -48,11 +50,23 @@ class _DeviceCardState extends State<DeviceCard> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
+    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final textTertiary = isDark ? const Color(0xFF636366) : const Color(0xFFAEAEB2);
+    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final warningColor = isDark ? const Color(0xFFFF9F0A) : const Color(0xFFFF9500);
+
     final card = NexCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      borderColor: widget.isSelected ? cs.primary : null,
+      margin: const EdgeInsets.only(bottom: NexSpacing.md),
+      padding: const EdgeInsets.all(NexSpacing.lg),
+      color: cardColor,
+      borderColor: widget.isSelected ? primaryColor : borderColor,
+      enableShadow: true,
+      enableHover: true,
       child: Stack(
         children: [
           Row(
@@ -63,18 +77,18 @@ class _DeviceCardState extends State<DeviceCard> {
                   onChanged: null,
                   visualDensity: VisualDensity.compact,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: NexSpacing.xs),
               ],
               Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: cs.primaryContainer.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
+                  color: primaryColor.withValues(alpha: isDark ? 0.2 : 0.12),
+                  borderRadius: BorderRadius.circular(NexRadius.sm),
                 ),
-                child: Icon(Icons.computer, size: 20, color: cs.primary),
+                child: Icon(Icons.computer, size: 20, color: primaryColor),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: NexSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,9 +99,10 @@ class _DeviceCardState extends State<DeviceCard> {
                         autofocus: true,
                         decoration: InputDecoration(
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          border: OutlineInputBorder(borderSide: BorderSide(color: cs.outline)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: NexSpacing.sm, vertical: 4),
+                          border: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
                         ),
+                        style: TextStyle(fontSize: 15, color: textPrimary),
                         onSubmitted: (value) {
                           if (value.trim().isNotEmpty) {
                             widget.onRename?.call(value.trim());
@@ -105,34 +120,56 @@ class _DeviceCardState extends State<DeviceCard> {
                             : null,
                         child: Text(
                           widget.device.name,
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: cs.onSurface),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: textPrimary,
+                          ),
                         ),
                       ),
                       if (widget.device.tags.isNotEmpty) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: NexSpacing.xs),
                         Wrap(
-                          spacing: 4,
+                          spacing: NexSpacing.xs,
                           children: [
-                            ...widget.device.tags.take(3).map((tag) => Chip(
-                              label: Text(tag, style: TextStyle(fontSize: 11, color: cs.onPrimaryContainer)),
-                              backgroundColor: cs.primaryContainer,
-                              side: BorderSide.none,
-                              visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                            ...widget.device.tags.take(3).map((tag) => Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: surfaceColor,
+                                borderRadius: BorderRadius.circular(NexRadius.full),
+                              ),
+                              child: Text(
+                                tag,
+                                style: TextStyle(fontSize: 11, color: textSecondary),
+                              ),
                             )),
-                             if (widget.device.tags.length > 3)
-                               Chip(
-                                 label: Text(AppLocalizations.of(context)!.moreTags(widget.device.tags.length - 3), style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-                                 backgroundColor: cs.surfaceContainerHighest,
-                                 side: BorderSide.none,
-                                 visualDensity: VisualDensity.compact,
-                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-                               ),
+                            if (widget.device.tags.length > 3)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: surfaceColor,
+                                  borderRadius: BorderRadius.circular(NexRadius.full),
+                                ),
+                                child: Text(
+                                  AppLocalizations.of(context)!.moreTags(widget.device.tags.length - 3),
+                                  style: TextStyle(fontSize: 11, color: textTertiary),
+                                ),
+                              ),
                           ],
                         ),
                       ],
                       const SizedBox(height: 2),
-                      Text(widget.device.os, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: surfaceColor,
+                          borderRadius: BorderRadius.circular(NexRadius.sm),
+                        ),
+                        child: Text(
+                          widget.device.os,
+                          style: TextStyle(fontSize: 13, color: textSecondary),
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -141,28 +178,34 @@ class _DeviceCardState extends State<DeviceCard> {
                 GestureDetector(
                   onTap: widget.onCopy,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
                     child: Text(
                       widget.device.code,
-                      style: TextStyle(fontSize: 12, fontFamily: 'monospace', color: cs.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontFamily: 'monospace',
+                        color: primaryColor,
+                      ),
                     ),
                   ),
                 ),
               ],
               OnlineDot(isOnline: widget.device.online),
-              const SizedBox(width: 12),
-              FilledButton.tonal(
+              const SizedBox(width: NexSpacing.md),
+              NexButton(
+                text: AppLocalizations.of(context)!.connect,
                 onPressed: widget.onConnect,
-                child: Text(AppLocalizations.of(context)!.connect),
+                variant: NexButtonVariant.primary,
+                size: NexButtonSize.small,
               ),
               if (widget.onWake != null) ...[
-                const SizedBox(width: 8),
+                const SizedBox(width: NexSpacing.sm),
                 IconButton(
                   onPressed: widget.wakingDeviceId == widget.device.id ? null : widget.onWake,
                   tooltip: AppLocalizations.of(context)!.wakeDevice,
                   icon: widget.wakingDeviceId == widget.device.id
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : Icon(Icons.power_settings_new, size: 18, color: cs.primary),
+                      : Icon(Icons.power_settings_new, size: 18, color: primaryColor),
                 ),
               ],
             ],
@@ -175,7 +218,7 @@ class _DeviceCardState extends State<DeviceCard> {
               icon: Icon(
                 widget.device.favorite ? Icons.star : Icons.star_border,
                 size: 18,
-                color: widget.device.favorite ? Colors.amber : cs.onSurfaceVariant,
+                color: widget.device.favorite ? warningColor : textTertiary,
               ),
               tooltip: widget.device.favorite ? AppLocalizations.of(context)!.removeFromFavoritesTooltip : AppLocalizations.of(context)!.addToFavoritesTooltip,
             ),
