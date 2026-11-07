@@ -50,6 +50,10 @@ class ApiClient {
     }
   }
 
+  Future<void> saveSsoToken(String token, String? refresh) async {
+    await _saveAuth(token, refresh);
+  }
+
   Future<bool> _tryRefreshToken() async {
     if (_refreshToken == null) return false;
     try {
@@ -182,107 +186,54 @@ class ApiClient {
     required String password,
     required String name,
   }) async {
-    final res = await _passportRequest('POST', '/user/register', body: {
-      'account': email,
+    final res = await post('/auth/register', {
+      'email': email,
       'password': password,
       'name': name,
-      'client_id': AppConfig.passportClientId,
     });
-    final data = res['data'] as Map<String, dynamic>?;
-    if (data != null) {
-      final token = data['access_token'] as String?;
-      final refresh = data['refresh_token'] as String?;
-      if (token != null) {
-        await _saveAuth(token, refresh);
-      }
+    final token = res['token'] as String?;
+    final refresh = res['refresh_token'] as String?;
+    if (token != null) {
+      await _saveAuth(token, refresh);
     }
     return res;
+  }
+
+  /// Desktop SSO 登录：通过 nex 服务端获取 auth URL，打开系统浏览器
+  Future<Map<String, dynamic>> ssoDesktopInit() async {
+    return get('/sso/desktop/init');
+  }
+
+  /// Desktop SSO 轮询：查询登录状态
+  Future<Map<String, dynamic>> ssoDesktopPoll(String sessionId) async {
+    return get('/sso/desktop/poll?session_id=$sessionId');
+  }
+
+  /// Desktop SSO 登出
+  Future<void> ssoDesktopLogout() async {
+    try {
+      await post('/sso/desktop/logout', {});
+    } catch (_) {}
+    await _saveAuth(null, null);
   }
 
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) async {
-    final res = await _passportRequest('POST', '/user/desktop/login', body: {
-      'account': email,
+    final res = await post('/auth/login', {
+      'email': email,
       'password': password,
-      'client_id': AppConfig.passportClientId,
     });
-    final data = res['data'] as Map<String, dynamic>?;
-    if (data != null) {
-      final token = data['access_token'] as String?;
-      final refresh = data['refresh_token'] as String?;
-      final ssoSession = data['sso_session_id'] as String?;
-      if (token != null) {
-        await _saveAuth(token, refresh);
-        if (ssoSession != null) {
-          await SecureStorageService.setString('sso_session_id', ssoSession);
-        }
-      }
-      if (data['requires_mfa'] == true) {
-        return {'requires_2fa': true, 'temp_token': data['mfa_token']};
-      }
+    final token = res['token'] as String?;
+    final refresh = res['refresh_token'] as String?;
+    if (token != null) {
+      await _saveAuth(token, refresh);
     }
     return res;
   }
 
-  Future<Map<String, dynamic>> _passportRequest(
-    String method,
-    String path, {
-    Map<String, dynamic>? body,
-  }) async {
-    final uri = Uri.parse('${AppConfig.passportApiBaseUrl}$path');
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-
-    late http.Response response;
-    final client = _client ?? http.Client();
-    try {
-      switch (method) {
-        case 'POST':
-          response = await client.post(uri, headers: headers, body: jsonEncode(body)).timeout(const Duration(seconds: 15));
-          break;
-        case 'GET':
-          response = await client.get(uri, headers: headers).timeout(const Duration(seconds: 15));
-          break;
-        default:
-          throw ArgumentError('Unsupported method: $method');
-      }
-    } on Exception catch (_) {
-      final retryClient = _client ?? http.Client();
-      try {
-        await Future.delayed(const Duration(seconds: 1));
-        if (method == 'POST') {
-          response = await retryClient.post(uri, headers: headers, body: jsonEncode(body)).timeout(const Duration(seconds: 15));
-        } else {
-          response = await retryClient.get(uri, headers: headers).timeout(const Duration(seconds: 15));
-        }
-      } catch (e) {
-        throw ApiException(0, 'Passport request failed: $e');
-      }
-    }
-
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    final code = decoded['code'] as int? ?? 0;
-    if (code != 200) {
-      final msg = decoded['msg'] as String? ?? decoded['error'] as String? ?? 'Passport error';
-      throw ApiException(response.statusCode, msg);
-    }
-    return decoded;
-  }
-
   Future<void> logout() async {
-    final ssoSession = await SecureStorageService.getString('sso_session_id');
-    if (ssoSession != null) {
-      try {
-        await _passportRequest('POST', '/user/sso/logout', body: {
-          'sso_session_id': ssoSession,
-        });
-      } catch (_) {}
-      await SecureStorageService.delete('sso_session_id');
-    }
     await _saveAuth(null, null);
   }
 

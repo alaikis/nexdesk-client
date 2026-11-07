@@ -4,11 +4,6 @@ class AppConfig {
   static const String defaultTurnUrl = 'turns:nex.hottol.com:3478';
   static const String defaultStunUrl = 'stun:stun.l.google.com:19302';
 
-  // Passport SSO 配置
-  static const String passportBaseUrl = 'https://passport.alaikis.com';
-  static const String passportApiBaseUrl = 'https://passport.alaikis.com/api/v1/open';
-  static const String passportClientId = 'litchiviewer';
-
   static String serverUrl = defaultServerUrl;
   static String apiBaseUrl = defaultApiBaseUrl;
   static String turnUrl = defaultTurnUrl;
