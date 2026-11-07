@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'auth_provider.dart';
-import '../../core/error_handler.dart';
 import '../../widgets/nex_button.dart';
 import '../../widgets/nex_card.dart';
-import '../../theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -15,13 +12,11 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
-  bool _loading = false;
+class _AuthScreenState extends State<AuthScreen> {
   String? _error;
 
   Future<void> _startSSO() async {
     setState(() {
-      _loading = true;
       _error = null;
     });
 
@@ -29,14 +24,9 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
     final ok = await auth.startSSOLogin();
 
     if (!mounted) return;
-
     if (!ok) {
-      setState(() {
-        _error = auth.lastError ?? 'Failed to start login';
-        _loading = false;
-      });
+      setState(() => _error = auth.lastError);
     }
-    // 轮询由 AuthProvider 的 notifyListeners 驱动 UI 更新
   }
 
   @override
@@ -50,7 +40,8 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
     final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
     final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
 
-    final isPolling = auth.ssoPolling;
+    final inProgress = auth.ssoInProgress;
+    final activeError = _error ?? auth.lastError;
 
     return Scaffold(
       body: Container(
@@ -106,11 +97,11 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (_error != null || auth.lastError != null)
+                        if (activeError != null)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Text(
-                              _error ?? auth.lastError!,
+                              activeError!,
                               style: TextStyle(
                                 color: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
                                 fontSize: 13,
@@ -118,20 +109,20 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                               textAlign: TextAlign.center,
                             ),
                           ),
-                        if (isPolling) ...[
-                          const Center(
+                        if (inProgress) ...[
+                          Center(
                             child: SizedBox(
                               width: 24,
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Color(0xFF007AFF),
+                                color: isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF),
                               ),
                             ),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Waiting for login in browser...',
+                            'Waiting for browser sign-in...',
                             style: TextStyle(
                               fontSize: 15,
                               color: textPrimary,
@@ -147,27 +138,12 @@ class _AuthScreenState extends State<AuthScreen> with ErrorHandler {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 16),
-                          TextButton(
-                            onPressed: () {
-                              auth.cancelSSOLogin();
-                              setState(() => _loading = false);
-                            },
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF),
-                              ),
-                            ),
-                          ),
                         ] else
                           NexButton(
                             text: 'Sign in with Browser',
                             fullWidth: true,
-                            loading: _loading,
                             icon: const Icon(Icons.open_in_browser, size: 18),
-                            onPressed: _loading ? null : _startSSO,
+                            onPressed: _startSSO,
                           ),
                       ],
                     ),

@@ -7,51 +7,29 @@ import 'package:nex/l10n/app_localizations.dart';
 
 void main() {
   group('AuthScreen', () {
-    testWidgets('renders login mode', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: ChangeNotifierProvider(
-            create: (_) => AuthProvider(),
-            child: const AuthScreen(mode: AuthMode.login),
-          ),
+    Widget buildApp() {
+      return MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ChangeNotifierProvider(
+          create: (_) => AuthProvider(),
+          child: const AuthScreen(),
         ),
       );
-      expect(find.text('Sign in to NEX'), findsOneWidget);
-      expect(find.text('Email'), findsOneWidget);
-      expect(find.text('Password'), findsOneWidget);
+    }
+
+    testWidgets('renders SSO login button', (tester) async {
+      await tester.pumpWidget(buildApp());
+      expect(find.text('Sign in to LitchiViewer'), findsOneWidget);
+      expect(find.text('Sign in with Browser'), findsOneWidget);
+      // 不再渲染邮箱/密码表单
+      expect(find.text('Email'), findsNothing);
+      expect(find.text('Password'), findsNothing);
     });
 
-    testWidgets('renders register mode with name field', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: ChangeNotifierProvider(
-            create: (_) => AuthProvider(),
-            child: const AuthScreen(mode: AuthMode.register),
-          ),
-        ),
-      );
-      expect(find.text('Create your account'), findsOneWidget);
-      expect(find.text('Name'), findsOneWidget);
-      expect(find.text('Email'), findsOneWidget);
-      expect(find.text('Password'), findsOneWidget);
-    });
-
-    testWidgets('shows submit button', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: ChangeNotifierProvider(
-            create: (_) => AuthProvider(),
-            child: const AuthScreen(mode: AuthMode.login),
-          ),
-        ),
-      );
-      expect(find.text('Sign In'), findsOneWidget);
+    testWidgets('shows branding icon', (tester) async {
+      await tester.pumpWidget(buildApp());
+      expect(find.byIcon(Icons.desktop_windows), findsOneWidget);
     });
   });
 }

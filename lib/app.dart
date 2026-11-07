@@ -75,11 +75,11 @@ class _NexAppState extends State<NexApp> {
       routes: [
         GoRoute(
           path: '/login',
-          builder: (context, state) => const AuthScreen(mode: AuthMode.login),
+          builder: (context, state) => const AuthScreen(),
         ),
         GoRoute(
           path: '/register',
-          builder: (context, state) => const AuthScreen(mode: AuthMode.register),
+          builder: (context, state) => const AuthScreen(),
         ),
         GoRoute(
           path: '/2fa',
