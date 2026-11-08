@@ -74,20 +74,20 @@ class _NexInputState extends State<NexInput> {
     final Color focusedBorderColor;
     
     if (widget.errorText != null) {
-      borderColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+      borderColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
       focusedBorderColor = borderColor;
     } else if (_isFocused) {
-      borderColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+      borderColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
       focusedBorderColor = borderColor;
     } else {
-      borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+      borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
       focusedBorderColor = borderColor;
     }
 
     final backgroundColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF1D1D1F);
-    final hintColor = isDark ? const Color(0xFF636366) : const Color(0xFFAEAEB2);
-    final labelColor = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final hintColor = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
+    final labelColor = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +100,7 @@ class _NexInputState extends State<NexInput> {
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: widget.errorText != null 
-                  ? (isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30))
+                  ? (isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C))
                   : labelColor,
             ),
           ),
@@ -152,26 +152,26 @@ class _NexInputState extends State<NexInput> {
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(NexRadius.md),
               borderSide: BorderSide(
-                color: isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA),
+                color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE),
               ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(NexRadius.md),
               borderSide: BorderSide(
-                color: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
+                color: isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C),
               ),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(NexRadius.md),
               borderSide: BorderSide(
-                color: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
+                color: isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C),
                 width: 1.5,
               ),
             ),
             errorText: null,
             errorStyle: TextStyle(
               fontSize: 12,
-              color: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
+              color: isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C),
             ),
           ),
         ),
@@ -181,7 +181,7 @@ class _NexInputState extends State<NexInput> {
             widget.errorText!,
             style: TextStyle(
               fontSize: 12,
-              color: isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30),
+              color: isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C),
             ),
           ),
         ],

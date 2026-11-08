@@ -37,8 +37,8 @@ class _NexCardState extends State<NexCard> {
     
     final backgroundColor = widget.color ?? colors.surface;
     final borderColorValue = widget.borderColor ?? (isDark 
-        ? const Color(0xFF38383A) 
-        : const Color(0xFFE5E5EA));
+        ? const Color(0xFF3A3A3A) 
+        : const Color(0xFFE0D9CE));
 
     List<BoxShadow>? boxShadow;
     if (widget.enableShadow) {

@@ -51,11 +51,11 @@ class SessionRecording {
   Color get statusColor {
     switch (status) {
       case 'recording':
-        return const Color(0xFFFF3B30);
+        return const Color(0xFFB71C1C);
       case 'completed':
-        return const Color(0xFF34C759);
+        return const Color(0xFFD4AF37);
       case 'failed':
-        return const Color(0xFFFF9500);
+        return const Color(0xFFD4AF37);
       case 'deleted':
         return const Color(0xFF8E8E93);
       default:

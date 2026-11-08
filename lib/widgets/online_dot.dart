@@ -32,8 +32,8 @@ class _OnlineDotState extends State<OnlineDot> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final onlineColor = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
-    final offlineColor = isDark ? const Color(0xFF636366) : const Color(0xFFAEAEB2);
+    final onlineColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
+    final offlineColor = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
     final color = widget.isOnline ? onlineColor : offlineColor;
 
     if (!widget.isOnline) {

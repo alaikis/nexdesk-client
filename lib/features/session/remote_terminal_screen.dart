@@ -26,14 +26,14 @@ class _AnsiSpan {
 }
 
 const _ansiColors = {
-  0: Color(0xFF000000),
+  0: Color(0xFF1A1A1A),
   1: Color(0xFF800000),
   2: Color(0xFF008000),
   3: Color(0xFF808000),
   4: Color(0xFF000080),
   5: Color(0xFF800080),
   6: Color(0xFF008080),
-  7: Color(0xFFE5E5EA),
+  7: Color(0xFFE0D9CE),
   8: Color(0xFF808080),
   9: Color(0xFFFF0000),
   10: Color(0xFF00FF00),
@@ -172,7 +172,7 @@ TextSpan _parseAnsi(String input) {
   return TextSpan(
     children: spans.map((s) {
       final color = s.dim
-          ? (s.color ?? const Color(0xFFE5E5EA)).withValues(alpha: 0.5)
+          ? (s.color ?? const Color(0xFFE0D9CE)).withValues(alpha: 0.5)
           : s.color;
       return TextSpan(
         text: s.text,
@@ -329,9 +329,9 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
-    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
+    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
+    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -406,16 +406,16 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
                       Expanded(
                         child: TextField(
                           controller: _inputController,
-                          cursorColor: const Color(0xFF007AFF),
+                          cursorColor: const Color(0xFFE34234),
                           style: const TextStyle(
-                            color: Color(0xFFE5E5EA),
+                            color: Color(0xFFE0D9CE),
                             fontFamily: 'monospace',
                             fontSize: 13,
                           ),
                           decoration: InputDecoration(
                             hintText: l10n.enterCommand,
                             hintStyle: const TextStyle(
-                              color: Color(0xFF636366),
+                              color: Color(0xFF78716C),
                               fontFamily: 'monospace',
                             ),
                             border: InputBorder.none,
@@ -430,7 +430,7 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.send, size: 18, color: Color(0xFFE5E5EA)),
+                        icon: const Icon(Icons.send, size: 18, color: Color(0xFFE0D9CE)),
                         onPressed: () {
                           final value = _inputController.text;
                           if (value.isEmpty) return;

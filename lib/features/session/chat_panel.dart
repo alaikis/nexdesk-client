@@ -72,12 +72,12 @@ class _ChatPanelState extends State<ChatPanel> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
     final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
     final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
-    final textTertiary = isDark ? const Color(0xFF636366) : const Color(0xFFAEAEB2);
-    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
+    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
 
     return Container(
       decoration: BoxDecoration(

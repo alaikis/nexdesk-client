@@ -41,12 +41,12 @@ class FloatingToolbar extends StatefulWidget {
 // Always-dark floating overlay palette. The container is #1C1C1E regardless of
 // the surrounding theme, so sub-colors use dark-mode Wise values.
 const _containerColor = Color(0xFF1C1C1E);
-const _iconInactive = Color(0xFF98989D);
-const _hoverColor = Color(0xFF38383A);
-const _dividerColor = Color(0xFF38383A);
-const _labelColor = Color(0xFF98989D);
-const _dragHandleColor = Color(0xFF636366);
-const _destructiveColor = Color(0xFFFF453A);
+const _iconInactive = Color(0xFFA8A29E);
+const _hoverColor = Color(0xFF3A3A3A);
+const _dividerColor = Color(0xFF3A3A3A);
+const _labelColor = Color(0xFFA8A29E);
+const _dragHandleColor = Color(0xFF78716C);
+const _destructiveColor = Color(0xFFEF5350);
 const _destructiveTint = Color(0x20FF453A);
 
 class _FloatingToolbarState extends State<FloatingToolbar> {
@@ -373,7 +373,7 @@ class _ToolbarButtonState extends State<_ToolbarButton> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor =
-        isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+        isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
     final primaryTint =
         isDark ? const Color(0x200A84FF) : const Color(0x20007AFF);
 

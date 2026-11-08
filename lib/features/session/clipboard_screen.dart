@@ -67,12 +67,12 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
-    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
+    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
+    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
     final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
-    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
-    final successColor = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+    final successColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -215,7 +215,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          '${event.direction} · ${event.createdAt.toString().substring(0, 19)}',
+                                          '${event.direction} 路 ${event.createdAt.toString().substring(0, 19)}',
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: textSecondary,

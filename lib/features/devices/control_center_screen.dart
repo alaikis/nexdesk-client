@@ -191,11 +191,11 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
+    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
     final cardBackground = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
-    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
-    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
 
     Widget content = SingleChildScrollView(
       padding: const EdgeInsets.all(20),

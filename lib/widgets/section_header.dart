@@ -8,7 +8,7 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textTertiary = isDark ? const Color(0xFF636366) : const Color(0xFFAEAEB2);
+    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

@@ -199,7 +199,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
             ] else
               Padding(
                 padding: const EdgeInsets.only(top: NexSpacing.sm),
-                child: Text(l10n.noWindowsDetected, style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF636366) : const Color(0xFF6E6E73))),
+                child: Text(l10n.noWindowsDetected, style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF78716C) : const Color(0xFF6B6560))),
               ),
           ],
         ),
@@ -816,8 +816,8 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   Widget _buildScreenSelector() {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
-    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
     return Padding(
       padding: const EdgeInsets.all(NexSpacing.xl),
       child: Column(
@@ -858,15 +858,15 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     final l10n = AppLocalizations.of(context)!;
     final streams = _webrtc.remoteStreams;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
-    final successColor = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
-    final warningColor = isDark ? const Color(0xFFFF9F0A) : const Color(0xFFFF9500);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
+    final successColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
+    final warningColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
+    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
     final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
-    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
-    final textTertiary = isDark ? const Color(0xFF636366) : const Color(0xFFAEAEB2);
-    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
+    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
 
     if (sessionProvider.reconnectionState == ReconnectionState.failed) {
       return Center(
@@ -1064,7 +1064,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   Widget _buildDragOverlay() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
     final fileCount = _dragFiles.length;
     final l10n = AppLocalizations.of(context)!;
     final sizeText = _dragTotalSize > 0
@@ -1103,7 +1103,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                   if (fileCount > 0) ...[
                     const SizedBox(height: NexSpacing.xs),
                     Text(
-                      '$fileCount file${fileCount > 1 ? 's' : ''}${sizeText.isNotEmpty ? " • $sizeText" : ""}',
+                      '$fileCount file${fileCount > 1 ? 's' : ''}${sizeText.isNotEmpty ? " 鈥?$sizeText" : ""}',
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                   ],
@@ -1312,7 +1312,7 @@ class _ClassicToolbarButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
     return Semantics(
       label: tooltip,
       child: Material(

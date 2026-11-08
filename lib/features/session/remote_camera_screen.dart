@@ -220,9 +220,9 @@ class _RemoteCameraScreenState extends State<RemoteCameraScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
-    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
+    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
 
     return Scaffold(
       backgroundColor: backgroundColor,

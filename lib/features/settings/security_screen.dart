@@ -132,12 +132,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
-    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
-    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
-    final successColor = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
+    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+    final successColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
+    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -177,10 +177,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Widget _buildStatusBadge(String text, {required bool isSuccess, required bool isDark}) {
-    final successBg = isDark ? const Color(0xFF30D158).withOpacity(0.15) : const Color(0xFF34C759).withOpacity(0.12);
-    final successFg = isDark ? const Color(0xFF30D158) : const Color(0xFF34C759);
-    final warningBg = isDark ? const Color(0xFFFF9F0A).withOpacity(0.15) : const Color(0xFFFF9500).withOpacity(0.12);
-    final warningFg = isDark ? const Color(0xFFFF9F0A) : const Color(0xFFFF9500);
+    final successBg = isDark ? const Color(0xFFD4AF37).withOpacity(0.15) : const Color(0xFFD4AF37).withOpacity(0.12);
+    final successFg = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
+    final warningBg = isDark ? const Color(0xFFD4AF37).withOpacity(0.15) : const Color(0xFFD4AF37).withOpacity(0.12);
+    final warningFg = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

@@ -14,8 +14,8 @@ class WindowTitleBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
-    final hoverBg = isDark ? const Color(0xFF38383A) : const Color(0xFFF2F2F7);
+    final iconColor = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+    final hoverBg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF2F2F7);
     final closeHoverBg = isDark ? const Color(0xFFE81123) : const Color(0xFFE81123);
 
     return GestureDetector(
@@ -34,7 +34,7 @@ class WindowTitleBar extends StatelessWidget {
           color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
           border: Border(
             bottom: BorderSide(
-              color: isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA),
+              color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE),
               width: 0.5,
             ),
           ),
@@ -50,7 +50,7 @@ class WindowTitleBar extends StatelessWidget {
                 width: 20,
                 height: 20,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF),
+                  color: const Color(0xFFE34234),
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: const Icon(
@@ -66,7 +66,7 @@ class WindowTitleBar extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : const Color(0xFF1D1D1F),
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
               ),
             ),
             const Spacer(),

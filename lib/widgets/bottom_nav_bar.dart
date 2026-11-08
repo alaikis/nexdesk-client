@@ -15,8 +15,8 @@ class BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final selectedColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
-    final unselectedColor = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final selectedColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
+    final unselectedColor = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
     final backgroundColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
     
     return Container(
@@ -24,7 +24,7 @@ class BottomNavBar extends StatelessWidget {
         color: backgroundColor,
         border: Border(
           top: BorderSide(
-            color: isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA),
+            color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE),
             width: 0.5,
           ),
         ),

@@ -68,42 +68,42 @@ class WiseColorTokens {
 
   /// Light Mode
   static const light = WiseColorTokens._(
-    primary: Color(0xFF007AFF),
-    primaryHover: Color(0xFF0066CC),
+    primary: Color(0xFFE34234),
+    primaryHover: Color(0xFFC53528),
     onPrimary: Color(0xFFFFFFFF),
-    success: Color(0xFF34C759),
-    warning: Color(0xFFFF9500),
-    error: Color(0xFFFF3B30),
-    background: Color(0xFFFFFFFF),
-    backgroundSubtle: Color(0xFFF2F2F7),
-    surface: Color(0xFFF2F2F7),
+    success: Color(0xFFD4AF37),
+    warning: Color(0xFFF2A900),
+    error: Color(0xFFB71C1C),
+    background: Color(0xFFFAFAFA),
+    backgroundSubtle: Color(0xFFF5F5F5),
+    surface: Color(0xFFF5F5F5),
     card: Color(0xFFFFFFFF),
-    textPrimary: Color(0xFF1D1D1F),
-    textSecondary: Color(0xFF6E6E73),
-    textTertiary: Color(0xFFAEAEB2),
-    border: Color(0xFFE5E5EA),
-    borderStrong: Color(0xFFC7C7CC),
-    online: Color(0xFF34C759),
+    textPrimary: Color(0xFF1A1A1A),
+    textSecondary: Color(0xFF5C5C5C),
+    textTertiary: Color(0xFF8E8E8E),
+    border: Color(0xFFE0E0E0),
+    borderStrong: Color(0xFFBFBFBF),
+    online: Color(0xFF388E3C),
   );
 
   /// Dark Mode
   static const dark = WiseColorTokens._(
-    primary: Color(0xFF0A84FF),
-    primaryHover: Color(0xFF3399FF),
+    primary: Color(0xFFE34234),
+    primaryHover: Color(0xFFC53528),
     onPrimary: Color(0xFFFFFFFF),
-    success: Color(0xFF30D158),
-    warning: Color(0xFFFF9F0A),
-    error: Color(0xFFFF453A),
-    background: Color(0xFF000000),
-    backgroundSubtle: Color(0xFF1C1C1E),
-    surface: Color(0xFF1C1C1E),
-    card: Color(0xFF1C1C1E),
+    success: Color(0xFFD4AF37),
+    warning: Color(0xFFF2A900),
+    error: Color(0xFFEF5350),
+    background: Color(0xFF1A1A1A),
+    backgroundSubtle: Color(0xFF242424),
+    surface: Color(0xFF242424),
+    card: Color(0xFF2C2C2C),
     textPrimary: Color(0xFFFFFFFF),
-    textSecondary: Color(0xFF98989D),
-    textTertiary: Color(0xFF636366),
-    border: Color(0xFF38383A),
-    borderStrong: Color(0xFF48484A),
-    online: Color(0xFF30D158),
+    textSecondary: Color(0xFFB0B0B0),
+    textTertiary: Color(0xFF757575),
+    border: Color(0xFF3A3A3A),
+    borderStrong: Color(0xFF5A5A5A),
+    online: Color(0xFF4CAF50),
   );
 
   WiseColorTokens copyWith({Color? primary, Color? primaryHover}) {
@@ -399,40 +399,40 @@ class NexColors {
   });
 
   const NexColors.light()
-      : primary = const Color(0xFF007AFF),
+      : primary = const Color(0xFFE34234),
         onPrimary = Colors.white,
-        background = const Color(0xFFFFFFFF),
-        surface = const Color(0xFFF2F2F7),
+        background = const Color(0xFFFAFAFA),
+        surface = const Color(0xFFF5F5F5),
         card = Colors.white,
-        border = const Color(0xFFE5E5EA),
-        textPrimary = const Color(0xFF1D1D1F),
-        textSecondary = const Color(0xFF6E6E73),
-        textTertiary = const Color(0xFFAEAEB2),
-        online = const Color(0xFF34C759),
-        error = const Color(0xFFFF3B30),
-        success = const Color(0xFF34C759),
-        warning = const Color(0xFFFF9500),
-        primaryHover = const Color(0xFF0066CC),
-        borderStrong = const Color(0xFFC7C7CC),
-        backgroundSubtle = const Color(0xFFF2F2F7);
+        border = const Color(0xFFE0E0E0),
+        textPrimary = const Color(0xFF1A1A1A),
+        textSecondary = const Color(0xFF5C5C5C),
+        textTertiary = const Color(0xFF8E8E8E),
+        online = const Color(0xFF388E3C),
+        error = const Color(0xFFB71C1C),
+        success = const Color(0xFFD4AF37),
+        warning = const Color(0xFFF2A900),
+        primaryHover = const Color(0xFFC53528),
+        borderStrong = const Color(0xFFBFBFBF),
+        backgroundSubtle = const Color(0xFFF5F5F5);
 
   const NexColors.dark()
-      : primary = const Color(0xFF0A84FF),
+      : primary = const Color(0xFFE34234),
         onPrimary = Colors.white,
-        background = const Color(0xFF000000),
-        surface = const Color(0xFF1C1C1E),
-        card = const Color(0xFF1C1C1E),
-        border = const Color(0xFF38383A),
+        background = const Color(0xFF1A1A1A),
+        surface = const Color(0xFF242424),
+        card = const Color(0xFF2C2C2C),
+        border = const Color(0xFF3A3A3A),
         textPrimary = const Color(0xFFFFFFFF),
-        textSecondary = const Color(0xFF98989D),
-        textTertiary = const Color(0xFF636366),
-        online = const Color(0xFF30D158),
-        error = const Color(0xFFFF453A),
-        success = const Color(0xFF30D158),
-        warning = const Color(0xFFFF9F0A),
-        primaryHover = const Color(0xFF3399FF),
-        borderStrong = const Color(0xFF48484A),
-        backgroundSubtle = const Color(0xFF1C1C1E);
+        textSecondary = const Color(0xFFB0B0B0),
+        textTertiary = const Color(0xFF757575),
+        online = const Color(0xFF4CAF50),
+        error = const Color(0xFFEF5350),
+        success = const Color(0xFFD4AF37),
+        warning = const Color(0xFFF2A900),
+        primaryHover = const Color(0xFFC53528),
+        borderStrong = const Color(0xFF5A5A5A),
+        backgroundSubtle = const Color(0xFF242424);
 
   factory NexColors.fromWise(WiseColorTokens t) {
     return NexColors._(
@@ -764,33 +764,33 @@ class NexRadius {
 class WiseColors {
   WiseColors._();
 
-  static const Color primaryLight = Color(0xFF007AFF);
-  static const Color primaryHoverLight = Color(0xFF0066CC);
-  static const Color successLight = Color(0xFF34C759);
-  static const Color warningLight = Color(0xFFFF9500);
-  static const Color destructiveLight = Color(0xFFFF3B30);
-  static const Color backgroundLight = Color(0xFFFFFFFF);
-  static const Color backgroundSubtleLight = Color(0xFFF2F2F7);
-  static const Color surfaceLight = Color(0xFFF2F2F7);
-  static const Color textPrimaryLight = Color(0xFF1D1D1F);
-  static const Color textSecondaryLight = Color(0xFF6E6E73);
-  static const Color textTertiaryLight = Color(0xFFAEAEB2);
-  static const Color borderLight = Color(0xFFE5E5EA);
-  static const Color borderStrongLight = Color(0xFFC7C7CC);
+  static const Color primaryLight = Color(0xFFE34234);
+  static const Color primaryHoverLight = Color(0xFFC53528);
+  static const Color successLight = Color(0xFFD4AF37);
+  static const Color warningLight = Color(0xFFF2A900);
+  static const Color destructiveLight = Color(0xFFB71C1C);
+  static const Color backgroundLight = Color(0xFFFAFAFA);
+  static const Color backgroundSubtleLight = Color(0xFFF5F5F5);
+  static const Color surfaceLight = Color(0xFFF5F5F5);
+  static const Color textPrimaryLight = Color(0xFF1A1A1A);
+  static const Color textSecondaryLight = Color(0xFF5C5C5C);
+  static const Color textTertiaryLight = Color(0xFF8E8E8E);
+  static const Color borderLight = Color(0xFFE0E0E0);
+  static const Color borderStrongLight = Color(0xFFBFBFBF);
 
-  static const Color primaryDark = Color(0xFF0A84FF);
-  static const Color primaryHoverDark = Color(0xFF3399FF);
-  static const Color successDark = Color(0xFF30D158);
-  static const Color warningDark = Color(0xFFFF9F0A);
-  static const Color destructiveDark = Color(0xFFFF453A);
-  static const Color backgroundDark = Color(0xFF000000);
-  static const Color backgroundSubtleDark = Color(0xFF1C1C1E);
-  static const Color surfaceDark = Color(0xFF1C1C1E);
+  static const Color primaryDark = Color(0xFFE34234);
+  static const Color primaryHoverDark = Color(0xFFC53528);
+  static const Color successDark = Color(0xFFD4AF37);
+  static const Color warningDark = Color(0xFFF2A900);
+  static const Color destructiveDark = Color(0xFFEF5350);
+  static const Color backgroundDark = Color(0xFF1A1A1A);
+  static const Color backgroundSubtleDark = Color(0xFF242424);
+  static const Color surfaceDark = Color(0xFF242424);
   static const Color textPrimaryDark = Color(0xFFFFFFFF);
-  static const Color textSecondaryDark = Color(0xFF98989D);
-  static const Color textTertiaryDark = Color(0xFF636366);
-  static const Color borderDark = Color(0xFF38383A);
-  static const Color borderStrongDark = Color(0xFF48484A);
+  static const Color textSecondaryDark = Color(0xFFB0B0B0);
+  static const Color textTertiaryDark = Color(0xFF757575);
+  static const Color borderDark = Color(0xFF3A3A3A);
+  static const Color borderStrongDark = Color(0xFF5A5A5A);
 }
 
 @Deprecated('Use WiseTheme.of(context).shadows instead.')

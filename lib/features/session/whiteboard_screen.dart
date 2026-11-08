@@ -26,7 +26,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
   final List<_Stroke> _strokes = [];
   final List<_Stroke> _undoStack = [];
   _Tool _tool = _Tool.pen;
-  Color _color = const Color(0xFF007AFF);
+  Color _color = const Color(0xFFE34234);
   double _size = 4.0;
 
   final List<_Stroke> _remoteStrokes = [];
@@ -34,20 +34,20 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
 
   static const _maxUndo = 20;
   static const _defaultColors = <Color>[
-    Color(0xFF007AFF),
-    Color(0xFFFF3B30),
-    Color(0xFF34C759),
-    Color(0xFFFF9500),
+    Color(0xFFE34234),
+    Color(0xFFB71C1C),
+    Color(0xFFD4AF37),
+    Color(0xFFD4AF37),
     Color(0xFFAF52DE),
   ];
 
   static const _palette = <Color>[
-    Color(0xFF007AFF),
-    Color(0xFFFF3B30),
-    Color(0xFF34C759),
-    Color(0xFFFF9500),
+    Color(0xFFE34234),
+    Color(0xFFB71C1C),
+    Color(0xFFD4AF37),
+    Color(0xFFD4AF37),
     Color(0xFFAF52DE),
-    Color(0xFF1D1D1F),
+    Color(0xFF1A1A1A),
   ];
 
   @override
@@ -87,9 +87,9 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
 
   Widget _buildToolbar() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
     final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
 
     final selectedTool = _tool;
     final l10n = AppLocalizations.of(context)!;
@@ -465,12 +465,12 @@ class _ToolButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
     final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1D1D1F);
-    final textSecondary = isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
-    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
-    final errorColor = isDark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
+    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
 
     Color bgColor;
     Color iconColor;
