@@ -101,7 +101,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Text(
-                              activeError!,
+                              activeError ?? '',
                               style: TextStyle(
                                 color: isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C),
                                 fontSize: 13,

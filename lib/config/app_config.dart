@@ -4,10 +4,11 @@ class AppConfig {
   static const String defaultTurnUrl = 'turns:nex.hottol.com:3478';
   static const String defaultStunUrl = 'stun:stun.l.google.com:19302';
 
-  // Passport OIDC SSO 配置 (公共客户端, PKCE)
+  // Passport OIDC SSO 配置（confidential 客户端，PKCE + client_secret 由云端持有）
   static const String passportBaseUrl = 'https://passport.alaikis.com';
-  static const String passportClientId = 'litchiviewer';
-  // 本地回调端口 (需预注册到 passport redirect_uri 白名单)
+  static const String passportClientId = '8755679';
+  // client_secret 由服务端持有，客户端不接触
+  // 本地回调端口（保留用于本地开发直连调试）
   static const int ssoCallbackPort = 8443;
 
   static String serverUrl = defaultServerUrl;

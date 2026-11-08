@@ -3,10 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../config/app_config.dart';
 import '../../core/api_client.dart';
-import '../../core/oidc_sso_client.dart';
-import '../../core/local_sso_server.dart';
 import '../../core/secure_storage_service.dart';
 import '../../core/storage_service.dart';
 import '../../core/device_fingerprint_service.dart';
@@ -22,10 +19,9 @@ class AuthProvider with ChangeNotifier {
   String? _deviceId;
   String? _deviceName;
 
-  // SSO 状态
+  // SSO 状态（云端驱动，客户端不保存凭据）
   String? _ssoAuthUrl;
   bool _ssoPolling = false;
-  LocalSsoCallbackServer? _localServer;
 
   AuthStatus get status => _status;
   String? get userId => _userId;
@@ -40,13 +36,6 @@ class AuthProvider with ChangeNotifier {
   String? _lastError;
   String? _pending2FATempToken;
   bool get requires2FA => _pending2FATempToken != null;
-
-  /// 标准 OIDC 公共客户端
-  OidcSsoClient get _oidcClient => OidcSsoClient(
-        passportBaseUrl: AppConfig.passportBaseUrl,
-        clientId: AppConfig.passportClientId,
-        redirectUri: AppConfig.ssoCallbackUrl,
-      );
 
   Future<void> init() async {
     _lastError = null;
@@ -79,104 +68,53 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// 标准 OIDC + PKCE 桌面登录:
-  /// 1. 启动本地回调服务器
-  /// 2. 生成 PKCE + state, 打开系统浏览器到 passport authorize
-  /// 3. 浏览器登录成功后重定向到本地服务器, 捕获 code
-  /// 4. 验证 state, 本地用 code + PKCE verifier 交换 token
-  /// 5. 保存 token
+  /// 云端 SSO 桌面登录（客户端不保存任何登录凭据）:
+  /// 1. 调用云端 /sso/desktop/init，服务端生成 PKCE + passport authorize URL
+  /// 2. 打开系统浏览器到 auth_url
+  /// 3. 用户在 passport 登录，passport 重定向到云端 /sso/desktop/callback
+  /// 4. 云端用 code + code_verifier + client_secret 交换 token，存入 session
+  /// 5. 客户端轮询 /sso/desktop/poll，获取 access/refresh token
+  /// 6. 保存 token（仅 token，不含密码/凭据）
   Future<bool> startSSOLogin() async {
     _lastError = null;
     _ssoPolling = true;
+    _ssoAuthUrl = null;
     notifyListeners();
 
     try {
-      // 1. 启动本地回调服务器
-      _localServer = LocalSsoCallbackServer(AppConfig.ssoCallbackPort);
-      await _localServer!.start();
+      // 1. 调用云端获取 auth_url + session_id
+      final initRes = await _api.ssoDesktopInit();
+      final authUrl = initRes['auth_url'] as String?;
+      final sessionId = initRes['session_id'] as String?;
 
-      // 2. 生成 PKCE + 授权 URL
-      final oidc = _oidcClient;
-      final authUrl = oidc.buildAuthorizeUrl();
-      final expectedState = oidc.expectedState;
+      if (authUrl == null || sessionId == null) {
+        _lastError = 'Failed to initialize SSO login';
+        _ssoPolling = false;
+        notifyListeners();
+        return false;
+      }
+
       _ssoAuthUrl = authUrl;
 
-      // 3. 打开系统浏览器
+      // 2. 打开系统浏览器
       final uri = Uri.parse(authUrl);
       final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!launched) {
-        throw ApiException(0, 'Could not open browser for SSO login');
-      }
-
-      // 4. 等待浏览器回跳到本地服务器
-      final callback = await _localServer!.waitForCallback();
-      _localServer = null;
-
-      final error = callback['error'];
-      if (error != null) {
-        _lastError = error == 'timeout'
-            ? 'Login timed out. Please try again.'
-            : 'SSO login failed: $error';
+        _lastError = 'Could not open browser for SSO login';
         _ssoPolling = false;
-        _ssoAuthUrl = null;
         notifyListeners();
         return false;
       }
 
-      final code = callback['code'];
-      final state = callback['state'];
-      if (code == null) {
-        _lastError = 'No authorization code received';
-        _ssoPolling = false;
-        _ssoAuthUrl = null;
-        notifyListeners();
-        return false;
-      }
-
-      // 5. 验证 state (防 CSRF)
-      if (state != expectedState) {
-        _lastError = 'State mismatch - security check failed';
-        _ssoPolling = false;
-        _ssoAuthUrl = null;
-        notifyListeners();
-        return false;
-      }
-
-      // 6. 本地 PKCE 交换 token
-      final tokenData = await oidc.exchangeCodeForToken(code);
-      final accessToken = tokenData['access_token'] as String?;
-      final refreshToken = tokenData['refresh_token'] as String?;
-
-      if (accessToken == null) {
-        _lastError = 'No access token in response';
-        _ssoPolling = false;
-        _ssoAuthUrl = null;
-        notifyListeners();
-        return false;
-      }
-
-      // 7. 保存 token
-      await _api.saveSsoToken(accessToken, refreshToken);
-
-      try {
-        final meRes = await _api.get('/auth/me');
-        _userId = meRes['id']?.toString();
-        _email = meRes['email'] as String?;
-      } on ApiException {
-        // token 有效但 /auth/me 失败(如 passport 用户 ID 不匹配), 仍视为已登录
-      }
-
-      await _ensureDeviceRegistered(_email ?? 'My Device');
-      _status = AuthStatus.authenticated;
+      // 3. 轮询云端登录状态
+      final ok = await _pollSSOStatus(sessionId);
       _ssoPolling = false;
       _ssoAuthUrl = null;
       notifyListeners();
-      return true;
+      return ok;
     } on ApiException catch (e) {
       _lastError = e.message;
       debugPrint('SSO login failed: $e');
-      await _localServer?.waitForCallback(timeout: Duration.zero);
-      _localServer = null;
       _ssoPolling = false;
       _ssoAuthUrl = null;
       notifyListeners();
@@ -189,6 +127,59 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  /// 轮询云端 SSO 登录状态，直到 complete/error/超时
+  Future<bool> _pollSSOStatus(String sessionId) async {
+    const pollInterval = Duration(seconds: 2);
+    const maxAttempts = 150; // 5 分钟
+
+    for (var i = 0; i < maxAttempts; i++) {
+      await Future.delayed(pollInterval);
+      if (!_ssoPolling) break;
+
+      try {
+        final res = await _api.ssoDesktopPoll(sessionId);
+        final status = res['status'] as String?;
+
+        if (status == 'complete') {
+          final accessToken = res['access_token'] as String?;
+          final refreshToken = res['refresh_token'] as String?;
+          if (accessToken == null) {
+            _lastError = 'No access token in response';
+            return false;
+          }
+
+          // 保存 token（仅 token，不含密码）
+          await _api.saveSsoToken(accessToken, refreshToken);
+
+          try {
+            final meRes = await _api.get('/auth/me');
+            _userId = meRes['id']?.toString();
+            _email = meRes['email'] as String?;
+          } on ApiException {
+            // token 有效但 /auth/me 失败，仍视为已登录
+          }
+
+          await _ensureDeviceRegistered(_email ?? 'My Device');
+          _status = AuthStatus.authenticated;
+          return true;
+        } else if (status == 'error') {
+          _lastError = res['error'] as String? ?? 'SSO login failed';
+          return false;
+        }
+        // status == "pending" → 继续轮询
+      } on ApiException catch (e) {
+        if (e.statusCode == 404) {
+          _lastError = 'SSO session expired. Please try again.';
+          return false;
+        }
+        // 网络抖动，继续轮询
+      }
+    }
+
+    _lastError = 'Login timed out. Please try again.';
+    return false;
   }
 
   void cancelSSOLogin() {
