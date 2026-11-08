@@ -209,10 +209,10 @@ class ApiClient {
     return get('/sso/desktop/poll?session_id=$sessionId');
   }
 
-  /// Desktop SSO 登出
+  /// Desktop SSO 登出（调用云端清会话，并清除本地 token）
   Future<void> ssoDesktopLogout() async {
     try {
-      await post('/sso/desktop/logout', {});
+      await post('/sso/desktop/logout', {'session_id': null});
     } catch (_) {}
     await _saveAuth(null, null);
   }
