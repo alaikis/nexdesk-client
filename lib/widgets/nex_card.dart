@@ -32,61 +32,27 @@ class _NexCardState extends State<NexCard> {
 
   @override
   Widget build(BuildContext context) {
+    final wise = WiseTheme.of(context);
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     final backgroundColor = widget.color ?? colors.surface;
-    final borderColorValue = widget.borderColor ?? (isDark 
-        ? const Color(0xFF3A3A3A) 
-        : const Color(0xFFE0D9CE));
+    final borderColorValue = widget.borderColor ?? wise.border;
 
     List<BoxShadow>? boxShadow;
     if (widget.enableShadow) {
-      if (_isHovered && widget.enableHover) {
-        boxShadow = isDark 
-            ? [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ];
-      } else {
-        boxShadow = isDark 
-            ? [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 3,
-                  offset: const Offset(0, 1),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 3,
-                  offset: const Offset(0, 1),
-                ),
-              ];
-      }
+      boxShadow = (_isHovered && widget.enableHover) ? wise.shadows.md : wise.shadows.sm;
     }
 
     Widget cardContent = Container(
       margin: widget.margin,
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(NexRadius.lg),
+        borderRadius: BorderRadius.circular(wise.radius.lg),
         border: Border.all(color: borderColorValue),
         boxShadow: boxShadow,
       ),
       child: Padding(
-        padding: widget.padding ?? EdgeInsets.all(NexSpacing.lg),
+        padding: widget.padding ?? EdgeInsets.all(wise.spacing.lg),
         child: widget.child,
       ),
     );
@@ -98,7 +64,8 @@ class _NexCardState extends State<NexCard> {
         child: GestureDetector(
           onTap: widget.onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
+            duration: WiseMotionTokens.normal,
+            curve: WiseMotionTokens.defaultCurve,
             child: cardContent,
           ),
         ),

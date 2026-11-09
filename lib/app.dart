@@ -151,12 +151,13 @@ class _NexAppState extends State<NexApp> {
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
       builder: (context, child) {
+        final bg = Theme.of(context).colorScheme.surface;
         return Directionality(
           textDirection: TextDirection.ltr,
           child: Column(
             children: [
               const WindowTitleBar(),
-              Expanded(child: child ?? const ColoredBox(color: Colors.white, child: SizedBox.expand())),
+              Expanded(child: child ?? ColoredBox(color: bg, child: const SizedBox.expand())),
             ],
           ),
         );

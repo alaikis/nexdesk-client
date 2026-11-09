@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'auth_provider.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/nex_button.dart';
 import '../../widgets/nex_card.dart';
 import '../../l10n/app_localizations.dart';
@@ -32,124 +33,128 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final wise = WiseTheme.of(context);
     final l10n = AppLocalizations.of(context)!;
-
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final cardBackground = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
 
     final inProgress = auth.ssoInProgress;
     final activeError = _error ?? auth.lastError;
 
     return Scaffold(
-      body: Container(
-        color: backgroundColor,
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE34234),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.desktop_windows,
-                        color: Colors.white,
-                        size: 32,
-                      ),
+      backgroundColor: wise.background,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(wise.spacing.xxl),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: wise.primary,
+                      borderRadius: BorderRadius.circular(wise.radius.md),
+                    ),
+                    child: Icon(
+                      Icons.desktop_windows_outlined,
+                      color: wise.onPrimary,
+                      size: 24,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    l10n.signInToNex,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: textPrimary,
-                      letterSpacing: -0.5,
-                    ),
-                    textAlign: TextAlign.center,
+                ),
+                SizedBox(height: wise.spacing.xl),
+                Text(
+                  l10n.signInToNex,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w500,
+                    color: wise.textPrimary,
+                    letterSpacing: -0.2,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.accessRemoteDevices,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: textSecondary,
-                    ),
-                    textAlign: TextAlign.center,
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: wise.spacing.sm),
+                Text(
+                  l10n.accessRemoteDevices,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: wise.textSecondary,
+                    height: 1.4,
                   ),
-                  const SizedBox(height: 32),
-                  NexCard(
-                    padding: const EdgeInsets.all(24),
-                    color: cardBackground,
-                    enableShadow: true,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (activeError != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: wise.spacing.xxl),
+                NexCard(
+                  padding: EdgeInsets.all(wise.spacing.xl),
+                  color: wise.card,
+                  enableShadow: true,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (activeError != null)
+                        Padding(
+                          padding: EdgeInsets.only(bottom: wise.spacing.md),
+                          child: Container(
+                            padding: EdgeInsets.all(wise.spacing.md),
+                            decoration: BoxDecoration(
+                              color: wise.errorSoft,
+                              borderRadius: BorderRadius.circular(wise.radius.md),
+                              border: Border.all(color: wise.error.withValues(alpha: 0.24)),
+                            ),
                             child: Text(
-                              activeError ?? '',
+                              activeError,
                               style: TextStyle(
-                                color: isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C),
+                                color: wise.error,
                                 fontSize: 13,
                               ),
                               textAlign: TextAlign.center,
                             ),
                           ),
-                        if (inProgress) ...[
-                          Center(
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: isDark ? const Color(0xFFE34234) : const Color(0xFFE34234),
-                              ),
+                        ),
+                      if (inProgress) ...[
+                        Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: wise.primary,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Waiting for browser sign-in...',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: textPrimary,
-                            ),
-                            textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: wise.spacing.lg),
+                        Text(
+                          'Waiting for browser sign-in',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: wise.textPrimary,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Complete sign-in in your browser, then return here.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: textSecondary,
-                            ),
-                            textAlign: TextAlign.center,
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: wise.spacing.xs),
+                        Text(
+                          'Complete sign-in in your browser, then return here.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: wise.textSecondary,
+                            height: 1.4,
                           ),
-                        ] else
-                          NexButton(
-                            text: 'Sign in with Browser',
-                            fullWidth: true,
-                            icon: const Icon(Icons.open_in_browser, size: 18),
-                            onPressed: _startSSO,
-                          ),
-                      ],
-                    ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ] else
+                        NexButton(
+                          text: 'Sign in with browser',
+                          fullWidth: true,
+                          icon: const Icon(Icons.open_in_browser, size: 18),
+                          onPressed: _startSSO,
+                        ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

@@ -57,41 +57,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final wise = WiseTheme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final cardBackground = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
-    final dividerColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
 
     return Container(
-      color: backgroundColor,
+      color: wise.background,
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(wise.spacing.xl),
         children: [
           Text(
-            l10n.settings, 
+            l10n.settings,
             style: TextStyle(
-              fontSize: 28, 
-              fontWeight: FontWeight.w700, 
-              color: textPrimary,
-              letterSpacing: -0.5,
+              fontSize: 28,
+              fontWeight: FontWeight.w500,
+              color: wise.textPrimary,
+              letterSpacing: -0.2,
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: wise.spacing.xxl),
           NexCard(
-            color: cardBackground,
+            color: wise.card,
             enableShadow: true,
             child: Column(
               children: [
                 ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  title: Text(l10n.security, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary)),
-                  subtitle: Text(l10n.manageSecuritySettings, style: TextStyle(fontSize: 13, color: textSecondary)),
-                  trailing: Icon(Icons.chevron_right, color: textTertiary),
+                  contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
+                  title: Text(l10n.security, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: wise.textPrimary)),
+                  subtitle: Text(l10n.manageSecuritySettings, style: TextStyle(fontSize: 13, color: wise.textSecondary)),
+                  trailing: Icon(Icons.chevron_right, color: wise.textTertiary),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -104,12 +97,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     );
                   },
                 ),
-                Divider(height: 1, color: dividerColor),
+                Divider(height: 1, color: wise.border),
                 ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  title: Text(l10n.twoFactorAuth, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary)),
-                  subtitle: Text(l10n.manage2FASettings, style: TextStyle(fontSize: 13, color: textSecondary)),
-                  trailing: Icon(Icons.chevron_right, color: textTertiary),
+                  contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
+                  title: Text(l10n.twoFactorAuth, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: wise.textPrimary)),
+                  subtitle: Text(l10n.manage2FASettings, style: TextStyle(fontSize: 13, color: wise.textSecondary)),
+                  trailing: Icon(Icons.chevron_right, color: wise.textTertiary),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -120,58 +113,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: wise.spacing.md),
           NexCard(
-            color: cardBackground,
+            color: wise.card,
             enableShadow: true,
             child: Column(
               children: [
                 ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  title: Text(l10n.language, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary)),
-                  subtitle: Text(l10n.selectLanguage, style: TextStyle(fontSize: 13, color: textSecondary)),
+                  contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
+                  title: Text(l10n.language, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: wise.textPrimary)),
+                  subtitle: Text(l10n.selectLanguage, style: TextStyle(fontSize: 13, color: wise.textSecondary)),
                   trailing: PopupMenuButton<String>(
                     onSelected: (value) => _changeLanguage(value),
                     itemBuilder: (context) => [
                       PopupMenuItem(value: 'en', child: Text(l10n.english)),
                       PopupMenuItem(value: 'zh', child: Text(l10n.chinese)),
                     ],
-                    child: const Icon(Icons.language),
+                    child: Icon(Icons.language, color: wise.textSecondary),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: wise.spacing.md),
           NexCard(
-            color: cardBackground,
+            color: wise.card,
             enableShadow: true,
             child: Column(
               children: [
                 ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  title: Text(l10n.privacyPolicy, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary)),
-                  subtitle: Text(l10n.viewPrivacyPolicy, style: TextStyle(fontSize: 13, color: textSecondary)),
-                  trailing: Icon(Icons.open_in_new, color: textTertiary),
+                  contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
+                  title: Text(l10n.privacyPolicy, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: wise.textPrimary)),
+                  subtitle: Text(l10n.viewPrivacyPolicy, style: TextStyle(fontSize: 13, color: wise.textSecondary)),
+                  trailing: Icon(Icons.open_in_new, color: wise.textTertiary, size: 18),
                   onTap: () => _launchUrl('/legal/privacy'),
                 ),
-                Divider(height: 1, color: dividerColor),
+                Divider(height: 1, color: wise.border),
                 ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  title: Text(l10n.termsOfService, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary)),
-                  subtitle: Text(l10n.viewTermsOfService, style: TextStyle(fontSize: 13, color: textSecondary)),
-                  trailing: Icon(Icons.open_in_new, color: textTertiary),
+                  contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
+                  title: Text(l10n.termsOfService, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: wise.textPrimary)),
+                  subtitle: Text(l10n.viewTermsOfService, style: TextStyle(fontSize: 13, color: wise.textSecondary)),
+                  trailing: Icon(Icons.open_in_new, color: wise.textTertiary, size: 18),
                   onTap: () => _launchUrl('/legal/terms'),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: wise.spacing.xxl),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: wise.spacing.lg),
             child: Text(
-              l10n.versionInfo(_version), 
-              style: TextStyle(fontSize: 13, color: textTertiary),
+              l10n.versionInfo(_version),
+              style: TextStyle(fontSize: 13, color: wise.textTertiary),
             ),
           ),
         ],
