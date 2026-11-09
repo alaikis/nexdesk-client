@@ -7,11 +7,11 @@ import '../../features/devices/device_provider.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/session/session_provider.dart';
 import '../../core/error_handler.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/nex_card.dart';
 import '../../widgets/local_device_card.dart';
 import '../../widgets/sidebar.dart';
 import '../../widgets/bottom_nav_bar.dart';
-import '../../widgets/nex_scaffold.dart';
 import '../../l10n/app_localizations.dart';
 
 enum ConnectMode { control, file, view, collab }
@@ -118,17 +118,17 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                   labelText: l10n.deviceCodeLabel,
                   hintText: l10n.enterCode,
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
                 textCapitalization: TextCapitalization.characters,
               ),
               const SizedBox(height: 12),
               SegmentedButton<ConnectMode>(
                 segments: [
-                  ButtonSegment(value: ConnectMode.control, label: Text(l10n.connectModeControl), icon: Icon(Icons.computer, size: 16)),
-                  ButtonSegment(value: ConnectMode.file, label: Text(l10n.connectModeFile), icon: Icon(Icons.folder_open, size: 16)),
-                  ButtonSegment(value: ConnectMode.view, label: Text(l10n.connectModeView), icon: Icon(Icons.visibility, size: 16)),
-                  ButtonSegment(value: ConnectMode.collab, label: Text(l10n.connectModeCollab), icon: Icon(Icons.people, size: 16)),
+                  ButtonSegment(value: ConnectMode.control, label: Text(l10n.connectModeControl), icon: const Icon(Icons.computer_outlined, size: 16)),
+                  ButtonSegment(value: ConnectMode.file, label: Text(l10n.connectModeFile), icon: const Icon(Icons.folder_outlined, size: 16)),
+                  ButtonSegment(value: ConnectMode.view, label: Text(l10n.connectModeView), icon: const Icon(Icons.visibility_outlined, size: 16)),
+                  ButtonSegment(value: ConnectMode.collab, label: Text(l10n.connectModeCollab), icon: const Icon(Icons.people_outline, size: 16)),
                 ],
                 selected: {_connectMode},
                 onSelectionChanged: (Set<ConnectMode> selection) {
@@ -144,9 +144,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                   runSpacing: 8,
                   children: recent.map((d) => ActionChip(
                     label: Text(d.code, style: const TextStyle(fontSize: 12)),
-                    onPressed: () {
-                      Navigator.pop(context, d.code);
-                    },
+                    onPressed: () => Navigator.pop(context, d.code),
                   )).toList(),
                 ),
               ],
@@ -169,12 +167,10 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
       );
       if (target.id.isNotEmpty) {
         await _startSession(target.id);
-      } else {
-        if (mounted) {
-          scaffoldMessenger.showSnackBar(
-            SnackBar(content: Text(l10n.deviceNotFound)),
-          );
-        }
+      } else if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text(l10n.deviceNotFound)),
+        );
       }
     }
   }
@@ -189,16 +185,15 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
       orElse: () => Device(id: '', name: '', os: '', online: false, code: '', favorite: false, tags: const []),
     );
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final cardBackground = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
+    final wise = WiseTheme.of(context);
+    final backgroundColor = wise.background;
+    final cardBackground = wise.card;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final primaryColor = wise.primary;
 
-    Widget content = SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+    final content = SingleChildScrollView(
+      padding: EdgeInsets.all(wise.spacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -207,10 +202,10 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
               device: currentDevice,
               onCopy: _copyCode,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: wise.spacing.md),
           ],
           NexCard(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(wise.spacing.lg),
             color: cardBackground,
             enableShadow: true,
             child: Column(
@@ -218,88 +213,48 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
               children: [
                 Row(
                   children: [
-                    Icon(Icons.connect_without_contact, size: 18, color: primaryColor),
-                    const SizedBox(width: 8),
+                    Icon(Icons.connect_without_contact_outlined, size: 18, color: primaryColor),
+                    SizedBox(width: wise.spacing.sm),
                     Text(l10n.quickConnect, style: TextStyle(
-                      fontSize: 17, 
-                      fontWeight: FontWeight.w600, 
-                      color: textPrimary
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: textPrimary,
                     )),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: wise.spacing.md),
                 Row(
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showConnectDialog(),
-                        icon: const Icon(Icons.computer, size: 18),
-                        label: Text(l10n.control),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: primaryColor,
-                          side: BorderSide(color: primaryColor),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showConnectDialog(),
-                        icon: const Icon(Icons.folder_open, size: 18),
-                        label: Text(l10n.files),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: primaryColor,
-                          side: BorderSide(color: primaryColor),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showConnectDialog(),
-                        icon: const Icon(Icons.visibility, size: 18),
-                        label: Text(l10n.view),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: primaryColor,
-                          side: BorderSide(color: primaryColor),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
+                    Expanded(child: _QuickAction(label: l10n.control, icon: Icons.computer_outlined, onPressed: _showConnectDialog)),
+                    SizedBox(width: wise.spacing.sm),
+                    Expanded(child: _QuickAction(label: l10n.files, icon: Icons.folder_outlined, onPressed: _showConnectDialog)),
+                    SizedBox(width: wise.spacing.sm),
+                    Expanded(child: _QuickAction(label: l10n.view, icon: Icons.visibility_outlined, onPressed: _showConnectDialog)),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: wise.spacing.md),
           NexCard(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(wise.spacing.lg),
             color: cardBackground,
             enableShadow: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(l10n.thisDevice, style: TextStyle(
-                  fontSize: 17, 
-                  fontWeight: FontWeight.w600, 
-                  color: textPrimary
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: textPrimary,
                 )),
-                const SizedBox(height: 12),
+                SizedBox(height: wise.spacing.md),
                 _InfoRow(label: l10n.clientIdLabel, value: auth.deviceId ?? l10n.notSet, textSecondary: textSecondary, textPrimary: textPrimary),
-                const SizedBox(height: 8),
+                SizedBox(height: wise.spacing.sm),
                 _InfoRow(label: l10n.controlPasswordLabel, value: currentDevice.hasControlPassword ? l10n.set : l10n.notSet, textSecondary: textSecondary, textPrimary: textPrimary),
               ],
             ),
           ),
-          const SizedBox(height: 16),
         ],
       ),
     );
@@ -308,6 +263,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
       builder: (context, constraints) {
         if (constraints.maxWidth >= 600) {
           return Scaffold(
+            backgroundColor: backgroundColor,
             body: Row(
               children: [
                 NexSidebar(
@@ -322,12 +278,12 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                   },
                   onLogout: _logout,
                   items: [
-                    SidebarItem(icon: Icons.computer, label: l10n.devices),
-                    SidebarItem(icon: Icons.grid_view, label: l10n.screenWall),
-                    SidebarItem(icon: Icons.list, label: l10n.allDevices),
+                    SidebarItem(icon: Icons.computer_outlined, label: l10n.devices),
+                    SidebarItem(icon: Icons.grid_view_outlined, label: l10n.screenWall),
+                    SidebarItem(icon: Icons.list_outlined, label: l10n.allDevices),
                     SidebarItem(icon: Icons.history, label: l10n.sessions),
-                    SidebarItem(icon: Icons.folder_shared, label: l10n.shares),
-                    SidebarItem(icon: Icons.settings, label: l10n.settings),
+                    SidebarItem(icon: Icons.folder_shared_outlined, label: l10n.shares),
+                    SidebarItem(icon: Icons.settings_outlined, label: l10n.settings),
                   ],
                 ),
                 Expanded(child: content),
@@ -336,6 +292,7 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
           );
         } else {
           return Scaffold(
+            backgroundColor: backgroundColor,
             body: content,
             bottomNavigationBar: BottomNavBar(
               selectedIndex: _selectedNav,
@@ -348,17 +305,44 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                 if (index == 5) context.go('/settings');
               },
               items: [
-                BottomNavItem(icon: Icons.computer, label: l10n.devices),
-                BottomNavItem(icon: Icons.grid_view, label: l10n.screenWall),
-                BottomNavItem(icon: Icons.list, label: l10n.allDevices),
+                BottomNavItem(icon: Icons.computer_outlined, label: l10n.devices),
+                BottomNavItem(icon: Icons.grid_view_outlined, label: l10n.screenWall),
+                BottomNavItem(icon: Icons.list_outlined, label: l10n.allDevices),
                 BottomNavItem(icon: Icons.history, label: l10n.sessions),
-                BottomNavItem(icon: Icons.folder_shared, label: l10n.shares),
-                BottomNavItem(icon: Icons.settings, label: l10n.settings),
+                BottomNavItem(icon: Icons.folder_shared_outlined, label: l10n.shares),
+                BottomNavItem(icon: Icons.settings_outlined, label: l10n.settings),
               ],
             ),
           );
         }
       },
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onPressed;
+  const _QuickAction({required this.label, required this.icon, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final wise = WiseTheme.of(context);
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: wise.textPrimary,
+        side: BorderSide(color: wise.border),
+        backgroundColor: wise.surface,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(wise.radius.md),
+        ),
+      ),
     );
   }
 }

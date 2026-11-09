@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -14,33 +15,25 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final selectedColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final unselectedColor = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final backgroundColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    
+    final wise = WiseTheme.of(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor,
-        border: Border(
-          top: BorderSide(
-            color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE),
-            width: 0.5,
-          ),
-        ),
+        color: wise.card,
+        border: Border(top: BorderSide(color: wise.border)),
       ),
       child: SafeArea(
         child: NavigationBar(
           selectedIndex: selectedIndex,
           onDestinationSelected: onTap,
           backgroundColor: Colors.transparent,
-          indicatorColor: selectedColor.withValues(alpha: 0.15),
+          indicatorColor: wise.primarySoft,
           height: 64,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: items.map((item) {
             return NavigationDestination(
-              icon: Icon(item.icon, color: unselectedColor, size: 24),
-              selectedIcon: Icon(item.icon, color: selectedColor, size: 24),
+              icon: Icon(item.icon, color: wise.textSecondary, size: 22),
+              selectedIcon: Icon(item.icon, color: wise.primary, size: 22),
               label: item.label,
             );
           }).toList(),

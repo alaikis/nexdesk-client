@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
 
 class NexSidebar extends StatefulWidget {
@@ -24,21 +25,18 @@ class _NexSidebarState extends State<NexSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final wise = WiseTheme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    
-    final backgroundColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final selectedBgColor = isDark ? const Color(0xFFE34234).withValues(alpha: 0.15) : const Color(0xFFE34234).withValues(alpha: 0.1);
-    final selectedIconColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final iconColor = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final hoverBgColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF2F2F7);
 
     return Container(
       width: 72,
-      color: backgroundColor,
+      decoration: BoxDecoration(
+        color: wise.card,
+        border: Border(right: BorderSide(color: wise.border)),
+      ),
       child: Column(
         children: [
-          const SizedBox(height: 12),
+          SizedBox(height: wise.spacing.md),
           ...widget.items.asMap().entries.map((entry) {
             final index = entry.key;
             final item = entry.value;
@@ -52,10 +50,10 @@ class _NexSidebarState extends State<NexSidebar> {
                 label: item.label,
                 selected: selected,
                 isHovered: isHovered,
-                selectedColor: selectedIconColor,
-                iconColor: iconColor,
-                hoverBgColor: hoverBgColor,
-                selectedBgColor: selectedBgColor,
+                selectedColor: wise.primary,
+                iconColor: wise.textSecondary,
+                hoverBgColor: wise.surface,
+                selectedBgColor: wise.primarySoft,
                 onTap: () => widget.onTap(index),
               ),
             );
@@ -64,20 +62,21 @@ class _NexSidebarState extends State<NexSidebar> {
           if (widget.onLogout != null) ...[
             IconButton(
               onPressed: widget.onLogout,
-              icon: Icon(Icons.logout, size: 20, color: iconColor),
+              icon: Icon(Icons.logout, size: 20, color: wise.textSecondary),
               tooltip: l10n.logout,
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: wise.spacing.xs),
           ],
           Container(
             width: 36,
             height: 36,
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: EdgeInsets.only(bottom: wise.spacing.md),
             decoration: BoxDecoration(
-              color: selectedBgColor,
-              borderRadius: BorderRadius.circular(10),
+              color: wise.surface,
+              borderRadius: BorderRadius.circular(wise.radius.sm),
+              border: Border.all(color: wise.border),
             ),
-            child: Icon(Icons.person, size: 18, color: selectedIconColor),
+            child: Icon(Icons.person_outline, size: 18, color: wise.textSecondary),
           ),
         ],
       ),
@@ -121,14 +120,16 @@ class _SidebarTile extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: WiseMotionTokens.normal,
+          curve: WiseMotionTokens.defaultCurve,
           width: 72,
-          height: 48,
+          height: 44,
+          margin: const EdgeInsets.symmetric(vertical: 2),
           decoration: BoxDecoration(
             color: selected ? selectedBgColor : (isHovered ? hoverBgColor : Colors.transparent),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, size: 22, color: selected ? selectedColor : iconColor),
+          child: Icon(icon, size: 21, color: selected ? selectedColor : iconColor),
         ),
       ),
     );

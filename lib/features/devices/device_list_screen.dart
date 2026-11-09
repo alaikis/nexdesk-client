@@ -385,6 +385,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
 
   Future<void> _showDeleteGroupDialog(Group group) async {
     final l10n = AppLocalizations.of(context)!;
+    final wise = WiseTheme.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -394,7 +395,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
           TextButton(onPressed: () => context.pop(false), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () => context.pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).brightness == Brightness.dark ? WiseColors.destructiveDark : WiseColors.destructiveLight),
+            style: FilledButton.styleFrom(backgroundColor: wise.error),
             child: Text(l10n.delete),
           ),
         ],
@@ -421,6 +422,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   Future<void> _showAssignDeviceDialog(Device device) async {
     final groupProvider = context.read<GroupProvider>();
     final l10n = AppLocalizations.of(context)!;
+    final wise = WiseTheme.of(context);
     if (groupProvider.groups.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -442,7 +444,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
               final group = groupProvider.groups[index];
               return ListTile(
                 title: Text(group.name, style: TextStyle(fontSize: 15)),
-                trailing: Text('${group.deviceCount} ${l10n.devices}', style: TextStyle(fontSize: 13, color: Theme.of(context).brightness == Brightness.dark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight)),
+                trailing: Text('${group.deviceCount} ${l10n.devices}', style: TextStyle(fontSize: 13, color: wise.textSecondary)),
                 onTap: () => context.pop(group.id),
               );
             },
@@ -511,9 +513,9 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
 
   void _showDeviceContextMenu(Device device) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
-    final textPrimary = isDark ? WiseColors.textPrimaryDark : WiseColors.textPrimaryLight;
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final textPrimary = wise.textPrimary;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(NexRadius.lg))),
@@ -588,11 +590,11 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
   Widget build(BuildContext context) {
     final devices = context.watch<DeviceProvider>();
     final groups = context.watch<GroupProvider>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
-    final textSecondary = isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
-    final surfaceColor = isDark ? WiseColors.surfaceDark : WiseColors.surfaceLight;
-    final borderColor = isDark ? WiseColors.borderDark : WiseColors.borderLight;
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final textSecondary = wise.textSecondary;
+    final surfaceColor = wise.surface;
+    final borderColor = wise.border;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -914,12 +916,12 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
-    final textSecondary = isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
-    final cardColor = isDark ? WiseColors.surfaceDark : WiseColors.backgroundLight;
-    final borderColor = isDark ? WiseColors.borderDark : WiseColors.borderLight;
-    final warningColor = isDark ? WiseColors.warningDark : WiseColors.warningLight;
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final textSecondary = wise.textSecondary;
+    final cardColor = wise.card;
+    final borderColor = wise.border;
+    final warningColor = wise.warning;
     final l10n = AppLocalizations.of(context)!;
     final device = widget.device;
     return Container(
@@ -928,7 +930,7 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
         color: cardColor,
         borderRadius: BorderRadius.circular(NexRadius.lg),
         border: Border.all(color: borderColor),
-        boxShadow: WiseShadows.md,
+        boxShadow: wise.shadows.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1067,9 +1069,9 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textSecondary = isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
-    final textPrimary = isDark ? WiseColors.textPrimaryDark : WiseColors.textPrimaryLight;
+    final wise = WiseTheme.of(context);
+    final textSecondary = wise.textSecondary;
+    final textPrimary = wise.textPrimary;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1094,11 +1096,11 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
-    final textPrimary = isDark ? WiseColors.textPrimaryDark : WiseColors.textPrimaryLight;
-    final surfaceColor = isDark ? WiseColors.surfaceDark : WiseColors.surfaceLight;
-    final borderColor = isDark ? WiseColors.borderDark : WiseColors.borderLight;
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final textPrimary = wise.textPrimary;
+    final surfaceColor = wise.surface;
+    final borderColor = wise.border;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(NexRadius.sm),
