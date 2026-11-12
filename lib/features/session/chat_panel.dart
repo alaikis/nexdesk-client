@@ -71,18 +71,18 @@ class _ChatPanelState extends State<ChatPanel> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final cardColor = wise.card;
+    final surfaceColor = wise.surface;
+    final textPrimary = wise.textPrimary;
+    final textTertiary = wise.textTertiary;
+    final borderColor = wise.border;
 
     return Container(
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(NexRadius.lg)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(wise.radius.lg)),
       ),
       child: Column(
         children: [
@@ -90,7 +90,7 @@ class _ChatPanelState extends State<ChatPanel> {
             child: Container(
               width: 36,
               height: 4,
-              margin: const EdgeInsets.only(top: NexSpacing.sm, bottom: NexSpacing.sm),
+              margin: EdgeInsets.only(top: wise.spacing.sm, bottom: wise.spacing.sm),
               decoration: BoxDecoration(
                 color: textTertiary.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
@@ -98,11 +98,11 @@ class _ChatPanelState extends State<ChatPanel> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg, vertical: NexSpacing.md),
+            padding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.md),
             child: Row(
               children: [
                 Icon(Icons.chat_bubble_outline, size: 18, color: primaryColor),
-                const SizedBox(width: NexSpacing.sm),
+                SizedBox(width: wise.spacing.sm),
                 Text(l10n.chatTitle, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary)),
               ],
             ),
@@ -111,13 +111,13 @@ class _ChatPanelState extends State<ChatPanel> {
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md, vertical: NexSpacing.sm),
+              padding: EdgeInsets.symmetric(horizontal: wise.spacing.md, vertical: wise.spacing.sm),
               itemCount: _messages.length,
               itemBuilder: (ctx, i) {
                 final msg = _messages[i];
                 final isMe = msg.from == widget.signaling.deviceId;
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+                  padding: EdgeInsets.only(bottom: wise.spacing.sm),
                   child: Align(
                     alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                     child: ConstrainedBox(
@@ -128,22 +128,22 @@ class _ChatPanelState extends State<ChatPanel> {
                         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md, vertical: NexSpacing.sm),
+                            padding: EdgeInsets.symmetric(horizontal: wise.spacing.md, vertical: wise.spacing.sm),
                             decoration: BoxDecoration(
                               color: isMe ? primaryColor : surfaceColor,
                               borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(NexRadius.md),
-                                topRight: const Radius.circular(NexRadius.md),
-                                bottomLeft: isMe ? const Radius.circular(NexRadius.md) : const Radius.circular(4),
-                                bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(NexRadius.md),
+                                topLeft: Radius.circular(wise.radius.medium),
+                                topRight: Radius.circular(wise.radius.medium),
+                                bottomLeft: isMe ? Radius.circular(wise.radius.medium) : const Radius.circular(4),
+                                bottomRight: isMe ? const Radius.circular(4) : Radius.circular(wise.radius.medium),
                               ),
                             ),
                             child: Text(
                               msg.content,
                               style: TextStyle(
-                                color: isMe ? Colors.white : textPrimary,
+                                color: isMe ? wise.onPrimary : textPrimary,
                                 fontSize: 15,
-                                height: 1.4,
+                                height: 1.53,
                               ),
                             ),
                           ),
@@ -163,14 +163,14 @@ class _ChatPanelState extends State<ChatPanel> {
           Divider(height: 1, color: borderColor),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(NexSpacing.sm),
+              padding: EdgeInsets.all(wise.spacing.sm),
               child: Row(
                 children: [
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
                         color: surfaceColor,
-                        borderRadius: BorderRadius.circular(NexRadius.md),
+                        borderRadius: BorderRadius.circular(wise.radius.medium),
                       ),
                       child: TextField(
                         controller: _controller,
@@ -178,7 +178,7 @@ class _ChatPanelState extends State<ChatPanel> {
                         decoration: InputDecoration(
                           hintText: l10n.typeMessage,
                           hintStyle: TextStyle(fontSize: 15, color: textTertiary),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: NexSpacing.md, vertical: NexSpacing.md),
+                          contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.md, vertical: wise.spacing.md),
                           border: InputBorder.none,
                           isDense: true,
                         ),
@@ -186,17 +186,17 @@ class _ChatPanelState extends State<ChatPanel> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: NexSpacing.sm),
+                  SizedBox(width: wise.spacing.sm),
                   SizedBox(
                     width: 44,
                     height: 44,
                     child: Material(
                       color: primaryColor,
-                      borderRadius: BorderRadius.circular(NexRadius.md),
+                      borderRadius: BorderRadius.circular(wise.radius.medium),
                       child: InkWell(
                         onTap: _send,
-                        borderRadius: BorderRadius.circular(NexRadius.md),
-                        child: const Icon(Icons.send, size: 20, color: Colors.white),
+                        borderRadius: BorderRadius.circular(wise.radius.medium),
+                        child: Icon(Icons.send, size: 20, color: wise.onPrimary),
                       ),
                     ),
                   ),

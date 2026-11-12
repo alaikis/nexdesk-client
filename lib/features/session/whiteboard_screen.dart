@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/signaling_service.dart';
 import '../../widgets/nex_card.dart';
 import '../../theme/app_theme.dart';
@@ -26,7 +26,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
   final List<_Stroke> _strokes = [];
   final List<_Stroke> _undoStack = [];
   _Tool _tool = _Tool.pen;
-  Color _color = const Color(0xFFE34234);
+  Color _color = Color(0xFF0052D9);
   double _size = 4.0;
 
   final List<_Stroke> _remoteStrokes = [];
@@ -34,18 +34,18 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
 
   static const _maxUndo = 20;
   static const _defaultColors = <Color>[
-    Color(0xFFE34234),
-    Color(0xFFB71C1C),
-    Color(0xFFD4AF37),
-    Color(0xFFD4AF37),
-    Color(0xFFAF52DE),
+    Color(0xFF0052D9),
+    Color(0xFFD54941),
+    Color(0xFF00A870),
+    Color(0xFFE37318),
+    Color(0xFF0052D9),
   ];
 
   static const _palette = <Color>[
-    Color(0xFFE34234),
-    Color(0xFFB71C1C),
-    Color(0xFFD4AF37),
-    Color(0xFFD4AF37),
+    Color(0xFF0052D9),
+    Color(0xFFD54941),
+    Color(0xFF00A870),
+    Color(0xFFE37318),
     Color(0xFFAF52DE),
     Color(0xFF1A1A1A),
   ];
@@ -58,8 +58,8 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final canvasColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final wise = WiseTheme.of(context);
+    final canvasColor = wise.card;
 
     return Positioned.fill(
       child: GestureDetector(
@@ -86,10 +86,10 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
   }
 
   Widget _buildToolbar() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final cardColor = wise.card;
+    final textSecondary = wise.textSecondary;
 
     final selectedTool = _tool;
     final l10n = AppLocalizations.of(context)!;
@@ -100,7 +100,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
       child: Center(
         child: NexCard(
           color: cardColor,
-          padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg, vertical: NexSpacing.md),
+          padding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.md),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -112,14 +112,14 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                   selected: selectedTool == _Tool.pen,
                   onTap: () => setState(() => _tool = _Tool.pen),
                 ),
-                const SizedBox(width: NexSpacing.sm),
+                SizedBox(width: wise.spacing.sm),
                 _ToolButton(
                   icon: Icons.backspace,
                   label: l10n.eraserTool,
                   selected: selectedTool == _Tool.eraser,
                   onTap: () => setState(() => _tool = _Tool.eraser),
                 ),
-                const SizedBox(width: NexSpacing.sm),
+                SizedBox(width: wise.spacing.sm),
                 ..._palette.map(
                   (c) => GestureDetector(
                     onTap: () => setState(() {
@@ -143,7 +143,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: NexSpacing.sm),
+                SizedBox(width: wise.spacing.sm),
                 SizedBox(
                   width: 120,
                   child: Row(
@@ -163,7 +163,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: NexSpacing.sm),
+                SizedBox(width: wise.spacing.sm),
                 _ToolButton(
                   icon: Icons.undo,
                   label: l10n.undo,
@@ -171,7 +171,7 @@ class WhiteboardScreenState extends State<WhiteboardScreen> {
                   ghost: true,
                   onTap: _undo,
                 ),
-                const SizedBox(width: NexSpacing.sm),
+                SizedBox(width: wise.spacing.sm),
                 _ToolButton(
                   icon: Icons.delete_outline,
                   label: l10n.clearAll,
@@ -464,13 +464,13 @@ class _ToolButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final surfaceColor = wise.surface;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final borderColor = wise.border;
+    final errorColor = wise.error;
 
     Color bgColor;
     Color iconColor;
@@ -488,7 +488,7 @@ class _ToolButton extends StatelessWidget {
         textColor = textSecondary;
       }
     } else if (selected) {
-      bgColor = primaryColor.withValues(alpha: 0.12);
+      bgColor = wise.primaryTint;
       iconColor = primaryColor;
       textColor = primaryColor;
       borderCol = null;
@@ -502,10 +502,10 @@ class _ToolButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md, vertical: NexSpacing.sm),
+        padding: EdgeInsets.symmetric(horizontal: wise.spacing.md, vertical: wise.spacing.sm),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(NexRadius.md),
+          borderRadius: BorderRadius.circular(wise.radius.medium),
           border: borderCol != null ? Border.all(color: borderCol, width: 0.5) : null,
         ),
         child: Row(
@@ -517,7 +517,7 @@ class _ToolButton extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
                 color: textColor,
               ),
             ),
@@ -537,3 +537,4 @@ extension _ColorHex on Color {
     return '#${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}';
   }
 }
+

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/signaling_service.dart';
 import '../../features/session/session_provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/app_theme.dart';
 
 class _AnsiSpan {
   final String text;
@@ -26,22 +27,22 @@ class _AnsiSpan {
 }
 
 const _ansiColors = {
-  0: Color(0xFF1A1A1A),
-  1: Color(0xFF800000),
-  2: Color(0xFF008000),
-  3: Color(0xFF808000),
-  4: Color(0xFF000080),
-  5: Color(0xFF800080),
-  6: Color(0xFF008080),
-  7: Color(0xFFE0D9CE),
-  8: Color(0xFF808080),
-  9: Color(0xFFFF0000),
-  10: Color(0xFF00FF00),
-  11: Color(0xFFFFFF00),
-  12: Color(0xFF0000FF),
-  13: Color(0xFFFF00FF),
-  14: Color(0xFF00FFFF),
-  15: Color(0xFFFFFFFF),
+  0: const Color(0xFF1A1A1A),
+  1: const Color(0xFF800000),
+  2: const Color(0xFF008000),
+  3: const Color(0xFF808000),
+  4: const Color(0xFF000080),
+  5: const Color(0xFF800080),
+  6: const Color(0xFF008080),
+  7: const Color(0xFFE0D9CE),
+  8: const Color(0xFF808080),
+  9: const Color(0xFFFF0000),
+  10: const Color(0xFF00FF00),
+  11: const Color(0xFFFFFF00),
+  12: const Color(0xFF0000FF),
+  13: const Color(0xFFFF00FF),
+  14: const Color(0xFF00FFFF),
+  15: const Color(0xFFFFFFFF),
 };
 
 TextSpan _parseAnsi(String input) {
@@ -328,10 +329,10 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final backgroundColor = wise.background;
+    final errorColor = wise.error;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -367,18 +368,18 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
                       style: TextStyle(fontSize: 15, color: errorColor),
                     ),
                     const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: _requestTerminal,
-                      icon: Icon(Icons.refresh, color: primaryColor, size: 18),
-                      label: Text(
-                        l10n.retry,
-                        style: TextStyle(
-                          color: primaryColor,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+              TextButton.icon(
+                onPressed: _requestTerminal,
+                icon: Icon(Icons.refresh, color: primaryColor, size: 18),
+                label: Text(
+                  l10n.retry,
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
                   ],
                 ),
               ),
@@ -387,7 +388,7 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
               children: [
                 Expanded(
                   child: Container(
-                    color: const Color(0xFF1C1C1E),
+                    color: wise.card,
                     padding: const EdgeInsets.all(8),
                     child: ListView.builder(
                       controller: _scrollController,
@@ -399,23 +400,23 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
                   ),
                 ),
                 Container(
-                  color: const Color(0xFF1C1C1E),
+                  color: wise.card,
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Row(
                     children: [
                       Expanded(
                         child: TextField(
                           controller: _inputController,
-                          cursorColor: const Color(0xFFE34234),
-                          style: const TextStyle(
-                            color: Color(0xFFE0D9CE),
+                          cursorColor: wise.primary,
+                          style: TextStyle(
+                            color: wise.textPrimary,
                             fontFamily: 'monospace',
                             fontSize: 13,
                           ),
                           decoration: InputDecoration(
                             hintText: l10n.enterCommand,
-                            hintStyle: const TextStyle(
-                              color: Color(0xFF78716C),
+                            hintStyle: TextStyle(
+                              color: wise.textTertiary,
                               fontFamily: 'monospace',
                             ),
                             border: InputBorder.none,
@@ -430,7 +431,7 @@ class _RemoteTerminalScreenState extends State<RemoteTerminalScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.send, size: 18, color: Color(0xFFE0D9CE)),
+                        icon: Icon(Icons.send, size: 18, color: wise.textPrimary),
                         onPressed: () {
                           final value = _inputController.text;
                           if (value.isEmpty) return;

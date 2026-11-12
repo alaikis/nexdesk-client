@@ -87,12 +87,12 @@ class _RecordingScreenState extends State<RecordingScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
+    final wise = WiseTheme.of(context);
+    final backgroundColor = wise.background;
+    final surfaceColor = wise.surface;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final errorColor = wise.error;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -121,31 +121,31 @@ class _RecordingScreenState extends State<RecordingScreen>
                           ),
                         ],
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.fiber_manual_record,
-                        color: Colors.white,
+                        color: wise.onPrimary,
                         size: 32,
                       ),
                     ),
                   );
                 },
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: wise.spacing.xxl),
               Text(
                 _formatDuration(_duration),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                   color: textPrimary,
-                  fontFamily: 'monospace',
+                  height: 1.4,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: wise.spacing.sm),
               Text(
                 l10n.recording,
-                style: TextStyle(fontSize: 15, color: textSecondary),
+                style: TextStyle(fontSize: 15, color: textSecondary, height: 1.53),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: wise.spacing.xxl),
               ElevatedButton(
                 onPressed: _stopRecording,
                 style: ElevatedButton.styleFrom(
@@ -154,14 +154,14 @@ class _RecordingScreenState extends State<RecordingScreen>
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(NexRadius.md),
+                    borderRadius: BorderRadius.circular(wise.radius.medium),
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.stop, color: errorColor, size: 20),
-                    const SizedBox(width: 8),
+                    SizedBox(width: wise.spacing.sm),
                     Text(
                       l10n.cancel,
                       style: TextStyle(
@@ -183,17 +183,17 @@ class _RecordingScreenState extends State<RecordingScreen>
                     color: errorColor,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.fiber_manual_record,
-                    color: Colors.white,
+                    color: wise.onPrimary,
                     size: 32,
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: wise.spacing.xxl),
               Text(
                 l10n.notRecording,
-                style: TextStyle(fontSize: 15, color: textSecondary),
+                style: TextStyle(fontSize: 15, color: textSecondary, height: 1.53),
               ),
             ],
           ],

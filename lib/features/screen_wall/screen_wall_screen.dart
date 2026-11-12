@@ -27,17 +27,12 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
     });
   }
 
-  NexColors _colors(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return isDark ? const NexColors.dark() : const NexColors.light();
-  }
-
   @override
   Widget build(BuildContext context) {
     final wallProvider = context.watch<ScreenWallProvider>();
     final deviceProvider = context.watch<DeviceProvider>();
     final l10n = AppLocalizations.of(context)!;
-    final c = _colors(context);
+    final wise = WiseTheme.of(context);
 
     final wallDevices = wallProvider.selectedDeviceIds
         .map((id) => deviceProvider.devices.firstWhere(
@@ -51,39 +46,39 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
     final displayDevices = wallDevices.take(totalCells).toList();
 
     return Scaffold(
-      backgroundColor: c.background,
+      backgroundColor: wise.background,
       appBar: AppBar(
-        backgroundColor: c.background,
-        foregroundColor: c.textPrimary,
+        backgroundColor: wise.background,
+        foregroundColor: wise.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
           l10n.screenWallTitle,
           style: TextStyle(
-            color: c.textPrimary,
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
+            color: wise.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            height: 1.4,
           ),
         ),
         actions: [
           _GridPillSelector(
             gridSize: gridSize,
             onChanged: wallProvider.setGridSize,
-            colors: c,
+            wise: wise,
             l10n: l10n,
           ),
-          SizedBox(width: NexSpacing.sm),
+          SizedBox(width: wise.spacing.sm),
           IconButton(
             onPressed: wallProvider.refreshing ? null : () => wallProvider.refresh(),
             icon: wallProvider.refreshing
-                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: c.primary))
-                : Icon(Icons.refresh, color: c.textSecondary),
+                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: wise.primary))
+                : Icon(Icons.refresh, color: wise.textSecondary),
             tooltip: l10n.refresh,
           ),
           IconButton(
             onPressed: _showDeviceSelectionDialog,
-            icon: Icon(Icons.add, color: c.primary),
+            icon: Icon(Icons.add, color: wise.primary),
             tooltip: l10n.addDevices,
           ),
         ],
@@ -93,10 +88,10 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.grid_view_outlined, size: 48, color: c.textTertiary),
-                  SizedBox(height: NexSpacing.md),
-                  Text(l10n.noDevicesInWall, style: TextStyle(fontSize: 15, color: c.textSecondary)),
-                  SizedBox(height: NexSpacing.lg),
+                  Icon(Icons.grid_view_outlined, size: 48, color: wise.textTertiary),
+                  SizedBox(height: wise.spacing.md),
+                  Text(l10n.noDevicesInWall, style: TextStyle(fontSize: 15, color: wise.textSecondary, height: 1.53)),
+                  SizedBox(height: wise.spacing.lg),
                   OutlinedButton.icon(
                     onPressed: _showDeviceSelectionDialog,
                     icon: Icon(Icons.add, size: 18),
@@ -106,12 +101,12 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
               ),
             )
           : Padding(
-              padding: const EdgeInsets.all(NexSpacing.md),
+              padding: EdgeInsets.all(wise.spacing.md),
               child: GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: gridSize,
-                  crossAxisSpacing: NexSpacing.md,
-                  mainAxisSpacing: NexSpacing.md,
+                  crossAxisSpacing: wise.spacing.md,
+                  mainAxisSpacing: wise.spacing.md,
                   childAspectRatio: 16 / 9,
                 ),
                 itemCount: totalCells,
@@ -136,18 +131,18 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
         builder: (context, setDialogState) {
           final selected = Set<String>.from(wallProvider.selectedDeviceIds);
           final l10n = AppLocalizations.of(context)!;
-          final dc = _colors(context);
+          final wise = WiseTheme.of(context);
           return AlertDialog(
-            backgroundColor: dc.card,
+            backgroundColor: wise.card,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(NexRadius.lg),
-              side: BorderSide(color: dc.border),
+              borderRadius: BorderRadius.circular(wise.radius.lg),
+              side: BorderSide(color: wise.border),
             ),
-            title: Text(l10n.selectDevices, style: TextStyle(color: dc.textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
+            title: Text(l10n.selectDevices, style: TextStyle(color: wise.textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
             content: SizedBox(
               width: double.maxFinite,
               child: devices.isEmpty
-                  ? Text(l10n.noDevicesAvailable, style: TextStyle(color: dc.textSecondary))
+                  ? Text(l10n.noDevicesAvailable, style: TextStyle(color: wise.textSecondary))
                   : ListView.builder(
                       shrinkWrap: true,
                       itemCount: devices.length,
@@ -155,8 +150,8 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
                         final device = devices[index];
                         final isSelected = selected.contains(device.id);
                         return ListTile(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.sm)),
-                          selectedTileColor: dc.primary.withValues(alpha: 0.08),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.sm)),
+                          selectedTileColor: wise.primarySoft,
                           selected: isSelected,
                           onTap: () {
                             setDialogState(() {
@@ -169,20 +164,20 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
                           },
                           leading: Icon(
                             isSelected ? Icons.check_circle : Icons.circle_outlined,
-                            color: isSelected ? dc.primary : dc.textTertiary,
+                            color: isSelected ? wise.primary : wise.textTertiary,
                             size: 22,
                           ),
-                          title: Text(device.name, style: TextStyle(color: dc.textPrimary, fontSize: 15)),
+                          title: Text(device.name, style: TextStyle(color: wise.textPrimary, fontSize: 15)),
                           subtitle: Text(
                             device.online ? l10n.onlineStatus : l10n.offlineStatus,
-                            style: TextStyle(color: dc.textSecondary, fontSize: 13),
+                            style: TextStyle(color: wise.textSecondary, fontSize: 13),
                           ),
                           trailing: Container(
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: device.online ? dc.online : dc.error,
+                              color: device.online ? wise.online : wise.error,
                             ),
                           ),
                         );
@@ -192,14 +187,14 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
             actions: [
               TextButton(
                 onPressed: () => context.pop(),
-                child: Text(l10n.cancel, style: TextStyle(color: dc.textSecondary)),
+                child: Text(l10n.cancel, style: TextStyle(color: wise.textSecondary)),
               ),
               FilledButton(
                 onPressed: () => context.pop(selected),
                 style: FilledButton.styleFrom(
-                  backgroundColor: dc.primary,
-                  foregroundColor: dc.onPrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.md)),
+                  backgroundColor: wise.primary,
+                  foregroundColor: wise.onPrimary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.medium)),
                 ),
                 child: Text(l10n.done),
               ),
@@ -229,13 +224,13 @@ class _ScreenWallScreenState extends State<ScreenWallScreen> {
 class _GridPillSelector extends StatelessWidget {
   final int gridSize;
   final ValueChanged<int> onChanged;
-  final NexColors colors;
+  final WiseTheme wise;
   final AppLocalizations l10n;
 
   const _GridPillSelector({
     required this.gridSize,
     required this.onChanged,
-    required this.colors,
+    required this.wise,
     required this.l10n,
   });
 
@@ -250,8 +245,8 @@ class _GridPillSelector extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(NexRadius.sm),
+        color: wise.surface,
+        borderRadius: BorderRadius.circular(wise.radius.sm),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -264,15 +259,15 @@ class _GridPillSelector extends StatelessWidget {
               curve: Curves.easeInOut,
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isSelected ? colors.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
+                color: isSelected ? wise.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(wise.radius.medium),
               ),
               child: Text(
                 seg.$2,
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? colors.onPrimary : colors.textSecondary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected ? wise.onPrimary : wise.textSecondary,
                 ),
               ),
             ),
@@ -293,40 +288,35 @@ class _WallCell extends StatefulWidget {
 }
 
 class _WallCellState extends State<_WallCell> {
-  NexColors _colors(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return isDark ? const NexColors.dark() : const NexColors.light();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final c = _colors(context);
+    final wise = WiseTheme.of(context);
     final wallProvider = context.watch<ScreenWallProvider>();
     final wallStream = wallProvider.getWallStream(widget.device.id);
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(NexRadius.md),
-        border: Border.all(color: c.border),
-        color: Colors.black,
+        borderRadius: BorderRadius.circular(wise.radius.medium),
+        border: Border.all(color: wise.border),
+        color: const Color(0xFF000000),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(NexRadius.md),
+        borderRadius: BorderRadius.circular(wise.radius.medium),
         child: Stack(
           children: [
             if (wallStream != null && wallStream.remoteStream != null)
               RTCVideoView(wallStream.renderer)
             else if (wallStream != null && wallStream.failed)
-              _buildErrorPlaceholder(c, l10n)
+              _buildErrorPlaceholder(wise, l10n)
             else
-              _buildWaitingPlaceholder(c, l10n),
+              _buildWaitingPlaceholder(wise, l10n),
             Positioned(
               bottom: 0,
               left: 0,
               right: 0,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: NexSpacing.sm, vertical: 6),
+                padding: EdgeInsets.symmetric(horizontal: wise.spacing.sm, vertical: 6),
                 decoration: const BoxDecoration(
                   color: Color(0x99000000),
                 ),
@@ -337,14 +327,14 @@ class _WallCellState extends State<_WallCell> {
                       height: 7,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: widget.device.online ? c.online : c.error,
+                        color: widget.device.online ? wise.online : wise.error,
                       ),
                     ),
-                    SizedBox(width: NexSpacing.xs + 2),
+                    SizedBox(width: wise.spacing.xs + 2),
                     Expanded(
                       child: Text(
                         widget.device.name,
-                        style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w500),
+                        style: const TextStyle(fontSize: 13, color: Colors.white, height: 1.54),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -363,7 +353,7 @@ class _WallCellState extends State<_WallCell> {
                   height: 24,
                   decoration: BoxDecoration(
                     color: const Color(0x99000000),
-                    borderRadius: BorderRadius.circular(NexRadius.sm),
+                    borderRadius: BorderRadius.circular(wise.radius.sm),
                   ),
                   child: const Icon(Icons.close, size: 14, color: Colors.white),
                 ),
@@ -375,13 +365,13 @@ class _WallCellState extends State<_WallCell> {
     );
   }
 
-  Widget _buildWaitingPlaceholder(NexColors c, AppLocalizations l10n) {
+  Widget _buildWaitingPlaceholder(WiseTheme wise, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.desktop_windows_outlined, size: 36, color: Colors.white.withValues(alpha: 0.4)),
-          SizedBox(height: NexSpacing.sm),
+          SizedBox(height: wise.spacing.sm),
           Text(
             l10n.waitingForStream,
             style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5)),
@@ -391,16 +381,16 @@ class _WallCellState extends State<_WallCell> {
     );
   }
 
-  Widget _buildErrorPlaceholder(NexColors c, AppLocalizations l10n) {
+  Widget _buildErrorPlaceholder(WiseTheme wise, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 36, color: c.error),
-          SizedBox(height: NexSpacing.sm),
+          Icon(Icons.error_outline, size: 36, color: wise.error),
+          SizedBox(height: wise.spacing.sm),
           Text(
             l10n.connectionFailed,
-            style: TextStyle(fontSize: 12, color: c.error),
+            style: TextStyle(fontSize: 12, color: wise.error),
           ),
         ],
       ),
@@ -415,33 +405,32 @@ class _EmptyCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final c = isDark ? const NexColors.dark() : const NexColors.light();
+    final wise = WiseTheme.of(context);
 
     return GestureDetector(
       onTap: onTap,
       child: CustomPaint(
         painter: _DashedBorderPainter(
-          color: c.border,
-          radius: NexRadius.md,
+          color: wise.border,
+          radius: wise.radius.medium,
           dashWidth: 6,
           dashGap: 4,
           strokeWidth: 1.5,
         ),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(NexRadius.md),
-            color: c.surface,
+            borderRadius: BorderRadius.circular(wise.radius.medium),
+            color: wise.surface,
           ),
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.add_outlined, size: 28, color: c.primary),
-                SizedBox(height: NexSpacing.xs),
+                Icon(Icons.add_outlined, size: 28, color: wise.primary),
+                SizedBox(height: wise.spacing.xs),
                 Text(
                   'Add',
-                  style: TextStyle(fontSize: 12, color: c.primary, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 12, color: wise.primary, fontWeight: FontWeight.w600),
                 ),
               ],
             ),

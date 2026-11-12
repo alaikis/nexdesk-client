@@ -25,20 +25,13 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> with ErrorHandler {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
+    final wise = WiseTheme.of(context);
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: wise.background,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(wise.spacing.xxl),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
             child: Column(
@@ -49,61 +42,61 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> with ErrorHandler {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: primaryColor,
-                      borderRadius: BorderRadius.circular(NexRadius.lg),
+                      color: wise.primary,
+                      borderRadius: BorderRadius.circular(wise.radius.lg),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.security,
-                      color: Colors.white,
+                      color: wise.onPrimary,
                       size: 32,
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: wise.spacing.xxl),
                 Text(
                   l10n.twoFactorAuthTitle,
                   style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: textPrimary,
-                    letterSpacing: -0.5,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: wise.textPrimary,
+                    height: 1.4,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: wise.spacing.sm),
                 Text(
                   l10n.enterCodeHint,
-                  style: TextStyle(fontSize: 15, color: textSecondary),
+                  style: TextStyle(fontSize: 15, color: wise.textSecondary, height: 1.53),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: wise.spacing.xxl),
                 NexCard(
-                  padding: const EdgeInsets.all(24),
-                  color: cardColor,
+                  padding: EdgeInsets.all(wise.spacing.xxl),
+                  color: wise.card,
                   enableShadow: true,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: List.generate(6, (index) => _buildDigitBox(index, isDark, primaryColor, borderColor, textPrimary)),
+                        children: List.generate(6, (index) => _buildDigitBox(index, wise)),
                       ),
                       if (_errorMessage != null) ...[
-                        const SizedBox(height: 12),
+                        SizedBox(height: wise.spacing.md),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color: errorColor.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(NexRadius.md),
+                            color: wise.errorSoft,
+                            borderRadius: BorderRadius.circular(wise.radius.medium),
                           ),
                           child: Text(
                             _errorMessage!,
-                            style: TextStyle(fontSize: 13, color: errorColor),
+                            style: TextStyle(fontSize: 13, color: wise.error),
                             textAlign: TextAlign.center,
                           ),
                         ),
                       ],
-                      const SizedBox(height: 24),
+                      SizedBox(height: wise.spacing.xxl),
                       NexButton(
                         text: l10n.verify,
                         fullWidth: true,
@@ -113,7 +106,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> with ErrorHandler {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: wise.spacing.lg),
                 Center(
                   child: NexButton(
                     text: l10n.backToSignIn,
@@ -130,7 +123,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> with ErrorHandler {
     );
   }
 
-  Widget _buildDigitBox(int index, bool isDark, Color primaryColor, Color borderColor, Color textPrimary) {
+  Widget _buildDigitBox(int index, WiseTheme wise) {
     return SizedBox(
       width: 44,
       height: 52,
@@ -143,24 +136,24 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> with ErrorHandler {
         style: TextStyle(
           fontSize: 22,
           fontWeight: FontWeight.w600,
-          color: textPrimary,
+          color: wise.textPrimary,
         ),
         decoration: InputDecoration(
           counterText: '',
           filled: true,
-          fillColor: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+          fillColor: wise.surface,
           contentPadding: EdgeInsets.zero,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(NexRadius.md),
-            borderSide: BorderSide(color: borderColor),
+            borderRadius: BorderRadius.circular(wise.radius.medium),
+            borderSide: BorderSide(color: wise.border),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(NexRadius.md),
-            borderSide: BorderSide(color: borderColor),
+            borderRadius: BorderRadius.circular(wise.radius.medium),
+            borderSide: BorderSide(color: wise.border),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(NexRadius.md),
-            borderSide: BorderSide(color: primaryColor, width: 1.5),
+            borderRadius: BorderRadius.circular(wise.radius.medium),
+            borderSide: BorderSide(color: wise.primary, width: 1.5),
           ),
         ),
         onChanged: (value) {

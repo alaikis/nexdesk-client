@@ -28,15 +28,15 @@ class _SessionListScreenState extends State<SessionListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final sessions = context.watch<SessionProvider>().history;
     final l10n = AppLocalizations.of(context)!;
-    
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final cardBackground = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
+    final wise = WiseTheme.of(context);
+
+    final backgroundColor = wise.background;
+    final cardBackground = wise.card;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final primaryColor = wise.primary;
 
     return Scaffold(
       body: Row(
@@ -92,14 +92,14 @@ class _SessionListScreenState extends State<SessionListScreen> {
                               trailing: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: primaryColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(NexRadius.full),
+                                  color: wise.primaryTint,
+                                  borderRadius: BorderRadius.circular(wise.radius.full),
                                 ),
                                 child: Text(
                                   s.status,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w600,
                                     color: primaryColor,
                                   ),
                                 ),

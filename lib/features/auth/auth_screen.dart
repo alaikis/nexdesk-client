@@ -55,7 +55,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       color: wise.primary,
-                      borderRadius: BorderRadius.circular(wise.radius.md),
+                      borderRadius: BorderRadius.circular(wise.radius.medium),
                     ),
                     child: Icon(
                       Icons.desktop_windows_outlined,
@@ -68,10 +68,10 @@ class _AuthScreenState extends State<AuthScreen> {
                 Text(
                   l10n.signInToNex,
                   style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
                     color: wise.textPrimary,
-                    letterSpacing: -0.2,
+                    height: 1.4,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -100,7 +100,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             padding: EdgeInsets.all(wise.spacing.md),
                             decoration: BoxDecoration(
                               color: wise.errorSoft,
-                              borderRadius: BorderRadius.circular(wise.radius.md),
+                              borderRadius: BorderRadius.circular(wise.radius.medium),
                               border: Border.all(color: wise.error.withValues(alpha: 0.24)),
                             ),
                             child: Text(
@@ -129,8 +129,9 @@ class _AuthScreenState extends State<AuthScreen> {
                           'Waiting for browser sign-in',
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                             color: wise.textPrimary,
+                            height: 1.57,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -140,7 +141,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             color: wise.textSecondary,
-                            height: 1.4,
+                            height: 1.54,
                           ),
                           textAlign: TextAlign.center,
                         ),

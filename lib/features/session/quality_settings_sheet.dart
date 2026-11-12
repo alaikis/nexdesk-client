@@ -97,22 +97,22 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final cardColor = wise.card;
+    final surfaceColor = wise.surface;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final borderColor = wise.border;
 
     return Container(
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(NexRadius.lg)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(wise.radius.lg)),
       ),
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(NexSpacing.xxl, NexSpacing.md, NexSpacing.xxl, NexSpacing.xxl),
+          padding: EdgeInsets.fromLTRB(wise.spacing.xxl, wise.spacing.md, wise.spacing.xxl, wise.spacing.xxl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -121,7 +121,7 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
                 child: Container(
                   width: 36,
                   height: 4,
-                  margin: const EdgeInsets.only(bottom: NexSpacing.lg),
+                  margin: EdgeInsets.only(bottom: wise.spacing.lg),
                   decoration: BoxDecoration(
                     color: textSecondary.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
@@ -130,24 +130,24 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
               ),
               Text(
                 l10n.streamQuality,
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: textPrimary),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: textPrimary, height: 1.47),
               ),
-              const SizedBox(height: NexSpacing.lg),
+              SizedBox(height: wise.spacing.lg),
               ...QualityPreset.values.map((preset) {
                 final isSelected = _preset == preset;
                 final label = QualityProfileConfig.presetLabels[preset] ?? preset.name;
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+                  padding: EdgeInsets.only(bottom: wise.spacing.sm),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () => _applyPreset(preset),
-                      borderRadius: BorderRadius.circular(NexRadius.md),
+                      borderRadius: BorderRadius.circular(wise.radius.medium),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg, vertical: NexSpacing.md),
+                        padding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.md),
                         decoration: BoxDecoration(
                           color: isSelected ? primaryColor.withValues(alpha: 0.1) : surfaceColor,
-                          borderRadius: BorderRadius.circular(NexRadius.md),
+                          borderRadius: BorderRadius.circular(wise.radius.medium),
                           border: Border.all(
                             color: isSelected ? primaryColor : borderColor,
                             width: isSelected ? 1.5 : 1,
@@ -163,8 +163,9 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
                                     label,
                                     style: TextStyle(
                                       fontSize: 15,
-                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                                       color: isSelected ? primaryColor : textPrimary,
+                                      height: 1.53,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -185,21 +186,21 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
                 );
               }),
               if (_preset == QualityPreset.custom) ...[
-                const SizedBox(height: NexSpacing.lg),
+                SizedBox(height: wise.spacing.lg),
                 Text(
                   l10n.customSettings,
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary),
                 ),
-                const SizedBox(height: NexSpacing.md),
+                SizedBox(height: wise.spacing.md),
                 _buildSlider(l10n.widthLabel, _customWidth.toDouble(), 320, 3840, 10,
-                    (v) => setState(() => _customWidth = v.round()), primaryColor, textPrimary, textSecondary),
+                    (v) => setState(() => _customWidth = v.round()), wise),
                 _buildSlider(l10n.heightLabel, _customHeight.toDouble(), 240, 2160, 10,
-                    (v) => setState(() => _customHeight = v.round()), primaryColor, textPrimary, textSecondary),
+                    (v) => setState(() => _customHeight = v.round()), wise),
                 _buildSlider(l10n.fpsLabel, _customFps.toDouble(), 1, 144, 1,
-                    (v) => setState(() => _customFps = v.round()), primaryColor, textPrimary, textSecondary),
+                    (v) => setState(() => _customFps = v.round()), wise),
                 _buildSlider(l10n.bitrateLabel, _customBitrate.toDouble(), 100, 50000, 100,
-                    (v) => setState(() => _customBitrate = v.round()), primaryColor, textPrimary, textSecondary),
-                const SizedBox(height: NexSpacing.md),
+                    (v) => setState(() => _customBitrate = v.round()), wise),
+                SizedBox(height: wise.spacing.md),
                 NexButton(
                   text: l10n.applyCustom,
                   fullWidth: true,
@@ -220,12 +221,13 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
     double max,
     int divisions,
     ValueChanged<double> onChanged,
-    Color primaryColor,
-    Color textPrimary,
-    Color textSecondary,
+    WiseTheme wise,
   ) {
+    final primaryColor = wise.primary;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
     return Padding(
-      padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+      padding: EdgeInsets.only(bottom: wise.spacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

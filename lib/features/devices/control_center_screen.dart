@@ -217,8 +217,9 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                     SizedBox(width: wise.spacing.sm),
                     Text(l10n.quickConnect, style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                       color: textPrimary,
+                      height: 1.5,
                     )),
                   ],
                 ),
@@ -245,8 +246,9 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
               children: [
                 Text(l10n.thisDevice, style: TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                   color: textPrimary,
+                  height: 1.5,
                 )),
                 SizedBox(height: wise.spacing.md),
                 _InfoRow(label: l10n.clientIdLabel, value: auth.deviceId ?? l10n.notSet, textSecondary: textSecondary, textPrimary: textPrimary),
@@ -338,9 +340,9 @@ class _QuickAction extends StatelessWidget {
         side: BorderSide(color: wise.border),
         backgroundColor: wise.surface,
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(wise.radius.md),
+          borderRadius: BorderRadius.circular(wise.radius.medium),
         ),
       ),
     );
@@ -365,7 +367,7 @@ class _InfoRow extends StatelessWidget {
           child: Text(label, style: TextStyle(fontSize: 13, color: textSecondary)),
         ),
         Expanded(
-          child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: textPrimary)),
+          child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary, height: 1.54)),
         ),
       ],
     );

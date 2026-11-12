@@ -84,19 +84,19 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final successColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
-    final warningColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final backgroundColor = wise.background;
+    final cardColor = wise.card;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final surfaceColor = wise.surface;
+    final successColor = wise.success;
+    final warningColor = wise.warning;
 
     final statusBg = _enabled
-        ? successColor.withOpacity(0.08)
-        : warningColor.withOpacity(0.08);
+        ? wise.successSoft
+        : wise.warningSoft;
     final statusIconColor = _enabled ? successColor : warningColor;
     final statusIcon = _enabled ? Icons.verified_user_outlined : Icons.warning_amber_rounded;
 
@@ -106,7 +106,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(wise.spacing.xl),
               children: [
                 NexCard(
                   color: cardColor,
@@ -118,29 +118,29 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                         height: 56,
                         decoration: BoxDecoration(
                           color: statusBg,
-                          borderRadius: BorderRadius.circular(NexRadius.lg),
+                          borderRadius: BorderRadius.circular(wise.radius.lg),
                         ),
                         child: Icon(statusIcon, color: statusIconColor, size: 28),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: wise.spacing.lg),
                       Text(
                         _enabled ? l10n.twoFactorIsEnabled : l10n.twoFactorIsDisabled,
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: textPrimary),
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: textPrimary, height: 1.47),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: wise.spacing.sm),
                       _buildStatusBadge(
                         _enabled ? 'Enabled' : 'Disabled',
                         isSuccess: _enabled,
-                        isDark: isDark,
+                        context: context,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: wise.spacing.lg),
                 if (_secret != null) ...[
                   NexCard(
-                    color: Colors.white,
+                    color: cardColor,
                     enableShadow: true,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,23 +149,23 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                           children: [
                             Icon(Icons.qr_code_2, color: primaryColor, size: 22),
                             const SizedBox(width: 8),
-                            Text(l10n.secretKey, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary)),
+                            Text(l10n.secretKey, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary, height: 1.53)),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: wise.spacing.md),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(12),
+                          padding: EdgeInsets.all(wise.spacing.md),
                           decoration: BoxDecoration(
                             color: surfaceColor,
-                            borderRadius: BorderRadius.circular(NexRadius.md),
+                            borderRadius: BorderRadius.circular(wise.radius.medium),
                           ),
                           child: Row(
                             children: [
                               Expanded(
                                 child: SelectableText(
                                   _secret!,
-                                  style: NexTextStyles.mono(color: textPrimary),
+                                  style: TextStyle(color: textPrimary, fontFamily: WiseTypographyTokens.monoFamily, fontSize: 13),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -181,32 +181,32 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                           ),
                         ),
                         if (_otpauthUrl != null) ...[
-                          const SizedBox(height: 12),
+                          SizedBox(height: wise.spacing.md),
                           Row(
                             children: [
                               Icon(Icons.link, color: primaryColor, size: 22),
                               const SizedBox(width: 8),
-                              Text(l10n.manualEntryUrl, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary)),
+                              Text(l10n.manualEntryUrl, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary, height: 1.53)),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: wise.spacing.sm),
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.all(12),
+                            padding: EdgeInsets.all(wise.spacing.md),
                             decoration: BoxDecoration(
                               color: surfaceColor,
-                              borderRadius: BorderRadius.circular(NexRadius.md),
+                              borderRadius: BorderRadius.circular(wise.radius.medium),
                             ),
                             child: SelectableText(
                               _otpauthUrl!,
-                              style: NexTextStyles.mono(color: textSecondary),
+                              style: TextStyle(color: textSecondary, fontFamily: WiseTypographyTokens.monoFamily, fontSize: 13),
                             ),
                           ),
                         ],
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: wise.spacing.lg),
                   NexCard(
                     color: cardColor,
                     enableShadow: true,
@@ -215,18 +215,18 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                       children: [
                         Text(
                           'Steps to set up',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary, height: 1.53),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: wise.spacing.md),
                         _buildStep(1, 'Open your authenticator app', textPrimary, primaryColor),
-                        const SizedBox(height: 8),
+                        SizedBox(height: wise.spacing.sm),
                         _buildStep(2, 'Scan the QR code or enter the secret key manually', textPrimary, primaryColor),
-                        const SizedBox(height: 8),
+                        SizedBox(height: wise.spacing.sm),
                         _buildStep(3, 'Enter the 6-digit verification code', textPrimary, primaryColor),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: wise.spacing.lg),
                 ],
                 if (!_enabled) ...[
                   NexButton(
@@ -236,7 +236,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                     onPressed: _setup,
                   ),
                   if (_secret != null) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: wise.spacing.md),
                     NexButton(
                       text: l10n.enable2FA,
                       icon: const Icon(Icons.verified_user, size: 18),
@@ -258,16 +258,17 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
     );
   }
 
-  Widget _buildStatusBadge(String text, {required bool isSuccess, required bool isDark}) {
-    final successBg = isDark ? const Color(0xFFD4AF37).withOpacity(0.15) : const Color(0xFFD4AF37).withOpacity(0.12);
-    final successFg = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
-    final warningBg = isDark ? const Color(0xFFD4AF37).withOpacity(0.15) : const Color(0xFFD4AF37).withOpacity(0.12);
-    final warningFg = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
+  Widget _buildStatusBadge(String text, {required bool isSuccess, required BuildContext context}) {
+    final wise = WiseTheme.of(context);
+    final successBg = wise.successSoft;
+    final successFg = wise.success;
+    final warningBg = wise.warningSoft;
+    final warningFg = wise.warning;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: isSuccess ? successBg : warningBg,
-        borderRadius: BorderRadius.circular(NexRadius.full),
+        borderRadius: BorderRadius.circular(wise.radius.full),
       ),
       child: Text(
         text,
@@ -281,6 +282,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
   }
 
   Widget _buildStep(int number, String description, Color textPrimary, Color primaryColor) {
+    final wise = WiseTheme.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -289,12 +291,12 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
           height: 28,
           decoration: BoxDecoration(
             color: primaryColor,
-            borderRadius: BorderRadius.circular(NexRadius.full),
+            borderRadius: BorderRadius.circular(wise.radius.full),
           ),
           child: Center(
             child: Text(
               '$number',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: wise.onPrimary),
             ),
           ),
         ),
@@ -304,7 +306,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               description,
-              style: TextStyle(fontSize: 15, color: textPrimary, height: 1.4),
+              style: TextStyle(fontSize: 15, color: textPrimary, height: 1.53),
             ),
           ),
         ),

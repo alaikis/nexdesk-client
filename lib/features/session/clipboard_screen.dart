@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/clipboard_service.dart';
 import '../../l10n/app_localizations.dart';
@@ -66,13 +66,13 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final successColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final backgroundColor = wise.background;
+    final surfaceColor = wise.surface;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final successColor = wise.success;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -107,7 +107,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                           style: TextStyle(
                             color: primaryColor,
                             fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -128,15 +128,15 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                                   filled: true,
                                   fillColor: surfaceColor,
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(NexRadius.md),
+                                    borderRadius: BorderRadius.circular(wise.radius.medium),
                                     borderSide: BorderSide.none,
                                   ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(NexRadius.md),
+                                    borderRadius: BorderRadius.circular(wise.radius.medium),
                                     borderSide: BorderSide.none,
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(NexRadius.md),
+                                    borderRadius: BorderRadius.circular(wise.radius.medium),
                                     borderSide: BorderSide(color: primaryColor, width: 1.5),
                                   ),
                                 ),
@@ -158,14 +158,14 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                           }
                         },
                         icon: Icon(Icons.paste, color: primaryColor, size: 18),
-                        label: Text(
-                          l10n.pasteFromRemote,
-                          style: TextStyle(
-                            color: primaryColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                            label: Text(
+                              l10n.pasteFromRemote,
+                              style: TextStyle(
+                                color: primaryColor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                       ),
                     ],
                   ),
@@ -188,7 +188,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: surfaceColor,
-                                borderRadius: BorderRadius.circular(NexRadius.md),
+                                borderRadius: BorderRadius.circular(wise.radius.medium),
                               ),
                               child: Row(
                                 children: [
@@ -215,7 +215,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          '${event.direction} 路 ${event.createdAt.toString().substring(0, 19)}',
+                                          '${event.direction} 璺?${event.createdAt.toString().substring(0, 19)}',
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: textSecondary,
@@ -244,3 +244,4 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
     );
   }
 }
+

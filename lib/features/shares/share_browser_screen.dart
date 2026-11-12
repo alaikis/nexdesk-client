@@ -14,9 +14,9 @@ class ShareBrowserScreen extends StatefulWidget {
 }
 
 class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
-  Color _fileIconColor(String name, bool isDir, bool isDark) {
+  Color _fileIconColor(String name, bool isDir, WiseTheme wise) {
     if (isDir) {
-      return isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
+      return wise.primary;
     }
     final ext = name.toLowerCase().split('.').last;
     switch (ext) {
@@ -27,7 +27,7 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
       case 'bmp':
       case 'svg':
       case 'webp':
-        return isDark ? WiseColors.warningDark : WiseColors.warningLight;
+        return wise.warning;
       case 'pdf':
       case 'doc':
       case 'docx':
@@ -35,19 +35,19 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
       case 'md':
       case 'xlsx':
       case 'pptx':
-        return isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
+        return wise.primary;
       case 'mp4':
       case 'avi':
       case 'mov':
       case 'mkv':
-        return isDark ? WiseColors.destructiveDark : WiseColors.destructiveLight;
+        return wise.error;
       case 'mp3':
       case 'wav':
       case 'flac':
       case 'aac':
-        return isDark ? WiseColors.successDark : WiseColors.successLight;
+        return wise.success;
       default:
-        return isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
+        return wise.textSecondary;
     }
   }
 
@@ -100,14 +100,14 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
     final shareProvider = context.read<ShareProvider>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
-    final backgroundColor = isDark ? WiseColors.backgroundDark : WiseColors.backgroundSubtleLight;
-    final cardColor = isDark ? WiseColors.surfaceDark : WiseColors.backgroundLight;
-    final textPrimary = isDark ? WiseColors.textPrimaryDark : WiseColors.textPrimaryLight;
-    final textSecondary = isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
-    final textTertiary = isDark ? WiseColors.textTertiaryDark : WiseColors.textTertiaryLight;
-    final borderColor = isDark ? WiseColors.borderDark : WiseColors.borderLight;
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final backgroundColor = wise.background;
+    final cardColor = wise.card;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final textTertiary = wise.textTertiary;
+    final borderColor = wise.border;
 
     final breadcrumbs = _buildBreadcrumbs(path);
 
@@ -122,7 +122,7 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
         icon: Icon(Icons.download, size: 20, color: textSecondary),
         style: IconButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(NexRadius.sm),
+            borderRadius: BorderRadius.circular(wise.radius.sm),
           ),
         ),
         tooltip: l10n.download,
@@ -143,12 +143,12 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
                   children: [
                     InkWell(
                       onTap: () => shareProvider.browseShare(widget.shareId, '/'),
-                      borderRadius: BorderRadius.circular(NexRadius.sm),
+                      borderRadius: BorderRadius.circular(wise.radius.sm),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 2),
                         child: Text(
                           'Root',
-                          style: TextStyle(fontSize: 13, color: primaryColor, fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 13, color: primaryColor, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
@@ -175,13 +175,13 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
                           else
                             InkWell(
                               onTap: () => shareProvider.browseShare(widget.shareId, subPath),
-                              borderRadius: BorderRadius.circular(NexRadius.sm),
+                              borderRadius: BorderRadius.circular(wise.radius.sm),
                               child: Text(
                                 seg,
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: primaryColor,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w600,
                                   fontFamily: 'monospace',
                                 ),
                               ),
@@ -205,15 +205,15 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
                         width: 64,
                         height: 64,
                         decoration: BoxDecoration(
-                          color: primaryColor.withValues(alpha: isDark ? 0.12 : 0.08),
-                          borderRadius: BorderRadius.circular(NexRadius.lg),
+                          color: wise.primarySoft,
+                          borderRadius: BorderRadius.circular(wise.radius.lg),
                         ),
                         child: Icon(Icons.folder_open, size: 32, color: textTertiary),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         l10n.emptyFolder,
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textSecondary),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textSecondary, height: 1.53),
                       ),
                     ],
                   ),
@@ -223,7 +223,7 @@ class _ShareBrowserScreenState extends State<ShareBrowserScreen> {
                   itemCount: files.length,
                   itemBuilder: (context, index) {
                     final file = files[index];
-                    final iconColor = _fileIconColor(file.name, file.isDir, isDark);
+                    final iconColor = _fileIconColor(file.name, file.isDir, WiseTheme.of(context));
                     return _FileItem(
                       name: file.name,
                       subtitle: file.isDir ? l10n.folder : '${file.size} ${l10n.bytes}',
@@ -293,7 +293,7 @@ class _FileItemState extends State<_FileItem> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final wise = WiseTheme.of(context);
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
@@ -305,9 +305,9 @@ class _FileItemState extends State<_FileItem> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: _hovering
-                ? (isDark ? WiseColors.surfaceDark.withValues(alpha: 0.5) : WiseColors.surfaceLight)
+                ? wise.surface.withValues(alpha: 0.5)
                 : widget.cardColor,
-            borderRadius: BorderRadius.circular(NexRadius.md),
+            borderRadius: BorderRadius.circular(wise.radius.medium),
             border: Border.all(color: widget.borderColor),
           ),
           child: Row(
@@ -322,8 +322,9 @@ class _FileItemState extends State<_FileItem> {
                       widget.name,
                       style: TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         color: widget.textPrimary,
+                        height: 1.53,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -344,7 +345,7 @@ class _FileItemState extends State<_FileItem> {
                   style: IconButton.styleFrom(
                     foregroundColor: widget.primaryColor,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(NexRadius.sm),
+                      borderRadius: BorderRadius.circular(wise.radius.sm),
                     ),
                   ),
                   tooltip: 'Download',

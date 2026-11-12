@@ -68,10 +68,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(
             l10n.settings,
             style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w500,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
               color: wise.textPrimary,
-              letterSpacing: -0.2,
+              height: 1.4,
             ),
           ),
           SizedBox(height: wise.spacing.xxl),
@@ -82,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 ListTile(
                   contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
-                  title: Text(l10n.security, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: wise.textPrimary)),
+                    title: Text(l10n.security, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: wise.textPrimary, height: 1.57)),
                   subtitle: Text(l10n.manageSecuritySettings, style: TextStyle(fontSize: 13, color: wise.textSecondary)),
                   trailing: Icon(Icons.chevron_right, color: wise.textTertiary),
                   onTap: () {
@@ -100,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Divider(height: 1, color: wise.border),
                 ListTile(
                   contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
-                  title: Text(l10n.twoFactorAuth, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: wise.textPrimary)),
+                    title: Text(l10n.twoFactorAuth, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: wise.textPrimary, height: 1.57)),
                   subtitle: Text(l10n.manage2FASettings, style: TextStyle(fontSize: 13, color: wise.textSecondary)),
                   trailing: Icon(Icons.chevron_right, color: wise.textTertiary),
                   onTap: () {
@@ -121,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 ListTile(
                   contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
-                  title: Text(l10n.language, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: wise.textPrimary)),
+                    title: Text(l10n.language, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: wise.textPrimary, height: 1.57)),
                   subtitle: Text(l10n.selectLanguage, style: TextStyle(fontSize: 13, color: wise.textSecondary)),
                   trailing: PopupMenuButton<String>(
                     onSelected: (value) => _changeLanguage(value),
@@ -143,7 +143,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 ListTile(
                   contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
-                  title: Text(l10n.privacyPolicy, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: wise.textPrimary)),
+                    title: Text(l10n.privacyPolicy, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: wise.textPrimary, height: 1.57)),
                   subtitle: Text(l10n.viewPrivacyPolicy, style: TextStyle(fontSize: 13, color: wise.textSecondary)),
                   trailing: Icon(Icons.open_in_new, color: wise.textTertiary, size: 18),
                   onTap: () => _launchUrl('/legal/privacy'),
@@ -151,7 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Divider(height: 1, color: wise.border),
                 ListTile(
                   contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
-                  title: Text(l10n.termsOfService, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: wise.textPrimary)),
+                    title: Text(l10n.termsOfService, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: wise.textPrimary, height: 1.57)),
                   subtitle: Text(l10n.viewTermsOfService, style: TextStyle(fontSize: 13, color: wise.textSecondary)),
                   trailing: Icon(Icons.open_in_new, color: wise.textTertiary, size: 18),
                   onTap: () => _launchUrl('/legal/terms'),

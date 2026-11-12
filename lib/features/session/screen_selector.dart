@@ -40,22 +40,22 @@ class _ScreenSelectorState extends State<ScreenSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final cardColor = wise.card;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final textTertiary = wise.textTertiary;
+    final borderColor = wise.border;
 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 16 / 9,
-        crossAxisSpacing: NexSpacing.md,
-        mainAxisSpacing: NexSpacing.md,
+        crossAxisSpacing: wise.spacing.md,
+        mainAxisSpacing: wise.spacing.md,
       ),
       itemCount: widget.screens.length,
       itemBuilder: (context, index) {
@@ -66,7 +66,7 @@ class _ScreenSelectorState extends State<ScreenSelector> {
           child: Container(
             decoration: BoxDecoration(
               color: isSelected ? primaryColor.withValues(alpha: 0.1) : cardColor,
-              borderRadius: BorderRadius.circular(NexRadius.md),
+              borderRadius: BorderRadius.circular(wise.radius.medium),
               border: Border.all(
                 color: isSelected ? primaryColor : borderColor,
                 width: isSelected ? 2 : 1,
@@ -83,24 +83,24 @@ class _ScreenSelectorState extends State<ScreenSelector> {
                 ),
                 if (screen.isPrimary)
                   Positioned(
-                    top: NexSpacing.sm,
-                    left: NexSpacing.sm,
+                    top: wise.spacing.sm,
+                    left: wise.spacing.sm,
                     child: Text(
                       'PRIMARY',
                       style: TextStyle(fontSize: 10, color: textSecondary, fontWeight: FontWeight.w600),
                     ),
                   ),
                 Positioned(
-                  bottom: NexSpacing.sm,
-                  left: NexSpacing.sm,
-                  right: NexSpacing.sm,
+                  bottom: wise.spacing.sm,
+                  left: wise.spacing.sm,
+                  right: wise.spacing.sm,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         screen.name,
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: textPrimary),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -113,8 +113,8 @@ class _ScreenSelectorState extends State<ScreenSelector> {
                 ),
                 if (isSelected)
                   Positioned(
-                    top: NexSpacing.sm,
-                    right: NexSpacing.sm,
+                    top: wise.spacing.sm,
+                    right: wise.spacing.sm,
                     child: Icon(Icons.check_circle, color: primaryColor, size: 20),
                   ),
               ],

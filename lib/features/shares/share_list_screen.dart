@@ -33,22 +33,22 @@ class _ShareListScreenState extends State<ShareListScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-          final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
-          final textPrimary = isDark ? WiseColors.textPrimaryDark : WiseColors.textPrimaryLight;
-          final textSecondary = isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
-          final cardColor = isDark ? WiseColors.surfaceDark : WiseColors.backgroundLight;
+          final wise = WiseTheme.of(context);
+          final primaryColor = wise.primary;
+          final textPrimary = wise.textPrimary;
+          final textSecondary = wise.textSecondary;
+          final cardColor = wise.card;
 
           return AlertDialog(
             backgroundColor: cardColor,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(NexRadius.lg),
+              borderRadius: BorderRadius.circular(wise.radius.lg),
             ),
             title: Text(
               l10n.createShare,
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
                 color: textPrimary,
               ),
             ),
@@ -95,17 +95,17 @@ class _ShareListScreenState extends State<ShareListScreen> {
                 onPressed: () => Navigator.pop(context, false),
                 child: Text(
                   l10n.cancel,
-                  style: TextStyle(color: textSecondary, fontSize: 15, fontWeight: FontWeight.w500),
+                  style: TextStyle(color: textSecondary, fontSize: 15, fontWeight: FontWeight.w400),
                 ),
               ),
               FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: wise.onPrimary,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(NexRadius.md),
+                    borderRadius: BorderRadius.circular(wise.radius.medium),
                   ),
                 ),
                 onPressed: () => Navigator.pop(context, true),
@@ -137,15 +137,15 @@ class _ShareListScreenState extends State<ShareListScreen> {
     final shareProvider = context.read<ShareProvider>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? WiseColors.primaryDark : WiseColors.primaryLight;
-    final backgroundColor = isDark ? WiseColors.backgroundDark : WiseColors.backgroundSubtleLight;
-    final cardColor = isDark ? WiseColors.surfaceDark : WiseColors.backgroundLight;
-    final textPrimary = isDark ? WiseColors.textPrimaryDark : WiseColors.textPrimaryLight;
-    final textSecondary = isDark ? WiseColors.textSecondaryDark : WiseColors.textSecondaryLight;
-    final textTertiary = isDark ? WiseColors.textTertiaryDark : WiseColors.textTertiaryLight;
-    final borderColor = isDark ? WiseColors.borderDark : WiseColors.borderLight;
-    final destructiveColor = isDark ? WiseColors.destructiveDark : WiseColors.destructiveLight;
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final backgroundColor = wise.background;
+    final cardColor = wise.card;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final textTertiary = wise.textTertiary;
+    final borderColor = wise.border;
+    final destructiveColor = wise.error;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -156,10 +156,10 @@ class _ShareListScreenState extends State<ShareListScreen> {
         title: Text(
           l10n.shares,
           style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
             color: textPrimary,
-            letterSpacing: -0.5,
+            height: 1.4,
           ),
         ),
       ),
@@ -172,25 +172,25 @@ class _ShareListScreenState extends State<ShareListScreen> {
                     width: 72,
                     height: 72,
                     decoration: BoxDecoration(
-                      color: primaryColor.withValues(alpha: isDark ? 0.12 : 0.08),
-                      borderRadius: BorderRadius.circular(NexRadius.lg),
+                      color: wise.primarySoft,
+                      borderRadius: BorderRadius.circular(wise.radius.lg),
                     ),
                     child: Icon(Icons.folder_shared, size: 36, color: primaryColor),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     l10n.noSharesYet,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textSecondary),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textSecondary, height: 1.53),
                   ),
                   const SizedBox(height: 20),
                   FilledButton.icon(
                     style: FilledButton.styleFrom(
                       backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: wise.onPrimary,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(NexRadius.md),
+                        borderRadius: BorderRadius.circular(wise.radius.medium),
                       ),
                     ),
                     onPressed: _createShare,
@@ -229,10 +229,10 @@ class _ShareListScreenState extends State<ShareListScreen> {
             ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+        foregroundColor: wise.onPrimary,
         elevation: 1,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(NexRadius.lg),
+          borderRadius: BorderRadius.circular(wise.radius.lg),
         ),
         onPressed: _createShare,
         child: const Icon(Icons.add),
@@ -275,6 +275,7 @@ class _ShareCardState extends State<_ShareCard> {
 
   @override
   Widget build(BuildContext context) {
+    final wise = WiseTheme.of(context);
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
@@ -286,9 +287,9 @@ class _ShareCardState extends State<_ShareCard> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: widget.cardColor,
-            borderRadius: BorderRadius.circular(NexRadius.lg),
+            borderRadius: BorderRadius.circular(wise.radius.lg),
             border: Border.all(color: widget.borderColor),
-            boxShadow: _hovering ? WiseShadows.md : WiseShadows.sm,
+            boxShadow: _hovering ? wise.shadows.md : wise.shadows.sm,
           ),
           child: Row(
             children: [
@@ -296,8 +297,8 @@ class _ShareCardState extends State<_ShareCard> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: widget.primaryColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(NexRadius.md),
+                  color: wise.primaryTint,
+                  borderRadius: BorderRadius.circular(wise.radius.medium),
                 ),
                 child: Icon(Icons.folder, size: 20, color: widget.primaryColor),
               ),
@@ -312,6 +313,7 @@ class _ShareCardState extends State<_ShareCard> {
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: widget.textPrimary,
+                        height: 1.53,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -335,7 +337,7 @@ class _ShareCardState extends State<_ShareCard> {
                 style: IconButton.styleFrom(
                   foregroundColor: widget.destructiveColor,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(NexRadius.sm),
+                    borderRadius: BorderRadius.circular(wise.radius.sm),
                   ),
                 ),
                 tooltip: 'Delete',

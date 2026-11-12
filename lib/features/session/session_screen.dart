@@ -169,7 +169,6 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   Future<void> _showSharingSourceDialog() async {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final source = await showDialog<SharingSource>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -198,8 +197,8 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                   )),
             ] else
               Padding(
-                padding: const EdgeInsets.only(top: NexSpacing.sm),
-                child: Text(l10n.noWindowsDetected, style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF78716C) : const Color(0xFF6B6560))),
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(l10n.noWindowsDetected, style: TextStyle(fontSize: 13, color: WiseTheme.of(ctx).textTertiary)),
               ),
           ],
         ),
@@ -668,7 +667,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     return Positioned(
       left: 0,
       right: 0,
-      bottom: NexSpacing.lg,
+      bottom: WiseTheme.of(context).spacing.lg,
       child: Center(
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -684,7 +683,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                   destructive: action.group == ToolbarGroup.end,
                 )),
                 if (entry.key != ToolbarGroup.end)
-                  const SizedBox(width: NexSpacing.sm),
+                  const SizedBox(width: 8),
               ],
             ],
           ),
@@ -815,24 +814,22 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   Widget _buildScreenSelector() {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+    final wise = WiseTheme.of(context);
     return Padding(
-      padding: const EdgeInsets.all(NexSpacing.xl),
+      padding: EdgeInsets.all(wise.spacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             l10n.selectScreensToShare,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textPrimary),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: wise.textPrimary, height: 1.4),
           ),
-          const SizedBox(height: NexSpacing.xs),
+          SizedBox(height: wise.spacing.xs),
           Text(
             l10n.chooseDisplays,
-            style: TextStyle(fontSize: 13, color: textSecondary),
+            style: TextStyle(fontSize: 13, color: wise.textSecondary, height: 1.54),
           ),
-          const SizedBox(height: NexSpacing.lg),
+          SizedBox(height: wise.spacing.lg),
           Expanded(
             child: _screens.isEmpty
                 ? const Center(child: CircularProgressIndicator())
@@ -842,7 +839,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                     onSelectionChanged: (ids) => setState(() => _selectedScreenIds = ids),
                   ),
           ),
-          const SizedBox(height: NexSpacing.lg),
+          SizedBox(height: wise.spacing.lg),
           NexButton(
             text: _selectedScreenIds.isEmpty ? l10n.selectAtLeastOneScreen : l10n.startSession,
             fullWidth: true,
@@ -857,39 +854,39 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     final sessionProvider = context.watch<SessionProvider>();
     final l10n = AppLocalizations.of(context)!;
     final streams = _webrtc.remoteStreams;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final successColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
-    final warningColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final successColor = wise.success;
+    final warningColor = wise.warning;
+    final errorColor = wise.error;
+    final cardColor = wise.card;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final textTertiary = wise.textTertiary;
+    final borderColor = wise.border;
 
     if (sessionProvider.reconnectionState == ReconnectionState.failed) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(NexSpacing.xxl),
+          padding: EdgeInsets.all(wise.spacing.xxl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.wifi_off, size: 64, color: textTertiary),
-              const SizedBox(height: NexSpacing.lg),
-              Text(l10n.connectionLost, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: textPrimary)),
-              const SizedBox(height: NexSpacing.sm),
+              SizedBox(height: wise.spacing.lg),
+              Text(l10n.connectionLost, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: textPrimary, height: 1.4)),
+              SizedBox(height: wise.spacing.sm),
               Text(
                 l10n.failedAfterAttempts(sessionProvider.reconnectAttempts),
-                style: TextStyle(fontSize: 15, color: textSecondary),
+                style: TextStyle(fontSize: 15, color: textSecondary, height: 1.53),
               ),
-              const SizedBox(height: NexSpacing.xxl),
+              SizedBox(height: wise.spacing.xxl),
               NexButton(
                 text: l10n.retry,
                 icon: const Icon(Icons.refresh, size: 18),
                 onPressed: _retryConnection,
               ),
-              const SizedBox(height: NexSpacing.md),
+              SizedBox(height: wise.spacing.md),
               NexButton(
                 text: l10n.returnToDevices,
                 variant: NexButtonVariant.ghost,
@@ -909,8 +906,8 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircularProgressIndicator(color: primaryColor),
-                  const SizedBox(height: NexSpacing.lg),
-                  Text(l10n.reconnecting, style: TextStyle(fontSize: 15, color: textSecondary)),
+                  SizedBox(height: wise.spacing.lg),
+                  Text(l10n.reconnecting, style: TextStyle(fontSize: 15, color: textSecondary, height: 1.53)),
                 ],
               )
             : CircularProgressIndicator(color: primaryColor),
@@ -926,12 +923,12 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
             if (reconnecting)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: NexSpacing.sm, horizontal: NexSpacing.lg),
+                padding: EdgeInsets.symmetric(vertical: wise.spacing.sm, horizontal: wise.spacing.lg),
                 color: errorColor,
                 child: Text(
                   l10n.reconnectingAttempt(sessionProvider.reconnectAttempts + 1),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600, height: 1.5),
                 ),
               ),
             Expanded(
@@ -949,12 +946,12 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                       focusNode: FocusNode()..requestFocus(),
                       onKeyEvent: (e) => _inputRelay?.handleKeyEvent(e, _keyModifiers(e)),
                       child: GridView.builder(
-                        padding: const EdgeInsets.all(NexSpacing.md),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        padding: EdgeInsets.all(wise.spacing.md),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           childAspectRatio: 16 / 9,
-                          crossAxisSpacing: NexSpacing.md,
-                          mainAxisSpacing: NexSpacing.md,
+                          crossAxisSpacing: wise.spacing.md,
+                          mainAxisSpacing: wise.spacing.md,
                         ),
                         itemCount: streams.length,
                         itemBuilder: (context, index) {
@@ -964,11 +961,11 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                             children: [
                               Container(
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(NexRadius.md),
+                                  borderRadius: BorderRadius.circular(wise.radius.medium),
                                   border: Border.all(color: borderColor),
                                 ),
                                 child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(NexRadius.md),
+                                  borderRadius: BorderRadius.circular(wise.radius.medium),
                                   child: _isDragOver
                                       ? Opacity(opacity: 0.6, child: RTCVideoView(stream.renderer))
                                       : RTCVideoView(stream.renderer),
@@ -978,8 +975,8 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                                 Positioned.fill(
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: Colors.black,
-                                      borderRadius: BorderRadius.circular(NexRadius.md),
+                                      color: const Color(0xFF000000),
+                                      borderRadius: BorderRadius.circular(wise.radius.medium),
                                     ),
                                   ),
                                 ),
@@ -995,15 +992,15 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
           ],
         ),
         Positioned(
-          top: reconnecting ? NexSpacing.xxxl + NexSpacing.sm : NexSpacing.md,
-          left: NexSpacing.md,
+          top: reconnecting ? wise.spacing.xxxl + wise.spacing.sm : wise.spacing.md,
+          left: wise.spacing.md,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md, vertical: NexSpacing.sm),
+            padding: EdgeInsets.symmetric(horizontal: wise.spacing.md, vertical: wise.spacing.sm),
             decoration: BoxDecoration(
               color: cardColor,
-              borderRadius: BorderRadius.circular(NexRadius.lg),
+              borderRadius: BorderRadius.circular(wise.radius.lg),
               border: Border.all(color: borderColor),
-              boxShadow: WiseShadows.md,
+              boxShadow: wise.shadows.md,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1016,17 +1013,17 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: NexSpacing.sm),
+                SizedBox(width: wise.spacing.sm),
                 Text(
                   reconnecting ? l10n.reconnecting : 'Connected',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textPrimary),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary, height: 1.5),
                 ),
                 if (_e2eeActive) ...[
-                  const SizedBox(width: NexSpacing.md),
+                  SizedBox(width: wise.spacing.md),
                   Container(width: 1, height: 12, color: borderColor),
-                  const SizedBox(width: NexSpacing.md),
+                  SizedBox(width: wise.spacing.md),
                   Icon(Icons.lock, size: 14, color: successColor),
-                  const SizedBox(width: NexSpacing.xs),
+                  SizedBox(width: wise.spacing.xs),
                   Text(
                     'E2EE',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: successColor),
@@ -1063,8 +1060,8 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   }
 
   Widget _buildDragOverlay() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
     final fileCount = _dragFiles.length;
     final l10n = AppLocalizations.of(context)!;
     final sizeText = _dragTotalSize > 0
@@ -1079,32 +1076,32 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
             child: Container(
               decoration: BoxDecoration(
                 color: primaryColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(NexRadius.md),
+                borderRadius: BorderRadius.circular(wise.radius.medium),
                 border: Border.all(color: primaryColor, width: 2),
               ),
             ),
           ),
           Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xl, vertical: NexSpacing.lg),
+              padding: EdgeInsets.symmetric(horizontal: wise.spacing.xl, vertical: wise.spacing.lg),
               decoration: BoxDecoration(
                 color: primaryColor,
-                borderRadius: BorderRadius.circular(NexRadius.md),
+                borderRadius: BorderRadius.circular(wise.radius.medium),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.cloud_upload_rounded, color: Colors.white, size: 32),
-                  const SizedBox(height: NexSpacing.sm),
+                  Icon(Icons.cloud_upload_rounded, color: wise.onPrimary, size: 32),
+                  SizedBox(height: wise.spacing.sm),
                   Text(
                     l10n.dropToSend,
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: wise.onPrimary, fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   if (fileCount > 0) ...[
-                    const SizedBox(height: NexSpacing.xs),
+                    SizedBox(height: wise.spacing.xs),
                     Text(
                       '$fileCount file${fileCount > 1 ? 's' : ''}${sizeText.isNotEmpty ? " 鈥?$sizeText" : ""}',
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      style: TextStyle(color: wise.onPrimary, fontSize: 13, height: 1.54),
                     ),
                   ],
                 ],
@@ -1311,20 +1308,21 @@ class _ClassicToolbarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final wise = WiseTheme.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
+    final errorColor = wise.error;
     return Semantics(
       label: tooltip,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(NexRadius.md),
+          borderRadius: BorderRadius.circular(wise.radius.medium),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md, vertical: NexSpacing.sm),
+            padding: EdgeInsets.symmetric(horizontal: wise.spacing.md, vertical: wise.spacing.sm),
             decoration: BoxDecoration(
-              color: destructive ? errorColor : const Color(0xFF1C1C1E),
-              borderRadius: BorderRadius.circular(NexRadius.md),
+              color: destructive ? errorColor : (isDark ? const Color(0xFF1C1C1E) : wise.card),
+              borderRadius: BorderRadius.circular(wise.radius.medium),
               border: Border.all(
                 color: destructive ? errorColor : Colors.white.withValues(alpha: 0.12),
                 width: 0.5,
@@ -1339,7 +1337,7 @@ class _ClassicToolbarButton extends StatelessWidget {
                   label,
                   style: const TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),

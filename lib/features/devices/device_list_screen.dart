@@ -518,7 +518,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
     final textPrimary = wise.textPrimary;
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(NexRadius.lg))),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(wise.radius.lg))),
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -685,7 +685,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                             selectedColor: primaryColor.withValues(alpha: 0.12),
                             labelStyle: TextStyle(fontSize: 13, color: groups.selectedGroupId == null ? primaryColor : textSecondary),
                             side: BorderSide(color: groups.selectedGroupId == null ? primaryColor : borderColor),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.sm)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.sm)),
                           ),
                           FilterChip(
                             label: Text(l10n.filterUngrouped),
@@ -694,7 +694,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                             backgroundColor: surfaceColor,
                             labelStyle: TextStyle(fontSize: 13, color: textSecondary),
                             side: BorderSide(color: borderColor),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.sm)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.sm)),
                           ),
                           ...groups.groups.map((g) => FilterChip(
                                 label: Text(g.name),
@@ -704,7 +704,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                                 selectedColor: primaryColor.withValues(alpha: 0.12),
                                 labelStyle: TextStyle(fontSize: 13, color: groups.selectedGroupId == '${g.id}' ? primaryColor : textSecondary),
                                 side: BorderSide(color: groups.selectedGroupId == '${g.id}' ? primaryColor : borderColor),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.sm)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.sm)),
                               )),
                         ],
                       ),
@@ -723,7 +723,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> with ErrorHandler {
                             selectedColor: primaryColor.withValues(alpha: 0.12),
                             labelStyle: TextStyle(fontSize: 13, color: _showFavoritesOnly ? primaryColor : textSecondary),
                             side: BorderSide(color: _showFavoritesOnly ? primaryColor : borderColor),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.sm)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.sm)),
                           ),
                         ],
                       ),
@@ -928,7 +928,7 @@ class _DeviceDetailPanelState extends State<_DeviceDetailPanel> {
       margin: const EdgeInsets.only(right: 20, bottom: 20),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(NexRadius.lg),
+        borderRadius: BorderRadius.circular(wise.radius.lg),
         border: Border.all(color: borderColor),
         boxShadow: wise.shadows.md,
       ),
@@ -1080,7 +1080,7 @@ class _DetailRow extends StatelessWidget {
           child: Text(label, style: TextStyle(fontSize: 13, color: textSecondary)),
         ),
         Expanded(
-          child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: textPrimary)),
+          child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary, height: 1.54)),
         ),
       ],
     );
@@ -1103,12 +1103,12 @@ class _ActionButton extends StatelessWidget {
     final borderColor = wise.border;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(NexRadius.sm),
+      borderRadius: BorderRadius.circular(wise.radius.sm),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         decoration: BoxDecoration(
           color: surfaceColor,
-          borderRadius: BorderRadius.circular(NexRadius.sm),
+          borderRadius: BorderRadius.circular(wise.radius.sm),
           border: Border.all(color: borderColor),
         ),
         child: Row(

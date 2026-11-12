@@ -144,15 +144,15 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
-    final successColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final backgroundColor = wise.background;
+    final cardColor = wise.card;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final borderColor = wise.border;
+    final successColor = wise.success;
+    final errorColor = wise.error;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -172,12 +172,12 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
                   itemBuilder: (context, index) {
                     final transfer = _transfers[index];
                     final isUpload = transfer.direction == TransferDirection.upload;
-                    return Container(
+                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: cardColor,
-                        borderRadius: BorderRadius.circular(NexRadius.md),
+                        borderRadius: BorderRadius.circular(wise.radius.medium),
                         border: Border.all(color: borderColor),
                       ),
                       child: Column(
@@ -195,16 +195,16 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      transfer.fileName,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w500,
-                                        color: textPrimary,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                       Text(
+                                         transfer.fileName,
+                                         style: TextStyle(
+                                           fontSize: 15,
+                                           fontWeight: FontWeight.w600,
+                                           color: textPrimary,
+                                         ),
+                                         maxLines: 1,
+                                         overflow: TextOverflow.ellipsis,
+                                       ),
                                     const SizedBox(height: 2),
                                     Text(
                                       '${transfer.fileSize ~/ 1024} KB',
@@ -216,12 +216,12 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
                                   ],
                                 ),
                               ),
-                              _buildStatusBadge(transfer.status, isDark),
+                               _buildStatusBadge(transfer.status),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(NexRadius.full),
+                           ClipRRect(
+                             borderRadius: BorderRadius.circular(wise.radius.full),
                             child: SizedBox(
                               height: 4,
                               child: LinearProgressIndicator(
@@ -248,14 +248,14 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
                                   foregroundColor: errorColor,
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 ),
-                                child: Text(
-                                  l10n.cancelTransfer,
-                                  style: TextStyle(
-                                    color: errorColor,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                                 child: Text(
+                                   l10n.cancelTransfer,
+                                   style: TextStyle(
+                                     color: errorColor,
+                                     fontSize: 14,
+                                     fontWeight: FontWeight.w600,
+                                   ),
+                                 ),
                               ),
                             ),
                           ] else if (transfer.status == TransferStatus.failed) ...[
@@ -268,14 +268,14 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
                                   foregroundColor: primaryColor,
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 ),
-                                child: Text(
-                                  l10n.retryTransfer,
-                                  style: TextStyle(
-                                    color: primaryColor,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                                 child: Text(
+                                   l10n.retryTransfer,
+                                   style: TextStyle(
+                                     color: primaryColor,
+                                     fontSize: 14,
+                                     fontWeight: FontWeight.w600,
+                                   ),
+                                 ),
                               ),
                             ),
                           ],
@@ -287,27 +287,28 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _pickAndUpload,
         backgroundColor: primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
+        foregroundColor: wise.onPrimary,
       ),
     );
   }
 
-  Widget _buildStatusBadge(TransferStatus status, bool isDark) {
-    final successColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+  Widget _buildStatusBadge(TransferStatus status) {
+    final wise = WiseTheme.of(context);
+    final successColor = wise.success;
+    final errorColor = wise.error;
+    final surfaceColor = wise.surface;
+    final textSecondary = wise.textSecondary;
 
     Color bgColor;
     Color textColor;
 
     switch (status) {
       case TransferStatus.completed:
-        bgColor = successColor.withValues(alpha: 0.12);
+        bgColor = wise.successSoft;
         textColor = successColor;
         break;
       case TransferStatus.failed:
-        bgColor = errorColor.withValues(alpha: 0.12);
+        bgColor = wise.errorSoft;
         textColor = errorColor;
         break;
       default:
@@ -319,14 +320,14 @@ class _FileTransferScreenState extends State<FileTransferScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(NexRadius.full),
+        borderRadius: BorderRadius.circular(wise.radius.full),
       ),
       child: Text(
         status.name,
         style: TextStyle(
           color: textColor,
           fontSize: 12,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

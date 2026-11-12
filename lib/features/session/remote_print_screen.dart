@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -264,16 +264,16 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
-    final successColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
-    final warningColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final backgroundColor = wise.background;
+    final cardColor = wise.card;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final borderColor = wise.border;
+    final successColor = wise.success;
+    final warningColor = wise.warning;
+    final errorColor = wise.error;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -303,15 +303,15 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                             filled: true,
                             fillColor: cardColor,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(NexRadius.md),
+                              borderRadius: BorderRadius.circular(wise.radius.medium),
                               borderSide: BorderSide(color: borderColor),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(NexRadius.md),
+                              borderRadius: BorderRadius.circular(wise.radius.medium),
                               borderSide: BorderSide(color: borderColor),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(NexRadius.md),
+                              borderRadius: BorderRadius.circular(wise.radius.medium),
                               borderSide: BorderSide(color: primaryColor, width: 1.5),
                             ),
                           ),
@@ -330,7 +330,7 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                           style: TextStyle(
                             color: primaryColor,
                             fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -355,7 +355,7 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: cardColor,
-                                borderRadius: BorderRadius.circular(NexRadius.md),
+                                borderRadius: BorderRadius.circular(wise.radius.medium),
                                 border: Border.all(color: borderColor),
                               ),
                               child: Column(
@@ -378,7 +378,7 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                                               job.fileName,
                                               style: TextStyle(
                                                 fontSize: 15,
-                                                fontWeight: FontWeight.w500,
+                                                fontWeight: FontWeight.w600,
                                                 color: textPrimary,
                                               ),
                                               maxLines: 1,
@@ -386,7 +386,7 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              '${job.format.toUpperCase()} 鈥?${_formatSize(job.fileSize)}',
+                                              '${job.format.toUpperCase()} 閳?${_formatSize(job.fileSize)}',
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 color: textSecondary,
@@ -395,7 +395,7 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                                           ],
                                         ),
                                       ),
-                                      _buildStatusBadge(job.status, isDark),
+                                        _buildStatusBadge(job.status, context),
                                     ],
                                   ),
                                   if (job.errorMessage != null) ...[
@@ -429,7 +429,7 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
                                             style: TextStyle(
                                               color: errorColor,
                                               fontSize: 14,
-                                              fontWeight: FontWeight.w500,
+                                              fontWeight: FontWeight.w600,
                                             ),
                                           ),
                                         ),
@@ -471,28 +471,29 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
     }
   }
 
-  Widget _buildStatusBadge(String status, bool isDark) {
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final successColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+  Widget _buildStatusBadge(String status, BuildContext context) {
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final successColor = wise.success;
+    final errorColor = wise.error;
+    final surfaceColor = wise.surface;
+    final textSecondary = wise.textSecondary;
 
     Color bgColor;
     Color textColor;
 
     switch (status) {
       case 'printing':
-        bgColor = primaryColor.withValues(alpha: 0.12);
+        bgColor = wise.primaryTint;
         textColor = primaryColor;
         break;
       case 'completed':
-        bgColor = successColor.withValues(alpha: 0.12);
+        bgColor = wise.successSoft;
         textColor = successColor;
         break;
       case 'failed':
       case 'cancelled':
-        bgColor = errorColor.withValues(alpha: 0.12);
+        bgColor = wise.errorSoft;
         textColor = errorColor;
         break;
       default:
@@ -504,14 +505,14 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(NexRadius.full),
+        borderRadius: BorderRadius.circular(wise.radius.full),
       ),
       child: Text(
         status,
         style: TextStyle(
           color: textColor,
           fontSize: 12,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -523,3 +524,5 @@ class _RemotePrintScreenState extends State<RemotePrintScreen> {
     return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
   }
 }
+
+

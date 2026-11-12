@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/session_recording.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/nex_card.dart';
 
 class RecordingListScreen extends StatefulWidget {
@@ -61,13 +62,13 @@ class _RecordingListScreenState extends State<RecordingListScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final backgroundColor = wise.background;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final textTertiary = wise.textTertiary;
+    final errorColor = wise.error;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -106,14 +107,15 @@ class _RecordingListScreenState extends State<RecordingListScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Recording #${rec.id}',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
-                                    color: textPrimary,
-                                  ),
-                                ),
+                                 Text(
+                                   'Recording #${rec.id}',
+                                   style: TextStyle(
+                                     fontSize: 15,
+                                     fontWeight: FontWeight.w600,
+                                     color: textPrimary,
+                                     height: 1.53,
+                                   ),
+                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${rec.createdAt.toLocal()}'.split('.')[0],

@@ -219,10 +219,10 @@ class _RemoteCameraScreenState extends State<RemoteCameraScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF2F2F7);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final errorColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
+    final wise = WiseTheme.of(context);
+    final backgroundColor = wise.background;
+    final textSecondary = wise.textSecondary;
+    final errorColor = wise.error;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -257,7 +257,7 @@ class _RemoteCameraScreenState extends State<RemoteCameraScreen> {
                   ? Stack(
                       children: [
                         Container(
-                          color: Colors.black,
+                          color: const Color(0xFF000000),
                           child: Center(child: RTCVideoView(_renderer!)),
                         ),
                         Positioned(
@@ -269,18 +269,18 @@ class _RemoteCameraScreenState extends State<RemoteCameraScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF1C1C1E),
-                                borderRadius: BorderRadius.circular(NexRadius.md),
+                                borderRadius: BorderRadius.circular(wise.radius.medium),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.refresh, color: Colors.white),
+                                    icon: Icon(Icons.refresh, color: wise.textPrimary),
                                     onPressed: _isController ? _requestCamera : null,
                                     tooltip: l10n.refresh,
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.close, color: Colors.white),
+                                    icon: Icon(Icons.close, color: wise.textPrimary),
                                     onPressed: () => Navigator.pop(context),
                                     tooltip: l10n.close,
                                   ),
