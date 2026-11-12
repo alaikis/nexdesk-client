@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 /// wise.primary        // 主色
 /// wise.success        // 成功色
 /// wise.spacing.lg     // 间距 16
-/// wise.radius.lg      // 圆角 16
+/// wise.radius.lg      // 圆角 9
 /// ```
 
 // ═══════════════════════════════════════════════════
@@ -66,44 +66,44 @@ class WiseColorTokens {
     required this.online,
   });
 
-  /// Light Mode
+  /// Light Mode (TDesign)
   static const light = WiseColorTokens._(
-    primary: Color(0xFFE34234),
-    primaryHover: Color(0xFFC53528),
+    primary: Color(0xFF0052D9),
+    primaryHover: Color(0xFF366EF4),
     onPrimary: Color(0xFFFFFFFF),
-    success: Color(0xFFD4AF37),
-    warning: Color(0xFFF2A900),
-    error: Color(0xFFB71C1C),
-    background: Color(0xFFFAFAFA),
+    success: Color(0xFF00A870),
+    warning: Color(0xFFE37318),
+    error: Color(0xFFD54941),
+    background: Color(0xFFF3F3F3),
     backgroundSubtle: Color(0xFFF5F5F5),
-    surface: Color(0xFFF5F5F5),
+    surface: Color(0xFFFFFFFF),
     card: Color(0xFFFFFFFF),
-    textPrimary: Color(0xFF1A1A1A),
-    textSecondary: Color(0xFF5C5C5C),
-    textTertiary: Color(0xFF8E8E8E),
-    border: Color(0xFFE0E0E0),
-    borderStrong: Color(0xFFBFBFBF),
-    online: Color(0xFF388E3C),
+    textPrimary: Color(0xE6000000), // rgba(0,0,0,.9)
+    textSecondary: Color(0x99000000), // rgba(0,0,0,.6)
+    textTertiary: Color(0x66000000), // rgba(0,0,0,.4)
+    border: Color(0xFFE8E8E8),
+    borderStrong: Color(0xFFDDDDDD),
+    online: Color(0xFF00A870),
   );
 
-  /// Dark Mode
+  /// Dark Mode (TDesign)
   static const dark = WiseColorTokens._(
-    primary: Color(0xFFE34234),
-    primaryHover: Color(0xFFC53528),
-    onPrimary: Color(0xFFFFFFFF),
-    success: Color(0xFFD4AF37),
-    warning: Color(0xFFF2A900),
-    error: Color(0xFFEF5350),
-    background: Color(0xFF1A1A1A),
+    primary: Color(0xFF69A1FF),
+    primaryHover: Color(0xFF478DFF),
+    onPrimary: Color(0xFF181818),
+    success: Color(0xFF37BF8E),
+    warning: Color(0xFFED8139),
+    error: Color(0xFFFB6E77),
+    background: Color(0xFF181818),
     backgroundSubtle: Color(0xFF242424),
     surface: Color(0xFF242424),
     card: Color(0xFF2C2C2C),
-    textPrimary: Color(0xFFFFFFFF),
-    textSecondary: Color(0xFFB0B0B0),
-    textTertiary: Color(0xFF757575),
+    textPrimary: Color(0xE6FFFFFF), // rgba(255,255,255,.9)
+    textSecondary: Color(0x99FFFFFF), // rgba(255,255,255,.6)
+    textTertiary: Color(0x66FFFFFF), // rgba(255,255,255,.4)
     border: Color(0xFF3A3A3A),
-    borderStrong: Color(0xFF5A5A5A),
-    online: Color(0xFF4CAF50),
+    borderStrong: Color(0xFF444444),
+    online: Color(0xFF37BF8E),
   );
 
   WiseColorTokens copyWith({Color? primary, Color? primaryHover}) {
@@ -136,16 +136,24 @@ class WiseSpacingTokens {
   final double xs, sm, md, lg, xl, xxl, xxxl;
 
   const WiseSpacingTokens._({
-    this.xs = 4,
-    this.sm = 8,
-    this.md = 12,
-    this.lg = 16,
-    this.xl = 20,
-    this.xxl = 24,
-    this.xxxl = 32,
+    required this.xs,
+    required this.sm,
+    required this.md,
+    required this.lg,
+    required this.xl,
+    required this.xxl,
+    required this.xxxl,
   });
 
-  static const instance = WiseSpacingTokens._();
+  static const instance = WiseSpacingTokens._(
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 20,
+    xxl: 24,
+    xxxl: 32,
+  );
 }
 
 // ═══════════════════════════════════════════════════
@@ -153,16 +161,28 @@ class WiseSpacingTokens {
 // ═══════════════════════════════════════════════════
 
 class WiseRadiusTokens {
-  final double sm, md, lg, full;
+  final double sm, def, medium, lg, xl, full;
 
   const WiseRadiusTokens._({
-    this.sm = 8,
-    this.md = 12,
-    this.lg = 16,
-    this.full = 9999,
+    required this.sm,
+    required this.def,
+    required this.medium,
+    required this.lg,
+    required this.xl,
+    required this.full,
   });
 
-  static const instance = WiseRadiusTokens._();
+  /// TDesign 旧名兼容：md 对应 medium
+  double get md => medium;
+
+  static const instance = WiseRadiusTokens._(
+    sm: 2,
+    def: 3,
+    medium: 6,
+    lg: 9,
+    xl: 12,
+    full: 999,
+  );
 }
 
 // ═══════════════════════════════════════════════════
@@ -174,22 +194,38 @@ class WiseShadowTokens {
 
   const WiseShadowTokens._({
     this.sm = const [
-      BoxShadow(color: Color(0x0F000000), blurRadius: 3, offset: Offset(0, 1)),
+      BoxShadow(color: Color(0x0D000000), blurRadius: 10, offset: Offset(0, 1)),
+      BoxShadow(color: Color(0x14000000), blurRadius: 5, offset: Offset(0, 4)),
+      BoxShadow(color: Color(0x1F000000), blurRadius: 4, spreadRadius: -1, offset: Offset(0, 2)),
     ],
     this.md = const [
-      BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 4)),
+      BoxShadow(color: Color(0x0D000000), blurRadius: 14, spreadRadius: 2, offset: Offset(0, 3)),
+      BoxShadow(color: Color(0x0F000000), blurRadius: 10, spreadRadius: 1, offset: Offset(0, 8)),
+      BoxShadow(color: Color(0x1A000000), blurRadius: 5, spreadRadius: -3, offset: Offset(0, 5)),
     ],
     this.lg = const [
-      BoxShadow(color: Color(0x1F000000), blurRadius: 40, offset: Offset(0, 12)),
+      BoxShadow(color: Color(0x14000000), blurRadius: 20, offset: Offset(0, 5)),
     ],
   });
 
+  /// TDesign Light shadows (shadow-1/2/3)
   static const light = WiseShadowTokens._();
 
+  /// TDesign Dark shadows（提升不透明度）
   static const dark = WiseShadowTokens._(
-    sm: [BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1))],
-    md: [BoxShadow(color: Color(0x66000000), blurRadius: 12, offset: Offset(0, 4))],
-    lg: [BoxShadow(color: Color(0x80000000), blurRadius: 40, offset: Offset(0, 12))],
+    sm: [
+      BoxShadow(color: Color(0x33000000), blurRadius: 10, offset: Offset(0, 1)),
+      BoxShadow(color: Color(0x40000000), blurRadius: 5, offset: Offset(0, 4)),
+      BoxShadow(color: Color(0x4D000000), blurRadius: 4, spreadRadius: -1, offset: Offset(0, 2)),
+    ],
+    md: [
+      BoxShadow(color: Color(0x33000000), blurRadius: 14, spreadRadius: 2, offset: Offset(0, 3)),
+      BoxShadow(color: Color(0x40000000), blurRadius: 10, spreadRadius: 1, offset: Offset(0, 8)),
+      BoxShadow(color: Color(0x4D000000), blurRadius: 5, spreadRadius: -3, offset: Offset(0, 5)),
+    ],
+    lg: [
+      BoxShadow(color: Color(0x40000000), blurRadius: 20, offset: Offset(0, 5)),
+    ],
   );
 }
 
@@ -198,7 +234,7 @@ class WiseShadowTokens {
 // ═══════════════════════════════════════════════════
 
 class WiseTypographyTokens {
-  static const fontFamily = '-apple-system, BlinkMacSystemFont, SF Pro Display, Segoe UI, Roboto';
+  static const fontFamily = 'PingFang SC, Microsoft YaHei, -apple-system, Segoe UI, Roboto, sans-serif';
 
   // 字号
   static const double displayLarge = 34;
@@ -218,18 +254,18 @@ class WiseTypographyTokens {
 
   static TextTheme lightTextTheme(WiseColorTokens c) {
     return TextTheme(
-      displayLarge: TextStyle(color: c.textPrimary, fontSize: displayLarge, fontWeight: FontWeight.w700, letterSpacing: -0.5),
-      displayMedium: TextStyle(color: c.textPrimary, fontSize: displayMedium, fontWeight: FontWeight.w700, letterSpacing: -0.5),
-      displaySmall: TextStyle(color: c.textPrimary, fontSize: displaySmall, fontWeight: FontWeight.w600),
-      headlineLarge: TextStyle(color: c.textPrimary, fontSize: headlineLarge, fontWeight: FontWeight.w600),
-      headlineMedium: TextStyle(color: c.textPrimary, fontSize: headlineMedium, fontWeight: FontWeight.w600),
-      headlineSmall: TextStyle(color: c.textPrimary, fontSize: headlineSmall, fontWeight: FontWeight.w600),
-      bodyLarge: TextStyle(color: c.textPrimary, fontSize: bodyLarge, height: 1.5),
-      bodyMedium: TextStyle(color: c.textSecondary, fontSize: bodyMedium),
-      bodySmall: TextStyle(color: c.textTertiary, fontSize: bodySmall),
-      labelLarge: TextStyle(color: c.textPrimary, fontSize: labelLarge, fontWeight: FontWeight.w600),
-      labelMedium: TextStyle(color: c.textSecondary, fontSize: labelMedium, fontWeight: FontWeight.w500),
-      labelSmall: TextStyle(color: c.textTertiary, fontSize: labelSmall, fontWeight: FontWeight.w500, letterSpacing: 0.8),
+      displayLarge: TextStyle(color: c.textPrimary, fontSize: displayLarge, fontWeight: FontWeight.w600, height: (displayLarge + 8) / displayLarge),
+      displayMedium: TextStyle(color: c.textPrimary, fontSize: displayMedium, fontWeight: FontWeight.w600, height: (displayMedium + 8) / displayMedium),
+      displaySmall: TextStyle(color: c.textPrimary, fontSize: displaySmall, fontWeight: FontWeight.w600, height: (displaySmall + 8) / displaySmall),
+      headlineLarge: TextStyle(color: c.textPrimary, fontSize: headlineLarge, fontWeight: FontWeight.w600, height: (headlineLarge + 8) / headlineLarge),
+      headlineMedium: TextStyle(color: c.textPrimary, fontSize: headlineMedium, fontWeight: FontWeight.w600, height: (headlineMedium + 8) / headlineMedium),
+      headlineSmall: TextStyle(color: c.textPrimary, fontSize: headlineSmall, fontWeight: FontWeight.w600, height: (headlineSmall + 8) / headlineSmall),
+      bodyLarge: TextStyle(color: c.textPrimary, fontSize: bodyLarge, height: (bodyLarge + 8) / bodyLarge),
+      bodyMedium: TextStyle(color: c.textSecondary, fontSize: bodyMedium, height: (bodyMedium + 8) / bodyMedium),
+      bodySmall: TextStyle(color: c.textTertiary, fontSize: bodySmall, height: (bodySmall + 8) / bodySmall),
+      labelLarge: TextStyle(color: c.textPrimary, fontSize: labelLarge, fontWeight: FontWeight.w600, height: (labelLarge + 8) / labelLarge),
+      labelMedium: TextStyle(color: c.textSecondary, fontSize: labelMedium, fontWeight: FontWeight.w600, height: (labelMedium + 8) / labelMedium),
+      labelSmall: TextStyle(color: c.textTertiary, fontSize: labelSmall, fontWeight: FontWeight.w600, height: (labelSmall + 8) / labelSmall),
     );
   }
 
@@ -399,39 +435,39 @@ class NexColors {
   });
 
   const NexColors.light()
-      : primary = const Color(0xFFE34234),
-        onPrimary = Colors.white,
-        background = const Color(0xFFFAFAFA),
-        surface = const Color(0xFFF5F5F5),
-        card = Colors.white,
-        border = const Color(0xFFE0E0E0),
-        textPrimary = const Color(0xFF1A1A1A),
-        textSecondary = const Color(0xFF5C5C5C),
-        textTertiary = const Color(0xFF8E8E8E),
-        online = const Color(0xFF388E3C),
-        error = const Color(0xFFB71C1C),
-        success = const Color(0xFFD4AF37),
-        warning = const Color(0xFFF2A900),
-        primaryHover = const Color(0xFFC53528),
-        borderStrong = const Color(0xFFBFBFBF),
+      : primary = const Color(0xFF0052D9),
+        onPrimary = const Color(0xFFFFFFFF),
+        background = const Color(0xFFF3F3F3),
+        surface = const Color(0xFFFFFFFF),
+        card = const Color(0xFFFFFFFF),
+        border = const Color(0xFFE8E8E8),
+        textPrimary = const Color(0xE6000000),
+        textSecondary = const Color(0x99000000),
+        textTertiary = const Color(0x66000000),
+        online = const Color(0xFF00A870),
+        error = const Color(0xFFD54941),
+        success = const Color(0xFF00A870),
+        warning = const Color(0xFFE37318),
+        primaryHover = const Color(0xFF366EF4),
+        borderStrong = const Color(0xFFDDDDDD),
         backgroundSubtle = const Color(0xFFF5F5F5);
 
   const NexColors.dark()
-      : primary = const Color(0xFFE34234),
-        onPrimary = Colors.white,
-        background = const Color(0xFF1A1A1A),
+      : primary = const Color(0xFF69A1FF),
+        onPrimary = const Color(0xFF181818),
+        background = const Color(0xFF181818),
         surface = const Color(0xFF242424),
         card = const Color(0xFF2C2C2C),
         border = const Color(0xFF3A3A3A),
-        textPrimary = const Color(0xFFFFFFFF),
-        textSecondary = const Color(0xFFB0B0B0),
-        textTertiary = const Color(0xFF757575),
-        online = const Color(0xFF4CAF50),
-        error = const Color(0xFFEF5350),
-        success = const Color(0xFFD4AF37),
-        warning = const Color(0xFFF2A900),
-        primaryHover = const Color(0xFFC53528),
-        borderStrong = const Color(0xFF5A5A5A),
+        textPrimary = const Color(0xE6FFFFFF),
+        textSecondary = const Color(0x99FFFFFF),
+        textTertiary = const Color(0x66FFFFFF),
+        online = const Color(0xFF37BF8E),
+        error = const Color(0xFFFB6E77),
+        success = const Color(0xFF37BF8E),
+        warning = const Color(0xFFED8139),
+        primaryHover = const Color(0xFF478DFF),
+        borderStrong = const Color(0xFF444444),
         backgroundSubtle = const Color(0xFF242424);
 
   factory NexColors.fromWise(WiseColorTokens t) {
@@ -764,33 +800,33 @@ class NexRadius {
 class WiseColors {
   WiseColors._();
 
-  static const Color primaryLight = Color(0xFFE34234);
-  static const Color primaryHoverLight = Color(0xFFC53528);
-  static const Color successLight = Color(0xFFD4AF37);
-  static const Color warningLight = Color(0xFFF2A900);
-  static const Color destructiveLight = Color(0xFFB71C1C);
-  static const Color backgroundLight = Color(0xFFFAFAFA);
+  static const Color primaryLight = Color(0xFF0052D9);
+  static const Color primaryHoverLight = Color(0xFF366EF4);
+  static const Color successLight = Color(0xFF00A870);
+  static const Color warningLight = Color(0xFFE37318);
+  static const Color destructiveLight = Color(0xFFD54941);
+  static const Color backgroundLight = Color(0xFFF3F3F3);
   static const Color backgroundSubtleLight = Color(0xFFF5F5F5);
-  static const Color surfaceLight = Color(0xFFF5F5F5);
-  static const Color textPrimaryLight = Color(0xFF1A1A1A);
-  static const Color textSecondaryLight = Color(0xFF5C5C5C);
-  static const Color textTertiaryLight = Color(0xFF8E8E8E);
-  static const Color borderLight = Color(0xFFE0E0E0);
-  static const Color borderStrongLight = Color(0xFFBFBFBF);
+  static const Color surfaceLight = Color(0xFFFFFFFF);
+  static const Color textPrimaryLight = Color(0xE6000000);
+  static const Color textSecondaryLight = Color(0x99000000);
+  static const Color textTertiaryLight = Color(0x66000000);
+  static const Color borderLight = Color(0xFFE8E8E8);
+  static const Color borderStrongLight = Color(0xFFDDDDDD);
 
-  static const Color primaryDark = Color(0xFFE34234);
-  static const Color primaryHoverDark = Color(0xFFC53528);
-  static const Color successDark = Color(0xFFD4AF37);
-  static const Color warningDark = Color(0xFFF2A900);
-  static const Color destructiveDark = Color(0xFFEF5350);
-  static const Color backgroundDark = Color(0xFF1A1A1A);
+  static const Color primaryDark = Color(0xFF69A1FF);
+  static const Color primaryHoverDark = Color(0xFF478DFF);
+  static const Color successDark = Color(0xFF37BF8E);
+  static const Color warningDark = Color(0xFFED8139);
+  static const Color destructiveDark = Color(0xFFFB6E77);
+  static const Color backgroundDark = Color(0xFF181818);
   static const Color backgroundSubtleDark = Color(0xFF242424);
   static const Color surfaceDark = Color(0xFF242424);
-  static const Color textPrimaryDark = Color(0xFFFFFFFF);
-  static const Color textSecondaryDark = Color(0xFFB0B0B0);
-  static const Color textTertiaryDark = Color(0xFF757575);
+  static const Color textPrimaryDark = Color(0xE6FFFFFF);
+  static const Color textSecondaryDark = Color(0x99FFFFFF);
+  static const Color textTertiaryDark = Color(0x66FFFFFF);
   static const Color borderDark = Color(0xFF3A3A3A);
-  static const Color borderStrongDark = Color(0xFF5A5A5A);
+  static const Color borderStrongDark = Color(0xFF444444);
 }
 
 @Deprecated('Use WiseTheme.of(context).shadows instead.')
