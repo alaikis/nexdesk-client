@@ -15,7 +15,6 @@ import 'core/api_client.dart';
 import 'core/input_injector_service.dart';
 import 'core/update_service.dart';
 import 'core/system_tray_service.dart';
-import 'core/single_instance_service.dart';
 
 class _NexWindowListener extends WindowListener {
   @override

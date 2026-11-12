@@ -27,22 +27,22 @@ class _AnsiSpan {
 }
 
 const _ansiColors = {
-  0: const Color(0xFF1A1A1A),
-  1: const Color(0xFF800000),
-  2: const Color(0xFF008000),
-  3: const Color(0xFF808000),
-  4: const Color(0xFF000080),
-  5: const Color(0xFF800080),
-  6: const Color(0xFF008080),
-  7: const Color(0xFFE0D9CE),
-  8: const Color(0xFF808080),
-  9: const Color(0xFFFF0000),
-  10: const Color(0xFF00FF00),
-  11: const Color(0xFFFFFF00),
-  12: const Color(0xFF0000FF),
-  13: const Color(0xFFFF00FF),
-  14: const Color(0xFF00FFFF),
-  15: const Color(0xFFFFFFFF),
+  0: Color(0xFF1A1A1A),
+  1: Color(0xFF800000),
+  2: Color(0xFF008000),
+  3: Color(0xFF808000),
+  4: Color(0xFF000080),
+  5: Color(0xFF800080),
+  6: Color(0xFF008080),
+  7: Color(0xFFE0D9CE),
+  8: Color(0xFF808080),
+  9: Color(0xFFFF0000),
+  10: Color(0xFF00FF00),
+  11: Color(0xFFFFFF00),
+  12: Color(0xFF0000FF),
+  13: Color(0xFFFF00FF),
+  14: Color(0xFF00FFFF),
+  15: Color(0xFFFFFFFF),
 };
 
 TextSpan _parseAnsi(String input) {
