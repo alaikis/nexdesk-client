@@ -494,7 +494,7 @@ class NexColors {
   ThemeData toTheme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
     final colors = isDark ? const NexColors.dark() : const NexColors.light();
-    final wiseTheme = isDark ? WiseTheme.dark : WiseTheme.light;
+    final wise = isDark ? WiseTheme.dark : WiseTheme.light;
 
     return ThemeData(
       useMaterial3: true,
@@ -510,15 +510,15 @@ class NexColors {
         surface: colors.surface,
         onSurface: colors.textPrimary,
         outline: colors.border,
-        outlineVariant: colors.border,
+        outlineVariant: colors.borderStrong,
       ),
       scaffoldBackgroundColor: colors.background,
-      extensions: [wiseTheme],
+      extensions: [wise],
       cardTheme: CardThemeData(
         color: colors.card,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(NexRadius.lg),
+          borderRadius: BorderRadius.circular(wise.radius.lg),
           side: BorderSide(color: colors.border),
         ),
       ),
@@ -548,7 +548,7 @@ class NexColors {
           disabledForegroundColor: colors.textTertiary,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.md)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.medium)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
@@ -557,47 +557,47 @@ class NexColors {
           foregroundColor: colors.primary,
           disabledForegroundColor: colors.textTertiary,
           side: BorderSide(color: colors.border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.md)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.medium)),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: colors.primary,
           disabledForegroundColor: colors.textTertiary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.md)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.medium)),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           foregroundColor: colors.textSecondary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.sm)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.sm)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: colors.card,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(NexRadius.md),
+          borderRadius: BorderRadius.circular(wise.radius.medium),
           borderSide: BorderSide(color: colors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(NexRadius.md),
+          borderRadius: BorderRadius.circular(wise.radius.medium),
           borderSide: BorderSide(color: colors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(NexRadius.md),
+          borderRadius: BorderRadius.circular(wise.radius.medium),
           borderSide: BorderSide(color: colors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(NexRadius.md),
+          borderRadius: BorderRadius.circular(wise.radius.medium),
           borderSide: BorderSide(color: colors.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(NexRadius.md),
+          borderRadius: BorderRadius.circular(wise.radius.medium),
           borderSide: BorderSide(color: colors.error, width: 1.5),
         ),
         disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(NexRadius.md),
+          borderRadius: BorderRadius.circular(wise.radius.medium),
           borderSide: BorderSide(color: colors.border),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -641,7 +641,7 @@ class NexColors {
         color: colors.primary,
         linearTrackColor: colors.surface,
         linearMinHeight: 4,
-        borderRadius: BorderRadius.all(Radius.circular(NexRadius.full)),
+        borderRadius: BorderRadius.all(Radius.circular(wise.radius.full)),
       ),
       sliderTheme: SliderThemeData(
         activeTrackColor: colors.primary,
@@ -667,14 +667,14 @@ class NexColors {
         labelStyle: TextStyle(color: colors.textPrimary, fontSize: 13),
         secondaryLabelStyle: TextStyle(color: colors.primary, fontSize: 13),
         side: BorderSide(color: colors.border),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.full)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.full)),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: colors.card,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(NexRadius.lg),
+          borderRadius: BorderRadius.circular(wise.radius.lg),
         ),
         titleTextStyle: TextStyle(color: colors.textPrimary, fontSize: 17, fontWeight: FontWeight.w600),
         contentTextStyle: TextStyle(color: colors.textSecondary, fontSize: 15),
@@ -682,8 +682,8 @@ class NexColors {
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: colors.card,
         elevation: 0,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(NexRadius.lg)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(wise.radius.lg)),
         ),
         showDragHandle: true,
         dragHandleColor: colors.borderStrong,
@@ -691,14 +691,14 @@ class NexColors {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: colors.card,
         contentTextStyle: TextStyle(color: colors.textPrimary, fontSize: 15),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.md)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.medium)),
         behavior: SnackBarBehavior.floating,
         elevation: 0,
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
           color: colors.textPrimary,
-          borderRadius: BorderRadius.circular(NexRadius.sm),
+          borderRadius: BorderRadius.circular(wise.radius.sm),
         ),
         textStyle: TextStyle(
           color: isDark ? colors.background : colors.card,
@@ -711,7 +711,7 @@ class NexColors {
         textColor: colors.textPrimary,
         titleTextStyle: TextStyle(color: colors.textPrimary, fontSize: 15, fontWeight: FontWeight.w500),
         subtitleTextStyle: TextStyle(color: colors.textSecondary, fontSize: 13),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.md)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.medium)),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: colors.card,
@@ -738,12 +738,12 @@ class NexColors {
         focusElevation: 0,
         hoverElevation: 0,
         highlightElevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NexRadius.md)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(wise.radius.medium)),
       ),
       scrollbarTheme: ScrollbarThemeData(
         thumbColor: WidgetStateProperty.all(colors.borderStrong),
         trackColor: WidgetStateProperty.all(Colors.transparent),
-        radius: const Radius.circular(NexRadius.full),
+        radius: Radius.circular(wise.radius.full),
         thickness: WidgetStateProperty.all(6),
         thumbVisibility: WidgetStateProperty.all(false),
       ),
