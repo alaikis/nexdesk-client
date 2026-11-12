@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
+import '../theme/app_theme.dart';
 
 class WindowTitleBar extends StatelessWidget {
   final String title;
@@ -13,10 +14,12 @@ class WindowTitleBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final hoverBg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF2F2F7);
-    final closeHoverBg = isDark ? const Color(0xFFE81123) : const Color(0xFFE81123);
+    final wise = WiseTheme.of(context);
+    final iconColor = wise.textSecondary;
+    final hoverBg = wise.backgroundSubtle;
+    final closeHoverBg = wise.error;
+    final background = wise.background;
+    final border = wise.border;
 
     return GestureDetector(
       onPanStart: (_) => windowManager.startDragging(),
@@ -31,10 +34,10 @@ class WindowTitleBar extends StatelessWidget {
       child: Container(
         height: 40,
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          color: background,
           border: Border(
             bottom: BorderSide(
-              color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE),
+              color: border,
               width: 0.5,
             ),
           ),
@@ -50,12 +53,12 @@ class WindowTitleBar extends StatelessWidget {
                 width: 20,
                 height: 20,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE34234),
+                  color: wise.primary,
                   borderRadius: BorderRadius.circular(5),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.desktop_windows,
-                  color: Colors.white,
+                  color: wise.onPrimary,
                   size: 12,
                 ),
               ),
@@ -66,7 +69,7 @@ class WindowTitleBar extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                color: wise.textPrimary,
               ),
             ),
             const Spacer(),
@@ -93,7 +96,7 @@ class WindowTitleBar extends StatelessWidget {
               icon: Icons.close,
               iconColor: iconColor,
               hoverBg: closeHoverBg,
-              hoverIconColor: Colors.white,
+              hoverIconColor: wise.onPrimary,
               onTap: () async {
                 await windowManager.hide();
               },
@@ -139,12 +142,12 @@ class _WindowButtonState extends State<_WindowButton> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
+          duration: WiseMotionTokens.fast,
           width: 46,
           height: 32,
           decoration: BoxDecoration(
             color: _isHovered ? widget.hoverBg : Colors.transparent,
-            borderRadius: widget.isCloseButton 
+            borderRadius: widget.isCloseButton
                 ? const BorderRadius.only(topRight: Radius.circular(0))
                 : BorderRadius.circular(0),
           ),

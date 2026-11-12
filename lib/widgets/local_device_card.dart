@@ -13,19 +13,19 @@ class LocalDeviceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final wise = WiseTheme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final cardBackground = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
-    
+
+    final primaryColor = wise.primary;
+    final cardBackground = wise.card;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final textTertiary = wise.textTertiary;
+
     return NexCard(
       color: cardBackground,
       enableShadow: true,
-      padding: EdgeInsets.all(NexSpacing.lg),
+      padding: EdgeInsets.all(wise.spacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -36,7 +36,7 @@ class LocalDeviceCard extends StatelessWidget {
               Text(l10n.thisDevice, style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600, fontSize: 15)),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: wise.spacing.md),
           Row(
             children: [
               Expanded(
@@ -51,7 +51,7 @@ class LocalDeviceCard extends StatelessWidget {
                         children: [
                           Text(
                             device.code.isEmpty ? l10n.notSet : device.code,
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'monospace', color: primaryColor),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: WiseTypographyTokens.monoFamily, color: primaryColor),
                           ),
                           if (device.code.isNotEmpty) ...[
                             const SizedBox(width: 6),
@@ -78,7 +78,7 @@ class LocalDeviceCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: wise.spacing.sm),
           Row(
             children: [
               OnlineDot(isOnline: device.online),

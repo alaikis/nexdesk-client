@@ -127,7 +127,7 @@ class _SidebarTile extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 2),
           decoration: BoxDecoration(
             color: selected ? selectedBgColor : (isHovered ? hoverBgColor : Colors.transparent),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(WiseTheme.of(context).radius.xl),
           ),
           child: Icon(icon, size: 21, color: selected ? selectedColor : iconColor),
         ),

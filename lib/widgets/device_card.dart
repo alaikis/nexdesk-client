@@ -50,19 +50,19 @@ class _DeviceCardState extends State<DeviceCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final warningColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final textTertiary = wise.textTertiary;
+    final borderColor = wise.border;
+    final surfaceColor = wise.backgroundSubtle;
+    final cardColor = wise.card;
+    final warningColor = wise.warning;
 
     final card = NexCard(
-      margin: const EdgeInsets.only(bottom: NexSpacing.md),
-      padding: const EdgeInsets.all(NexSpacing.lg),
+      margin: EdgeInsets.only(bottom: wise.spacing.md),
+      padding: EdgeInsets.all(wise.spacing.lg),
       color: cardColor,
       borderColor: widget.isSelected ? primaryColor : borderColor,
       enableShadow: true,
@@ -77,18 +77,18 @@ class _DeviceCardState extends State<DeviceCard> {
                   onChanged: null,
                   visualDensity: VisualDensity.compact,
                 ),
-                const SizedBox(width: NexSpacing.xs),
+                SizedBox(width: wise.spacing.xs),
               ],
               Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: isDark ? 0.2 : 0.12),
-                  borderRadius: BorderRadius.circular(NexRadius.sm),
+                  color: wise.primaryTint,
+                  borderRadius: BorderRadius.circular(wise.radius.sm),
                 ),
                 child: Icon(Icons.computer, size: 20, color: primaryColor),
               ),
-              const SizedBox(width: NexSpacing.md),
+              SizedBox(width: wise.spacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +99,8 @@ class _DeviceCardState extends State<DeviceCard> {
                         autofocus: true,
                         decoration: InputDecoration(
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: NexSpacing.sm, vertical: 4),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           border: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
                         ),
                         style: TextStyle(fontSize: 15, color: textPrimary),
@@ -128,15 +129,15 @@ class _DeviceCardState extends State<DeviceCard> {
                         ),
                       ),
                       if (widget.device.tags.isNotEmpty) ...[
-                        const SizedBox(height: NexSpacing.xs),
+                        SizedBox(height: wise.spacing.xs),
                         Wrap(
-                          spacing: NexSpacing.xs,
+                          spacing: wise.spacing.xs,
                           children: [
                             ...widget.device.tags.take(3).map((tag) => Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: surfaceColor,
-                                borderRadius: BorderRadius.circular(NexRadius.full),
+                                borderRadius: BorderRadius.circular(wise.radius.full),
                               ),
                               child: Text(
                                 tag,
@@ -148,7 +149,7 @@ class _DeviceCardState extends State<DeviceCard> {
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: surfaceColor,
-                                  borderRadius: BorderRadius.circular(NexRadius.full),
+                                  borderRadius: BorderRadius.circular(wise.radius.full),
                                 ),
                                 child: Text(
                                   AppLocalizations.of(context)!.moreTags(widget.device.tags.length - 3),
@@ -163,7 +164,7 @@ class _DeviceCardState extends State<DeviceCard> {
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
                           color: surfaceColor,
-                          borderRadius: BorderRadius.circular(NexRadius.sm),
+                          borderRadius: BorderRadius.circular(wise.radius.sm),
                         ),
                         child: Text(
                           widget.device.os,
@@ -178,12 +179,12 @@ class _DeviceCardState extends State<DeviceCard> {
                 GestureDetector(
                   onTap: widget.onCopy,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
+                    padding: EdgeInsets.symmetric(horizontal: wise.spacing.sm),
                     child: Text(
                       widget.device.code,
                       style: TextStyle(
                         fontSize: 13,
-                        fontFamily: 'monospace',
+                        fontFamily: WiseTypographyTokens.monoFamily,
                         color: primaryColor,
                       ),
                     ),
@@ -191,7 +192,7 @@ class _DeviceCardState extends State<DeviceCard> {
                 ),
               ],
               OnlineDot(isOnline: widget.device.online),
-              const SizedBox(width: NexSpacing.md),
+              SizedBox(width: wise.spacing.md),
               NexButton(
                 text: AppLocalizations.of(context)!.connect,
                 onPressed: widget.onConnect,
@@ -199,7 +200,7 @@ class _DeviceCardState extends State<DeviceCard> {
                 size: NexButtonSize.small,
               ),
               if (widget.onWake != null) ...[
-                const SizedBox(width: NexSpacing.sm),
+                SizedBox(width: wise.spacing.sm),
                 IconButton(
                   onPressed: widget.wakingDeviceId == widget.device.id ? null : widget.onWake,
                   tooltip: AppLocalizations.of(context)!.wakeDevice,

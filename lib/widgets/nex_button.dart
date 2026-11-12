@@ -31,18 +31,19 @@ class _NexButtonState extends State<NexButton> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final wise = WiseTheme.of(context);
     final disabled = widget.onPressed == null || widget.loading;
 
-    final primaryColor = isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final primaryHover = isDark ? const Color(0xFFC53528) : const Color(0xFFC53528);
-    final destructiveColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFB71C1C);
-    const destructiveHover = Color(0xFFD92E24);
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
-    final surfaceHover = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0D9CE);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
+    final primaryColor = wise.primary;
+    final primaryHover = wise.primaryHover;
+    final destructiveColor = wise.error;
+    final destructiveHover = wise.error;
+    final surfaceColor = wise.surface;
+    final surfaceHover = wise.backgroundSubtle;
+    final borderColor = wise.border;
+    final textPrimary = wise.textPrimary;
+    final textSecondary = wise.textSecondary;
+    final onPrimary = wise.onPrimary;
 
     Color backgroundColor;
     Color foregroundColor;
@@ -53,10 +54,10 @@ class _NexButtonState extends State<NexButton> {
       foregroundColor = textSecondary;
     } else if (widget.variant == NexButtonVariant.destructive) {
       backgroundColor = _isHovered ? destructiveHover : destructiveColor;
-      foregroundColor = Colors.white;
+      foregroundColor = onPrimary;
     } else if (widget.variant == NexButtonVariant.primary) {
       backgroundColor = _isHovered ? primaryHover : primaryColor;
-      foregroundColor = Colors.white;
+      foregroundColor = onPrimary;
     } else if (widget.variant == NexButtonVariant.secondary) {
       backgroundColor = _isHovered ? surfaceHover : surfaceColor;
       foregroundColor = textPrimary;
@@ -89,8 +90,8 @@ class _NexButtonState extends State<NexButton> {
           onPointerCancel: (_) => setState(() => _isPressed = false),
           child: AnimatedScale(
             scale: _isPressed && !disabled ? 0.97 : 1.0,
-            duration: const Duration(milliseconds: 100),
-            curve: Curves.easeInOut,
+            duration: WiseMotionTokens.fast,
+            curve: WiseMotionTokens.defaultCurve,
             child: ElevatedButton(
               onPressed: disabled ? null : widget.onPressed,
               style: ElevatedButton.styleFrom(
@@ -99,7 +100,7 @@ class _NexButtonState extends State<NexButton> {
                 elevation: 0,
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(NexRadius.md),
+                  borderRadius: BorderRadius.circular(wise.radius.medium),
                   side: widget.variant == NexButtonVariant.outline && !disabled && borderSideColor != null
                       ? BorderSide(color: borderSideColor)
                       : BorderSide.none,

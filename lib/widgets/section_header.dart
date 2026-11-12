@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;
@@ -7,8 +8,7 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
+    final wise = WiseTheme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -17,7 +17,7 @@ class SectionHeader extends StatelessWidget {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: textTertiary,
+            color: wise.textTertiary,
             letterSpacing: 0.8,
           ),
         ),

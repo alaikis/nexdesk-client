@@ -38,17 +38,6 @@ class FloatingToolbar extends StatefulWidget {
   State<FloatingToolbar> createState() => _FloatingToolbarState();
 }
 
-// Always-dark floating overlay palette. The container is #1C1C1E regardless of
-// the surrounding theme, so sub-colors use dark-mode Wise values.
-const _containerColor = Color(0xFF1C1C1E);
-const _iconInactive = Color(0xFFA8A29E);
-const _hoverColor = Color(0xFF3A3A3A);
-const _dividerColor = Color(0xFF3A3A3A);
-const _labelColor = Color(0xFFA8A29E);
-const _dragHandleColor = Color(0xFF78716C);
-const _destructiveColor = Color(0xFFEF5350);
-const _destructiveTint = Color(0x20FF453A);
-
 class _FloatingToolbarState extends State<FloatingToolbar> {
   static const _posKey = 'nex_toolbar_pos';
   static const _modeKey = 'nex_toolbar_mode';
@@ -161,13 +150,13 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
       left: fabLeft,
       top: fabTop,
       child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 150),
+        duration: WiseMotionTokens.normal,
         opacity: _opacity,
         child: Transform.scale(
           scale: _scale,
           child: AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
+            duration: WiseMotionTokens.slow,
+            curve: WiseMotionTokens.defaultCurve,
             alignment: isRtl ? Alignment.topLeft : Alignment.topRight,
             child: _expanded
                 ? _buildExpandedPanel(context, groups, groupLabels)
@@ -179,6 +168,9 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
   }
 
   Widget _buildCollapsedButton() {
+    final wise = WiseTheme.of(context);
+    final containerColor = wise.card;
+    final radius = wise.radius.medium;
     return GestureDetector(
       onLongPress: _handleModeToggle,
       onPanStart: _handlePanStart,
@@ -188,17 +180,17 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
         width: _fabSize,
         height: _fabSize,
         decoration: BoxDecoration(
-          color: _containerColor,
-          borderRadius: BorderRadius.circular(NexRadius.md),
-          boxShadow: WiseShadows.md,
+          color: containerColor,
+          borderRadius: BorderRadius.circular(radius),
+          boxShadow: wise.shadows.md,
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: _toggleExpand,
-            borderRadius: BorderRadius.circular(NexRadius.md),
-            child: const Center(
-              child: Icon(Icons.apps, color: Colors.white, size: 22),
+            borderRadius: BorderRadius.circular(radius),
+            child: Center(
+              child: Icon(Icons.apps, color: wise.textPrimary, size: 22),
             ),
           ),
         ),
@@ -211,6 +203,7 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
     Map<ToolbarGroup, List<ToolbarAction>> groups,
     Map<ToolbarGroup, String> groupLabels,
   ) {
+    final wise = WiseTheme.of(context);
     final media = MediaQuery.of(context).size;
     final panelWidth = (media.width * 0.7).clamp(200.0, 320.0);
 
@@ -218,9 +211,9 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
       constraints: BoxConstraints(maxWidth: panelWidth),
       child: Container(
         decoration: BoxDecoration(
-          color: _containerColor,
-          borderRadius: BorderRadius.circular(NexRadius.md),
-          boxShadow: WiseShadows.md,
+          color: wise.card,
+          borderRadius: BorderRadius.circular(wise.radius.medium),
+          boxShadow: wise.shadows.md,
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -229,7 +222,7 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
           children: [
             _buildDragHandle(),
             _buildHeader(),
-            Container(height: 1, color: _dividerColor),
+            Container(height: 1, color: wise.border),
             ConstrainedBox(
               constraints: BoxConstraints(maxHeight: media.height * 0.45),
               child: SingleChildScrollView(
@@ -247,6 +240,8 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
   }
 
   Widget _buildDragHandle() {
+    final wise = WiseTheme.of(context);
+    final dragHandleColor = wise.textTertiary;
     return GestureDetector(
       onPanStart: _handlePanStart,
       onPanUpdate: _handlePanUpdate,
@@ -262,8 +257,8 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
                 width: 4,
                 height: 4,
                 margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                decoration: const BoxDecoration(
-                  color: _dragHandleColor,
+                decoration: BoxDecoration(
+                  color: dragHandleColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -299,6 +294,7 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
     Map<ToolbarGroup, List<ToolbarAction>> groups,
     Map<ToolbarGroup, String> groupLabels,
   ) {
+    final wise = WiseTheme.of(context);
     final widgets = <Widget>[];
     final entries = groups.entries.toList();
     for (var i = 0; i < entries.length; i++) {
@@ -306,17 +302,17 @@ class _FloatingToolbarState extends State<FloatingToolbar> {
       if (i > 0) {
         widgets.add(Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Container(height: 1, color: _dividerColor),
+          child: Container(height: 1, color: wise.border),
         ));
       }
       widgets.add(Padding(
         padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
         child: Text(
           (groupLabels[entry.key] ?? '').toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: _labelColor,
+            color: wise.textSecondary,
             letterSpacing: 0.8,
           ),
         ),
@@ -371,26 +367,24 @@ class _ToolbarButtonState extends State<_ToolbarButton> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor =
-        isDark ? const Color(0xFFE34234) : const Color(0xFFE34234);
-    final primaryTint =
-        isDark ? const Color(0x200A84FF) : const Color(0x20007AFF);
+    final wise = WiseTheme.of(context);
+    final primaryColor = wise.primary;
+    final primaryTint = wise.primaryTint;
 
     final Color bgColor;
     final Color iconColor;
     if (widget.isDestructive) {
-      bgColor = _destructiveTint;
-      iconColor = _destructiveColor;
+      bgColor = wise.errorSoft;
+      iconColor = wise.error;
     } else if (widget.isActive) {
       bgColor = primaryTint;
       iconColor = primaryColor;
     } else if (_hovered || _pressed) {
-      bgColor = _hoverColor;
-      iconColor = _iconInactive;
+      bgColor = wise.backgroundSubtle;
+      iconColor = wise.textSecondary;
     } else {
       bgColor = Colors.transparent;
-      iconColor = _iconInactive;
+      iconColor = wise.textSecondary;
     }
 
     return Semantics(
@@ -407,12 +401,12 @@ class _ToolbarButtonState extends State<_ToolbarButton> {
           onTapUp: (_) => setState(() => _pressed = false),
           onTapCancel: () => setState(() => _pressed = false),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
+            duration: WiseMotionTokens.fast,
             width: 36,
             height: 36,
             decoration: BoxDecoration(
               color: bgColor,
-              borderRadius: BorderRadius.circular(NexRadius.sm),
+              borderRadius: BorderRadius.circular(wise.radius.sm),
             ),
             alignment: Alignment.center,
             child: Icon(widget.icon, size: 20, color: iconColor),

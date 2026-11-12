@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:window_manager/window_manager.dart';
+import '../theme/app_theme.dart';
 import '../widgets/window_title_bar.dart';
 
 class NexScaffold extends StatelessWidget {
@@ -28,13 +28,14 @@ class NexScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final wise = WiseTheme.of(context);
     return Column(
       children: [
         const WindowTitleBar(),
         Expanded(
           child: Scaffold(
             body: body,
-            backgroundColor: backgroundColor,
+            backgroundColor: backgroundColor ?? wise.background,
             appBar: appBar,
             drawer: drawer,
             endDrawer: endDrawer,

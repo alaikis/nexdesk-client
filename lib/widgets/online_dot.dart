@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class OnlineDot extends StatefulWidget {
   final bool isOnline;
@@ -19,7 +20,7 @@ class _OnlineDotState extends State<OnlineDot> with SingleTickerProviderStateMix
     super.initState();
     _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
     _animation = Tween<double>(begin: 1.0, end: 1.3).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _controller, curve: WiseMotionTokens.defaultCurve),
     );
   }
 
@@ -31,10 +32,8 @@ class _OnlineDotState extends State<OnlineDot> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final onlineColor = isDark ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37);
-    final offlineColor = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
-    final color = widget.isOnline ? onlineColor : offlineColor;
+    final wise = WiseTheme.of(context);
+    final color = widget.isOnline ? wise.online : wise.textTertiary;
 
     if (!widget.isOnline) {
       return Container(

@@ -21,12 +21,12 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final wise = WiseTheme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    
-    final textSecondary = isDark ? const Color(0xFFA8A29E) : const Color(0xFF6B6560);
-    final textTertiary = isDark ? const Color(0xFF78716C) : const Color(0xFF9C958D);
-    
+
+    final textSecondary = wise.textSecondary;
+    final textTertiary = wise.textTertiary;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 48),
@@ -34,15 +34,15 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              icon ?? Icons.devices_other, 
-              size: 48, 
+              icon ?? Icons.devices_other,
+              size: 48,
               color: textTertiary,
             ),
             const SizedBox(height: 16),
             Text(
               title ?? l10n.noDevicesYet,
               style: TextStyle(
-                color: textSecondary, 
+                color: textSecondary,
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
