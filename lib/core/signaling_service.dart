@@ -23,6 +23,7 @@ enum SignalingMessageType {
   privacy,
   whiteboard,
   qualityPreset,
+  clipboard,
   remotePrint,
   remoteCamera,
   remoteTerminal,
@@ -110,6 +111,7 @@ class SignalingService {
   final void Function(bool enabled)? onPrivacyChanged;
   void Function(ChatMessage message)? onChatMessage;
   final void Function(Map<String, dynamic> event)? onWhiteboard;
+  final void Function(String text)? onClipboard;
   final void Function(Map<String, dynamic> event)? onRemotePrint;
   final void Function(Map<String, dynamic> event)? onRemoteCamera;
   final void Function(Map<String, dynamic> event)? onRemoteTerminal;
@@ -139,6 +141,7 @@ class SignalingService {
     this.onPrivacyChanged,
     this.onChatMessage,
     this.onWhiteboard,
+    this.onClipboard,
     this.onRemotePrint,
     this.onRemoteCamera,
     this.onRemoteTerminal,
@@ -222,6 +225,11 @@ class SignalingService {
         onPrivacyChanged?.call(enabled);
       } else if (msg.type == SignalingMessageType.whiteboard) {
         onWhiteboard?.call(Map<String, dynamic>.from(msg.payload));
+      } else if (msg.type == SignalingMessageType.clipboard) {
+        final text = msg.payload['content'] as String? ?? msg.payload['payload'] as String?;
+        if (text != null && text.isNotEmpty) {
+          onClipboard?.call(text);
+        }
       } else if (msg.type == SignalingMessageType.remotePrint) {
         onRemotePrint?.call(Map<String, dynamic>.from(msg.payload));
       } else if (msg.type == SignalingMessageType.remoteCamera) {
@@ -326,6 +334,15 @@ class SignalingService {
       type: SignalingMessageType.qualityPreset,
       sessionId: sessionId,
       payload: {'preset': preset.name},
+    ));
+  }
+
+  /// Send clipboard text to the session partner in real time.
+  void sendClipboard(String sessionId, String text) {
+    send(SignalingMessage(
+      type: SignalingMessageType.clipboard,
+      sessionId: sessionId,
+      payload: {'content': text, 'type': 'text'},
     ));
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import '../theme/app_theme.dart';
+import 'litchi_logo.dart';
 
 class WindowTitleBar extends StatelessWidget {
   final String title;
@@ -49,19 +50,7 @@ class WindowTitleBar extends StatelessWidget {
               const SizedBox(width: 8),
             ] else ...[
               const SizedBox(width: 12),
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: wise.primary,
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                child: Icon(
-                  Icons.desktop_windows,
-                  color: wise.onPrimary,
-                  size: 12,
-                ),
-              ),
+              const LitchiLogo(size: 20),
               const SizedBox(width: 8),
             ],
             Text(

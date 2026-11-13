@@ -36,31 +36,18 @@ class NexApp extends StatefulWidget {
 
 class _NexAppState extends State<NexApp> {
   Locale _locale = const Locale('en');
+  late final GoRouter _router;
 
   @override
   void initState() {
     super.initState();
     NexApp._instance = this;
+    _router = _buildRouter();
     _loadLocale();
   }
 
-  Future<void> setLocale(Locale locale) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('nex_language', locale.languageCode);
-    setState(() => _locale = locale);
-  }
-
-  Future<void> _loadLocale() async {
-    final prefs = await SharedPreferences.getInstance();
-    final langCode = prefs.getString('nex_language');
-    if (langCode != null && mounted) {
-      setState(() => _locale = Locale(langCode));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final router = GoRouter(
+  GoRouter _buildRouter() {
+    return GoRouter(
       navigatorKey: NexApp.navigatorKey,
       initialLocation: '/devices',
       redirect: (context, state) {
@@ -140,7 +127,24 @@ class _NexAppState extends State<NexApp> {
         ),
       ],
     );
+  }
 
+  Future<void> setLocale(Locale locale) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('nex_language', locale.languageCode);
+    setState(() => _locale = locale);
+  }
+
+  Future<void> _loadLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final langCode = prefs.getString('nex_language');
+    if (langCode != null && mounted) {
+      setState(() => _locale = Locale(langCode));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp.router(
       title: AppLocalizations.of(context)?.appName ?? 'LitchiViewer',
       theme: NexTheme.light(),
@@ -149,7 +153,7 @@ class _NexAppState extends State<NexApp> {
       locale: _locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: router,
+      routerConfig: _router,
       builder: (context, child) {
         final bg = Theme.of(context).colorScheme.surface;
         return Directionality(

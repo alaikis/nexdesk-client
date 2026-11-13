@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'api_client.dart';
 
-enum QualityProfile { auto, low, medium, high }
+enum QualityProfile { auto, low, medium, high, ultraHd, original }
 enum QualityPreset { smooth, hd, ultraHd, original, custom }
 
 class QualityProfileConfig {
@@ -122,7 +122,7 @@ class AdaptiveBitrateController {
   }
 
   Future<void> _upgradeQuality(String sessionId) async {
-    if (_currentProfile == QualityProfile.high) return;
+    if (_currentProfile == QualityProfile.original) return;
     final newProfile = _currentProfile == QualityProfile.auto
         ? QualityProfile.medium
         : QualityProfile.values[_currentProfile.index + 1];
@@ -178,6 +178,22 @@ class QualityService {
             'width': {'ideal': 1920},
             'height': {'ideal': 1080},
             'frameRate': {'ideal': 60},
+          },
+        };
+      case QualityProfile.ultraHd:
+        return {
+          'video': {
+            'width': {'ideal': 2560},
+            'height': {'ideal': 1440},
+            'frameRate': {'ideal': 120},
+          },
+        };
+      case QualityProfile.original:
+        return {
+          'video': {
+            'width': {'ideal': 3840},
+            'height': {'ideal': 2160},
+            'frameRate': {'ideal': 144},
           },
         };
       case QualityProfile.auto:

@@ -16,6 +16,7 @@ import '../../core/screen_capture_service.dart';
 import '../../core/api_client.dart';
 import '../../core/input_relay_service.dart';
 import '../../core/quality_service.dart';
+import '../../core/clipboard_service.dart';
 import '../../core/drag_drop_service.dart';
 import '../session/session_provider.dart';
 import 'screen_selector.dart';
@@ -283,6 +284,9 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         onWhiteboard: (event) {
           _handleWhiteboardEvent(event);
         },
+        onClipboard: (text) {
+          ClipboardService().receiveRemote(text);
+        },
         onReconnectAttempts: (attempts) {
           if (!mounted) return;
           context.read<SessionProvider>().setReconnectionState(ReconnectionState.reconnecting, attempts: attempts);
@@ -301,6 +305,9 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         },
       );
       await _signaling!.connect();
+
+      // Wire real-time clipboard push through the signaling link.
+      ClipboardService().sendClipboard = _signaling!.sendClipboard;
 
       // Initialize E2EE and send public key
       await _e2ee.initialize();

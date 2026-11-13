@@ -66,10 +66,10 @@ class WiseColorTokens {
     required this.online,
   });
 
-  /// Light Mode (TDesign)
+  /// Light Mode (TDesign base + lychee red brand)
   static const light = WiseColorTokens._(
-    primary: Color(0xFF0052D9),
-    primaryHover: Color(0xFF366EF4),
+    primary: Color(0xFFE34D59),
+    primaryHover: Color(0xFFEB6B75),
     onPrimary: Color(0xFFFFFFFF),
     success: Color(0xFF00A870),
     warning: Color(0xFFE37318),
@@ -86,10 +86,10 @@ class WiseColorTokens {
     online: Color(0xFF00A870),
   );
 
-  /// Dark Mode (TDesign)
+  /// Dark Mode (TDesign base + lychee red brand)
   static const dark = WiseColorTokens._(
-    primary: Color(0xFF69A1FF),
-    primaryHover: Color(0xFF478DFF),
+    primary: Color(0xFFF2707A),
+    primaryHover: Color(0xFFF58A93),
     onPrimary: Color(0xFF181818),
     success: Color(0xFF37BF8E),
     warning: Color(0xFFED8139),
@@ -435,7 +435,7 @@ class NexColors {
   });
 
   const NexColors.light()
-      : primary = const Color(0xFF0052D9),
+      : primary = const Color(0xFFE34D59),
         onPrimary = const Color(0xFFFFFFFF),
         background = const Color(0xFFF3F3F3),
         surface = const Color(0xFFFFFFFF),
@@ -448,12 +448,12 @@ class NexColors {
         error = const Color(0xFFD54941),
         success = const Color(0xFF00A870),
         warning = const Color(0xFFE37318),
-        primaryHover = const Color(0xFF366EF4),
+        primaryHover = const Color(0xFFEB6B75),
         borderStrong = const Color(0xFFDDDDDD),
         backgroundSubtle = const Color(0xFFF5F5F5);
 
   const NexColors.dark()
-      : primary = const Color(0xFF69A1FF),
+      : primary = const Color(0xFFF2707A),
         onPrimary = const Color(0xFF181818),
         background = const Color(0xFF181818),
         surface = const Color(0xFF242424),
@@ -466,7 +466,7 @@ class NexColors {
         error = const Color(0xFFFB6E77),
         success = const Color(0xFF37BF8E),
         warning = const Color(0xFFED8139),
-        primaryHover = const Color(0xFF478DFF),
+        primaryHover = const Color(0xFFF58A93),
         borderStrong = const Color(0xFF444444),
         backgroundSubtle = const Color(0xFF242424);
 

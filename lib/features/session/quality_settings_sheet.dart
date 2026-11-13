@@ -30,14 +30,19 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
   Future<void> _loadCurrentPreset() async {
     final profile = await _qualityService.getProfile(widget.sessionId);
     setState(() {
-      if (profile == QualityProfile.auto) {
-        _preset = QualityPreset.custom;
-      } else if (profile == QualityProfile.low) {
-        _preset = QualityPreset.smooth;
-      } else if (profile == QualityProfile.medium) {
-        _preset = QualityPreset.hd;
-      } else if (profile == QualityProfile.high) {
-        _preset = QualityPreset.original;
+      switch (profile) {
+        case QualityProfile.auto:
+          _preset = QualityPreset.custom;
+        case QualityProfile.low:
+          _preset = QualityPreset.smooth;
+        case QualityProfile.medium:
+          _preset = QualityPreset.smooth;
+        case QualityProfile.high:
+          _preset = QualityPreset.hd;
+        case QualityProfile.ultraHd:
+          _preset = QualityPreset.ultraHd;
+        case QualityProfile.original:
+          _preset = QualityPreset.original;
       }
     });
   }
@@ -71,9 +76,9 @@ class _QualitySettingsSheetState extends State<QualitySettingsSheet> {
       case QualityPreset.hd:
         return QualityProfile.high;
       case QualityPreset.ultraHd:
-        return QualityProfile.high;
+        return QualityProfile.ultraHd;
       case QualityPreset.original:
-        return QualityProfile.high;
+        return QualityProfile.original;
       case QualityPreset.custom:
         return QualityProfile.high;
     }

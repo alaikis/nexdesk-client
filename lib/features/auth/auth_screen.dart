@@ -4,6 +4,7 @@ import 'auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/nex_button.dart';
 import '../../widgets/nex_card.dart';
+import '../../widgets/litchi_logo.dart';
 import '../../l10n/app_localizations.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -50,19 +51,7 @@ class _AuthScreenState extends State<AuthScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Center(
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: wise.primary,
-                      borderRadius: BorderRadius.circular(wise.radius.medium),
-                    ),
-                    child: Icon(
-                      Icons.desktop_windows_outlined,
-                      color: wise.onPrimary,
-                      size: 24,
-                    ),
-                  ),
+                  child: LitchiLogo(size: 64, showBackground: true),
                 ),
                 SizedBox(height: wise.spacing.xl),
                 Text(
