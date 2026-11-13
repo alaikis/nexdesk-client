@@ -35,7 +35,7 @@ class NexApp extends StatefulWidget {
 }
 
 class _NexAppState extends State<NexApp> {
-  Locale _locale = const Locale('en');
+  Locale _locale = const Locale('zh');
   late final GoRouter _router;
 
   @override
@@ -160,7 +160,7 @@ class _NexAppState extends State<NexApp> {
           textDirection: TextDirection.ltr,
           child: Column(
             children: [
-              const WindowTitleBar(),
+              WindowTitleBar(title: AppLocalizations.of(context)?.appName ?? 'LitchiViewer'),
               Expanded(child: child ?? ColoredBox(color: bg, child: const SizedBox.expand())),
             ],
           ),

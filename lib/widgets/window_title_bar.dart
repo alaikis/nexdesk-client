@@ -20,7 +20,6 @@ class WindowTitleBar extends StatelessWidget {
     final hoverBg = wise.backgroundSubtle;
     final closeHoverBg = wise.error;
     final background = wise.background;
-    final border = wise.border;
 
     return GestureDetector(
       onPanStart: (_) => windowManager.startDragging(),
@@ -36,63 +35,64 @@ class WindowTitleBar extends StatelessWidget {
         height: 40,
         decoration: BoxDecoration(
           color: background,
-          border: Border(
-            bottom: BorderSide(
-              color: border,
-              width: 0.5,
-            ),
-          ),
         ),
-        child: Row(
-          children: [
-            if (leading != null) ...[
-              leading!,
-              const SizedBox(width: 8),
-            ] else ...[
-              const SizedBox(width: 12),
-              const LitchiLogo(size: 20),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: wise.textPrimary,
+        child: DefaultTextStyle(
+          style: (Theme.of(context).textTheme.bodyMedium ?? const TextStyle()).copyWith(
+            color: wise.textPrimary,
+            decoration: TextDecoration.none,
+          ),
+          child: Row(
+            children: [
+              if (leading != null) ...[
+                leading!,
+                const SizedBox(width: 8),
+              ] else ...[
+                const SizedBox(width: 12),
+                const LitchiLogo(size: 20),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: wise.textPrimary,
+                  decoration: TextDecoration.none,
+                ),
               ),
-            ),
-            const Spacer(),
-            _WindowButton(
-              icon: Icons.horizontal_rule,
-              iconColor: iconColor,
-              hoverBg: hoverBg,
-              onTap: () => windowManager.minimize(),
-            ),
-            _WindowButton(
-              icon: Icons.crop_square,
-              iconColor: iconColor,
-              hoverBg: hoverBg,
-              onTap: () async {
-                bool isMaximized = await windowManager.isMaximized();
-                if (isMaximized) {
-                  windowManager.unmaximize();
-                } else {
-                  windowManager.maximize();
-                }
-              },
-            ),
-            _WindowButton(
-              icon: Icons.close,
-              iconColor: iconColor,
-              hoverBg: closeHoverBg,
-              hoverIconColor: wise.onPrimary,
-              onTap: () async {
-                await windowManager.hide();
-              },
-              isCloseButton: true,
-            ),
-            const SizedBox(width: 4),
-          ],
+              const Spacer(),
+              _WindowButton(
+                icon: Icons.horizontal_rule,
+                iconColor: iconColor,
+                hoverBg: hoverBg,
+                onTap: () => windowManager.minimize(),
+              ),
+              _WindowButton(
+                icon: Icons.crop_square,
+                iconColor: iconColor,
+                hoverBg: hoverBg,
+                onTap: () async {
+                  bool isMaximized = await windowManager.isMaximized();
+                  if (isMaximized) {
+                    windowManager.unmaximize();
+                  } else {
+                    windowManager.maximize();
+                  }
+                },
+              ),
+              _WindowButton(
+                icon: Icons.close,
+                iconColor: iconColor,
+                hoverBg: closeHoverBg,
+                hoverIconColor: wise.onPrimary,
+                onTap: () async {
+                  await windowManager.hide();
+                },
+                isCloseButton: true,
+              ),
+              const SizedBox(width: 4),
+            ],
+          ),
         ),
       ),
     );
