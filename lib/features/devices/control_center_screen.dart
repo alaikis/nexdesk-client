@@ -95,8 +95,9 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
     }
   }
 
-  Future<void> _showConnectDialog() async {
+  Future<void> _showConnectDialog([ConnectMode preset = ConnectMode.control]) async {
     _connectController.clear();
+    _connectMode = preset;
     final devices = context.read<DeviceProvider>().devices;
     final recent = devices.take(5).toList();
     final l10n = AppLocalizations.of(context)!;
@@ -226,11 +227,13 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
                 SizedBox(height: wise.spacing.md),
                 Row(
                   children: [
-                    Expanded(child: _QuickAction(label: l10n.control, icon: Icons.computer_outlined, onPressed: _showConnectDialog)),
+                    Expanded(child: _QuickAction(label: l10n.connectModeControl, icon: Icons.computer_outlined, onPressed: () => _showConnectDialog(ConnectMode.control))),
                     SizedBox(width: wise.spacing.sm),
-                    Expanded(child: _QuickAction(label: l10n.files, icon: Icons.folder_outlined, onPressed: _showConnectDialog)),
+                    Expanded(child: _QuickAction(label: l10n.connectModeFile, icon: Icons.folder_outlined, onPressed: () => _showConnectDialog(ConnectMode.file))),
                     SizedBox(width: wise.spacing.sm),
-                    Expanded(child: _QuickAction(label: l10n.view, icon: Icons.visibility_outlined, onPressed: _showConnectDialog)),
+                    Expanded(child: _QuickAction(label: l10n.connectModeView, icon: Icons.visibility_outlined, onPressed: () => _showConnectDialog(ConnectMode.view))),
+                    SizedBox(width: wise.spacing.sm),
+                    Expanded(child: _QuickAction(label: l10n.connectModeCollab, icon: Icons.people_outline, onPressed: () => _showConnectDialog(ConnectMode.collab))),
                   ],
                 ),
               ],
