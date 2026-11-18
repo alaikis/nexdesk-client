@@ -39,6 +39,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
     final inProgress = auth.ssoInProgress;
     final activeError = _error ?? auth.lastError;
+    final ssoHint = auth.ssoHint;
 
     return Scaffold(
       backgroundColor: wise.background,
@@ -126,10 +127,13 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                         SizedBox(height: wise.spacing.xs),
                         Text(
-                          'Complete sign-in in your browser, then return here.',
+                          ssoHint ??
+                              'Complete sign-in in your browser, then return here.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: wise.textSecondary,
+                            color: ssoHint == null
+                                ? wise.textSecondary
+                                : wise.primary,
                             height: 1.54,
                           ),
                           textAlign: TextAlign.center,

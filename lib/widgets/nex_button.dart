@@ -128,7 +128,14 @@ class _NexButtonState extends State<NexButton> {
                           widget.icon!,
                           const SizedBox(width: 8),
                         ],
-                        Text(widget.text),
+                        // 文案可收缩，避免窄容器下 Row 溢出（文字被裁切）。
+                        Flexible(
+                          child: Text(
+                            widget.text,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
                       ],
                     ),
             ),

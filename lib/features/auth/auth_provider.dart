@@ -10,8 +10,54 @@ import '../../core/device_fingerprint_service.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
+/// 单个授权窗口内的轮询间隔。
+const Duration _kSSOPollInterval = Duration(seconds: 2);
+
+/// 单个授权窗口的轮询次数：300 × 2s = 600s，与服务端 ssoSessionTTL 对齐。
+const int _kSSOPollAttemptsPerWindow = 300;
+
+/// 授权窗口超时后重新获取 auth_url 的最大次数（0 表示不刷新）。
+const int _kSSOMaxRefresh = 2;
+
+/// 单个授权窗口的轮询结果。
+enum _SSOPollOutcome {
+  /// 拿到 token，登录成功。
+  complete,
+
+  /// 窗口超时或服务端 session 已过期，可以重新获取授权地址。
+  expired,
+
+  /// 服务端返回明确错误，不重试。
+  failed,
+
+  /// 用户取消或页面销毁。
+  cancelled,
+}
+
 class AuthProvider with ChangeNotifier {
-  final ApiClient _api = ApiClient();
+  AuthProvider({
+    ApiClient? api,
+    Future<bool> Function(Uri uri)? launchBrowser,
+    this.pollInterval = _kSSOPollInterval,
+    this.pollAttemptsPerWindow = _kSSOPollAttemptsPerWindow,
+    this.maxRefresh = _kSSOMaxRefresh,
+  })  : _api = api ?? ApiClient(),
+        _launchBrowser = launchBrowser ?? _openInBrowser;
+
+  final ApiClient _api;
+  final Future<bool> Function(Uri uri) _launchBrowser;
+
+  /// 单个授权窗口内的轮询间隔。
+  final Duration pollInterval;
+
+  /// 单个授权窗口的轮询次数，乘 [pollInterval] 即该窗口的有效期。
+  final int pollAttemptsPerWindow;
+
+  /// 授权窗口超时后重新获取 auth_url 的最大次数（0 表示不刷新）。
+  final int maxRefresh;
+
+  static Future<bool> _openInBrowser(Uri uri) =>
+      launchUrl(uri, mode: LaunchMode.externalApplication);
 
   AuthStatus _status = AuthStatus.unknown;
   String? _userId;
@@ -23,6 +69,9 @@ class AuthProvider with ChangeNotifier {
   String? _ssoAuthUrl;
   bool _ssoPolling = false;
 
+  /// 授权窗口超时后自动刷新登录地址时的用户提示；为 null 表示无提示。
+  String? _ssoHint;
+
   AuthStatus get status => _status;
   String? get userId => _userId;
   String? get email => _email;
@@ -32,6 +81,7 @@ class AuthProvider with ChangeNotifier {
   String? get lastError => _lastError;
   String? get ssoAuthUrl => _ssoAuthUrl;
   bool get ssoInProgress => _ssoPolling;
+  String? get ssoHint => _ssoHint;
 
   String? _lastError;
   String? _pending2FATempToken;
@@ -75,68 +125,87 @@ class AuthProvider with ChangeNotifier {
   /// 4. 云端用 code + code_verifier + client_secret 交换 token，存入 session
   /// 5. 客户端轮询 /sso/desktop/poll，获取 access/refresh token
   /// 6. 保存 token（仅 token，不含密码/凭据）
+  ///
+  /// 若用户打开登录窗口后长时间未登录，该授权窗口会超时（客户端窗口长度与
+  /// 服务端 session TTL 对齐）。此时自动重新调用 init 获取新的 auth_url 并
+  /// 重新打开浏览器，最多刷新 [maxRefresh] 次，避免用户停留在已失效的登录页
+  /// 而误以为登录失败。
   Future<bool> startSSOLogin() async {
     _lastError = null;
+    _ssoHint = null;
     _ssoPolling = true;
     _ssoAuthUrl = null;
     notifyListeners();
 
-    try {
-      // 1. 调用云端获取 auth_url + session_id
-      final initRes = await _api.ssoDesktopInit();
-      final authUrl = initRes['auth_url'] as String?;
-      final sessionId = initRes['session_id'] as String?;
+    for (var window = 0; window <= maxRefresh; window++) {
+      if (!_ssoPolling) return _finishSSOLogin(false);
 
-      if (authUrl == null || sessionId == null) {
-        _lastError = 'Failed to initialize SSO login';
-        _ssoPolling = false;
+      if (window > 0) {
+        _ssoHint = '登录窗口已超时，正在刷新登录地址（$window/$maxRefresh）';
         notifyListeners();
-        return false;
       }
 
-      _ssoAuthUrl = authUrl;
+      try {
+        // 1. 调用云端获取 auth_url + session_id
+        final initRes = await _api.ssoDesktopInit();
+        final authUrl = initRes['auth_url'] as String?;
+        final sessionId = initRes['session_id'] as String?;
 
-      // 2. 打开系统浏览器
-      final uri = Uri.parse(authUrl);
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!launched) {
-        _lastError = 'Could not open browser for SSO login';
-        _ssoPolling = false;
+        if (authUrl == null || sessionId == null) {
+          _lastError = 'Failed to initialize SSO login';
+          return _finishSSOLogin(false);
+        }
+
+        _ssoAuthUrl = authUrl;
         notifyListeners();
-        return false;
-      }
 
-      // 3. 轮询云端登录状态
-      final ok = await _pollSSOStatus(sessionId);
-      _ssoPolling = false;
-      _ssoAuthUrl = null;
-      notifyListeners();
-      return ok;
-    } on ApiException catch (e) {
-      _lastError = e.message;
-      debugPrint('SSO login failed: $e');
-      _ssoPolling = false;
-      _ssoAuthUrl = null;
-      notifyListeners();
-      return false;
-    } catch (e) {
-      _lastError = e.toString();
-      debugPrint('SSO login error: $e');
-      _ssoPolling = false;
-      _ssoAuthUrl = null;
-      notifyListeners();
-      return false;
+        // 2. 打开系统浏览器
+        final launched = await _launchBrowser(Uri.parse(authUrl));
+        if (!launched) {
+          _lastError = 'Could not open browser for SSO login';
+          return _finishSSOLogin(false);
+        }
+
+        // 3. 轮询云端登录状态
+        switch (await _pollSSOStatus(sessionId)) {
+          case _SSOPollOutcome.complete:
+            return _finishSSOLogin(true);
+          case _SSOPollOutcome.failed:
+          case _SSOPollOutcome.cancelled:
+            return _finishSSOLogin(false);
+          case _SSOPollOutcome.expired:
+            // 窗口超时或服务端 session 已过期 → 进入下一轮重新获取授权地址
+            continue;
+        }
+      } on ApiException catch (e) {
+        _lastError = e.message;
+        debugPrint('SSO login failed: $e');
+        return _finishSSOLogin(false);
+      } catch (e) {
+        _lastError = e.toString();
+        debugPrint('SSO login error: $e');
+        return _finishSSOLogin(false);
+      }
     }
+
+    _lastError = 'Login timed out. Please try again.';
+    return _finishSSOLogin(false);
   }
 
-  /// 轮询云端 SSO 登录状态，直到 complete/error/超时
-  Future<bool> _pollSSOStatus(String sessionId) async {
-    const pollInterval = Duration(seconds: 2);
-    const maxAttempts = 150; // 5 分钟
+  /// 结束 SSO 登录，统一清理临时状态并通知 UI。
+  bool _finishSSOLogin(bool ok) {
+    _ssoPolling = false;
+    _ssoAuthUrl = null;
+    _ssoHint = null;
+    notifyListeners();
+    return ok;
+  }
 
-    for (var i = 0; i < maxAttempts; i++) {
+  /// 轮询云端 SSO 登录状态，直到 complete/error/窗口超时。
+  Future<_SSOPollOutcome> _pollSSOStatus(String sessionId) async {
+    for (var i = 0; i < pollAttemptsPerWindow; i++) {
       await Future.delayed(pollInterval);
-      if (!_ssoPolling) break;
+      if (!_ssoPolling) return _SSOPollOutcome.cancelled;
 
       try {
         final res = await _api.ssoDesktopPoll(sessionId);
@@ -147,7 +216,7 @@ class AuthProvider with ChangeNotifier {
           final refreshToken = res['refresh_token'] as String?;
           if (accessToken == null) {
             _lastError = 'No access token in response';
-            return false;
+            return _SSOPollOutcome.failed;
           }
 
           // 保存 token（仅 token，不含密码）
@@ -163,28 +232,29 @@ class AuthProvider with ChangeNotifier {
 
           await _ensureDeviceRegistered(_email ?? 'My Device');
           _status = AuthStatus.authenticated;
-          return true;
+          return _SSOPollOutcome.complete;
         } else if (status == 'error') {
           _lastError = res['error'] as String? ?? 'SSO login failed';
-          return false;
+          return _SSOPollOutcome.failed;
         }
         // status == "pending" → 继续轮询
       } on ApiException catch (e) {
         if (e.statusCode == 404) {
-          _lastError = 'SSO session expired. Please try again.';
-          return false;
+          // 服务端 session 已过期（超过 TTL 或已被清理）→ 需要新的授权地址
+          return _SSOPollOutcome.expired;
         }
         // 网络抖动，继续轮询
       }
     }
 
-    _lastError = 'Login timed out. Please try again.';
-    return false;
+    // 窗口内一直 pending → 视为超时，交由上层决定是否重新获取授权地址
+    return _SSOPollOutcome.expired;
   }
 
   void cancelSSOLogin() {
     _ssoPolling = false;
     _ssoAuthUrl = null;
+    _ssoHint = null;
     notifyListeners();
   }
 
@@ -263,9 +333,10 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> _ensureDeviceRegistered(String fallbackName) async {
-    final clientId = await StorageService.getString('client_id');
-    final fingerprint = await DeviceFingerprintService.getFingerprint();
+    // 整个过程都不阻塞登录：本地存储/指纹插件缺失、网络异常都只跳过设备登记。
     try {
+      final clientId = await StorageService.getString('client_id');
+      final fingerprint = await DeviceFingerprintService.getFingerprint();
       final existing = await _api.listDevices();
       final known = existing.firstWhere(
         (d) => d['client_id']?.toString() == clientId,
@@ -306,6 +377,9 @@ class AuthProvider with ChangeNotifier {
       }
     } on ApiException {
       // 设备注册失败不阻塞登录
+    } catch (e) {
+      // 设备指纹/本地存储等能力异常同样不阻塞登录
+      debugPrint('Device registration skipped: $e');
     }
     _deviceName = fallbackName;
   }
