@@ -13,6 +13,8 @@ import '../../widgets/local_device_card.dart';
 import '../../widgets/sidebar.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/lan_discovery_service.dart';
+import '../../app.dart';
 
 enum ConnectMode { control, file, view, collab }
 
@@ -240,6 +242,12 @@ class _ControlCenterScreenState extends State<ControlCenterScreen> with ErrorHan
             ),
           ),
           SizedBox(height: wise.spacing.md),
+          _LanPeersCard(
+            textSecondary: textSecondary,
+            textPrimary: textPrimary,
+            cardBackground: cardBackground,
+          ),
+          SizedBox(height: wise.spacing.md),
           NexCard(
             padding: EdgeInsets.all(wise.spacing.lg),
             color: cardBackground,
@@ -373,6 +381,100 @@ class _InfoRow extends StatelessWidget {
           child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary, height: 1.54)),
         ),
       ],
+    );
+  }
+}
+
+/// 局域网对端卡片：订阅 UDP beacon 发现的同网段设备。
+class _LanPeersCard extends StatelessWidget {
+  final Color textSecondary;
+  final Color textPrimary;
+  final Color cardBackground;
+
+  const _LanPeersCard({
+    required this.textSecondary,
+    required this.textPrimary,
+    required this.cardBackground,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final discovery = NexApp.lanDiscovery;
+    if (discovery == null) return const SizedBox.shrink();
+
+    return StreamBuilder<List<LanPeer>>(
+      stream: discovery.onPeers,
+      initialData: discovery.peers,
+      builder: (context, snapshot) {
+        final peers = snapshot.data ?? const <LanPeer>[];
+        return NexCard(
+          padding: EdgeInsets.all(WiseTheme.of(context).spacing.lg),
+          color: cardBackground,
+          enableShadow: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.wifi_tethering, size: 18, color: WiseTheme.of(context).primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    '局域网设备',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: textPrimary,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (peers.isNotEmpty)
+                    Text(
+                      '${peers.length}',
+                      style: TextStyle(fontSize: 13, color: textSecondary),
+                    ),
+                ],
+              ),
+              SizedBox(height: WiseTheme.of(context).spacing.md),
+              if (peers.isEmpty)
+                Text(
+                  '同一局域网内暂无其他设备（UDP ${LanDiscoveryService.defaultPort}）',
+                  style: TextStyle(fontSize: 13, color: textSecondary, height: 1.54),
+                )
+              else
+                ...peers.map(
+                  (p) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        Icon(Icons.desktop_windows_outlined,
+                            size: 16, color: textSecondary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            p.name.isEmpty ? p.deviceId : p.name,
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: textPrimary),
+                          ),
+                        ),
+                        Text(
+                          p.ip,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: textSecondary,
+                            fontFamily: WiseTypographyTokens.monoFamily,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

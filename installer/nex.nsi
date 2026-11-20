@@ -46,6 +46,11 @@ Section "Main Files" SecMain
   CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${EXE_NAME}" "" "$INSTDIR\app_icon.ico" 0
   CreateShortCut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\${EXE_NAME}" "" "$INSTDIR\app_icon.ico" 0
 
+  ; Allow the UDP port used by LAN discovery (broadcast beacon).
+  ; The installer runs elevated; scope the rule to private/domain profiles only.
+  nsExec::ExecToLog 'netsh advfirewall firewall add rule name="NEX LAN Discovery" dir=in action=allow protocol=UDP localport=8618 profile=private,domain'
+  Pop $0
+
   WriteRegStr HKLM "Software\${APP_NAME}" "InstallPath" "$INSTDIR"
 
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayName" "${APP_NAME}"
@@ -62,6 +67,8 @@ SectionEnd
 
 Section "Uninstall"
   SetRegView 64
+  nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="NEX LAN Discovery"'
+  Pop $0
   Delete "$INSTDIR\${EXE_NAME}"
   Delete "$INSTDIR\uninstall.exe"
   RMDir /r "$INSTDIR"

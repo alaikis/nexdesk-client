@@ -7,6 +7,7 @@ import '../../core/api_client.dart';
 import '../../core/secure_storage_service.dart';
 import '../../core/storage_service.dart';
 import '../../core/device_fingerprint_service.dart';
+import '../../core/lan_discovery_service.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -337,6 +338,8 @@ class AuthProvider with ChangeNotifier {
     try {
       final clientId = await StorageService.getString('client_id');
       final fingerprint = await DeviceFingerprintService.getFingerprint();
+      // 上报本机局域网 IPv4，服务端存 devices.ip，供 host 候选/局域网直连使用。
+      final lanIp = await LanDiscoveryService.localIpv4();
       final existing = await _api.listDevices();
       final known = existing.firstWhere(
         (d) => d['client_id']?.toString() == clientId,
@@ -362,6 +365,7 @@ class AuthProvider with ChangeNotifier {
           pubkey: '',
           clientId: clientId,
           fingerprint: fingerprint,
+          ip: lanIp,
         );
         final newDeviceId = res['id']?.toString();
         if (newDeviceId != null) {

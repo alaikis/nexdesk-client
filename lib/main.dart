@@ -15,6 +15,8 @@ import 'platform/platform_service.dart';
 import 'core/crash_reporter.dart';
 import 'core/api_client.dart';
 import 'core/global_signaling_service.dart';
+import 'core/lan_discovery_service.dart';
+import 'core/secure_storage_service.dart';
 import 'core/input_injector_service.dart';
 import 'core/update_service.dart';
 import 'core/system_tray_service.dart';
@@ -67,6 +69,8 @@ Future<void> main() async {
   final deviceProvider = DeviceProvider();
   final sessionProvider = SessionProvider();
   final globalSignaling = GlobalSignalingService();
+  final lanDiscovery = LanDiscoveryService();
+  NexApp.lanDiscovery = lanDiscovery;
 
   runApp(
     MultiProvider(
@@ -84,10 +88,18 @@ Future<void> main() async {
     ),
   );
 
-  auth.init().then((_) {
+  auth.init().then((_) async {
     deviceProvider.loadDevices();
     // 常驻信令：用于接收会话邀请（无人值守自动接入 / 被邀请确认）。
     globalSignaling.start();
+    // 局域网发现：UDP 广播 beacon，供同网段设备互相发现。
+    final deviceId = await SecureStorageService.getString('device_id');
+    if (deviceId != null && deviceId.isNotEmpty) {
+      lanDiscovery.start(
+        deviceId: deviceId,
+        name: auth.deviceName ?? 'NEX Device',
+      );
+    }
   }).catchError((e) {
     debugPrint('Auth init failed: $e');
   });

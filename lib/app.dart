@@ -4,6 +4,7 @@ import 'theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'features/auth/auth_provider.dart';
+import 'core/lan_discovery_service.dart';
 import 'features/auth/auth_screen.dart';
 import 'features/auth/two_factor_screen.dart';
 import 'features/devices/control_center_screen.dart';
@@ -28,6 +29,9 @@ class NexApp extends StatefulWidget {
 
   /// 全局路由器实例，供后台服务（如全局信令监听）在无 Widget 上下文时导航。
   static GoRouter? router;
+
+  /// 全局局域网发现服务，供界面订阅对端列表。
+  static LanDiscoveryService? lanDiscovery;
 
   static Future<void> setLocale(Locale locale) async {
     await _instance?.setLocale(locale);

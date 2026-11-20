@@ -243,6 +243,7 @@ class ApiClient {
     required String pubkey,
     String? fingerprint,
     String? clientId,
+    String? ip,
   }) async {
     final deviceId = await SecureStorageService.getString('device_id');
     final body = <String, dynamic>{
@@ -253,6 +254,8 @@ class ApiClient {
     if (deviceId != null) body['id'] = deviceId;
     if (fingerprint != null) body['fingerprint'] = fingerprint;
     if (clientId != null) body['client_id'] = clientId;
+    // LAN IP：服务端存到 devices.ip，供 host 候选/局域网直连使用。
+    if (ip != null && ip.isNotEmpty) body['ip'] = ip;
     return post('/devices', body);
   }
 
