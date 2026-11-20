@@ -14,6 +14,7 @@ import 'features/shares/share_provider.dart';
 import 'platform/platform_service.dart';
 import 'core/crash_reporter.dart';
 import 'core/api_client.dart';
+import 'core/global_signaling_service.dart';
 import 'core/input_injector_service.dart';
 import 'core/update_service.dart';
 import 'core/system_tray_service.dart';
@@ -65,6 +66,7 @@ Future<void> main() async {
   final auth = AuthProvider();
   final deviceProvider = DeviceProvider();
   final sessionProvider = SessionProvider();
+  final globalSignaling = GlobalSignalingService();
 
   runApp(
     MultiProvider(
@@ -84,6 +86,8 @@ Future<void> main() async {
 
   auth.init().then((_) {
     deviceProvider.loadDevices();
+    // 常驻信令：用于接收会话邀请（无人值守自动接入 / 被邀请确认）。
+    globalSignaling.start();
   }).catchError((e) {
     debugPrint('Auth init failed: $e');
   });

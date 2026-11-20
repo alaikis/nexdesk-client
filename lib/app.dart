@@ -26,6 +26,9 @@ class NexApp extends StatefulWidget {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   static _NexAppState? _instance;
 
+  /// 全局路由器实例，供后台服务（如全局信令监听）在无 Widget 上下文时导航。
+  static GoRouter? router;
+
   static Future<void> setLocale(Locale locale) async {
     await _instance?.setLocale(locale);
   }
@@ -43,6 +46,7 @@ class _NexAppState extends State<NexApp> {
     super.initState();
     NexApp._instance = this;
     _router = _buildRouter();
+    NexApp.router = _router;
     _loadLocale();
   }
 
@@ -84,7 +88,10 @@ class _NexAppState extends State<NexApp> {
           path: '/session/:id',
           builder: (context, state) {
             final sessionId = state.pathParameters['id']!;
-            return SessionScreen(sessionId: sessionId);
+            // auto=1 表示由全局信令自动接入（无人值守或被邀请接受），
+            // 跳过选屏步骤直接开始推流。
+            final autoAccept = state.uri.queryParameters['auto'] == '1';
+            return SessionScreen(sessionId: sessionId, autoAccept: autoAccept);
           },
         ),
         GoRoute(

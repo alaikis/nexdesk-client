@@ -42,7 +42,12 @@ enum SharingSource { fullScreen, window }
 
 class SessionScreen extends StatefulWidget {
   final String sessionId;
-  const SessionScreen({super.key, required this.sessionId});
+
+  /// 由全局信令自动接入（无人值守或被邀请接受）。
+  /// 为 true 时跳过选屏，直接使用全部屏幕开始推流。
+  final bool autoAccept;
+
+  const SessionScreen({super.key, required this.sessionId, this.autoAccept = false});
 
   @override
   State<SessionScreen> createState() => _SessionScreenState();
@@ -89,6 +94,10 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     _initScreens();
     _localDeviceIdInit();
     _dragDrop.startListening();
+    if (widget.autoAccept) {
+      // 无人值守/已接受邀请：等屏幕列表就绪后自动开始，无需人工点选。
+      _autoAcceptWhenReady();
+    }
     _dragStatusSub = _dragDrop.onStatusChange.listen((status) {
       if (mounted) {
         setState(() {
@@ -121,6 +130,28 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     if (mounted) {
       setState(() => _localDeviceId = id ?? 'local');
     }
+  }
+
+  /// 自动接入：等待屏幕枚举完成，然后以全部屏幕发起推流。
+  Future<void> _autoAcceptWhenReady() async {
+    for (var i = 0; i < 40; i++) {
+      await Future.delayed(const Duration(milliseconds: 250));
+      if (!mounted) return;
+      if (_screens.isNotEmpty) break;
+      if (!_selectingScreens) break;
+    }
+    if (!mounted) return;
+    if (_screens.isEmpty) {
+      debugPrint('Auto accept aborted: no screens available');
+      if (mounted) setState(() => _selectingScreens = true);
+      return;
+    }
+    setState(() {
+      _selectedScreenIds = _screens.map((s) => s.id).toSet();
+      _sharingSource = SharingSource.fullScreen;
+      _selectedWindow = null;
+    });
+    await _startSession();
   }
 
   Future<void> _initScreens() async {
@@ -229,9 +260,16 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   Future<void> _startSession() async {
     if (_selectedScreenIds.isEmpty) return;
 
-    await _showSharingSourceDialog();
-    if (_sharingSource == SharingSource.fullScreen && _selectedScreenIds.isEmpty) return;
-    if (_sharingSource == SharingSource.window && _selectedWindow == null) return;
+    // 自动接入（无人值守/已接受邀请）跳过选源弹窗。
+    if (!widget.autoAccept) {
+      await _showSharingSourceDialog();
+      if (_sharingSource == SharingSource.fullScreen && _selectedScreenIds.isEmpty) {
+        return;
+      }
+      if (_sharingSource == SharingSource.window && _selectedWindow == null) {
+        return;
+      }
+    }
 
     setState(() => _selectingScreens = false);
 
@@ -398,6 +436,8 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
           });
         },
         onRemoteStream: (stream) {
+          debugPrint(
+              '[webrtc] remote stream received (screen ${stream.screenName})');
           if (!mounted) return;
           setState(() {});
         },
@@ -405,10 +445,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
       // 只有 controller 发起协商；controllee 等对端 offer 到达后再 createAnswer。
       if (_isController) {
+        debugPrint('[webrtc] as controller, creating offer');
         await _webrtc.createOffer();
         // Add audio track for remote audio transmission
         await _webrtc.addAudioTrack();
         _inputRelay?.start();
+      } else {
+        debugPrint('[webrtc] as controllee, waiting for offer');
       }
     } catch (e) {
       if (!mounted) return;
@@ -440,11 +483,15 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         case SignalingMessageType.callOffer:
           // offer 只应由 controllee 处理
           if (_isController) return;
+          debugPrint(
+              '[signaling] callOffer received, sdp=${(msg.payload['sdp'] as String?)?.length ?? 0} chars');
           _handleRemoteOffer(msg.payload);
           break;
         case SignalingMessageType.callAnswer:
           // answer 只应由 controller 处理
           if (!_isController) return;
+          debugPrint(
+              '[signaling] callAnswer received, sdp=${(msg.payload['sdp'] as String?)?.length ?? 0} chars');
           _handleRemoteAnswer(msg.payload);
           break;
         case SignalingMessageType.ice:

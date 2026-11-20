@@ -18,6 +18,7 @@ enum SignalingMessageType {
   callEnd,
   keyExchange,
   resumeSession,
+  sessionInvite,
   inputEvent,
   chatMessage,
   privacy,
@@ -54,10 +55,33 @@ class SignalingMessage {
     final type = SignalingMessageType.fromString(json['type'] as String? ?? 'error');
     final to = json['to'] as String?;
     final sessionId = json['session_id'] as String?;
-    final payload = Map<String, dynamic>.from(json);
-    payload.remove('type');
-    payload.remove('to');
-    payload.remove('session_id');
+
+    // 服务端 ws.Message 把业务数据放在嵌套的 "payload" 里。
+    // 之前客户端按「扁平」解析（把除 type/to/session_id 外的顶层键当 payload），
+    // 导致 msg.payload['sdp'] 永远拿不到值，协商直接失效。
+    final raw = json['payload'];
+    Map<String, dynamic> payload;
+    if (raw is Map) {
+      payload = Map<String, dynamic>.from(raw);
+    } else if (raw is String && raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        payload =
+            decoded is Map ? Map<String, dynamic>.from(decoded) : <String, dynamic>{};
+      } catch (_) {
+        payload = <String, dynamic>{};
+      }
+    } else {
+      // 兼容扁平格式（旧客户端 / 直接构造的消息）
+      payload = Map<String, dynamic>.from(json);
+      payload
+        ..remove('type')
+        ..remove('to')
+        ..remove('session_id')
+        ..remove('seq')
+        ..remove('enabled');
+    }
+
     return SignalingMessage(
       type: type,
       to: to,
@@ -67,13 +91,14 @@ class SignalingMessage {
   }
 
   Map<String, dynamic> toJson() {
-    // 保留字段必须写在 payload 之后，否则 payload 里的同名键（例如 SDP 的
-    // type: "offer"/"answer"）会覆盖信令消息类型，导致对端解析成 error。
+    // 必须与服务端 ws.Message 一致：保留字段在顶层，业务数据放在嵌套的
+    // "payload" 里。之前把 payload 扁平展开，服务端 Message.Payload 会解析
+    // 成 nil，offer/answer 的 sdp 在转发时被直接丢掉。
     return {
-      ...payload,
       'type': type.name,
       if (to != null) 'to': to,
       if (sessionId != null) 'session_id': sessionId,
+      if (payload.isNotEmpty) 'payload': payload,
     };
   }
 }

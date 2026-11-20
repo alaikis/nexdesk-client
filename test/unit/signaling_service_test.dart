@@ -41,7 +41,13 @@ void main() {
       final json = msg.toJson();
       expect(json['type'], 'resumeSession');
       expect(json['session_id'], 'session-123');
-      expect(json['status'], 'session_invalid');
+      // 业务数据在服务端 Message 里是嵌套的 payload，不再扁平到顶层。
+      expect((json['payload'] as Map)['status'], 'session_invalid');
+
+      final restored = SignalingMessage.fromJson(json);
+      expect(restored.type, SignalingMessageType.resumeSession);
+      expect(restored.sessionId, 'session-123');
+      expect(restored.payload['status'], 'session_invalid');
     });
   });
 }

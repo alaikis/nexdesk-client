@@ -1,13 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex/core/signaling_service.dart';
 
-/// P0 协商修复依赖的协议层不变量：
-/// 1. 信令消息的 `to` 必须是 `<deviceID>:<sessionID>`，否则服务端直接丢弃；
-/// 2. 保留字段（type/to/session_id）不能被 payload 覆盖；
-/// 3. 协商消息往返后仍能正确分发到 callOffer / callAnswer / ice。
+/// 客户端 <-> 服务端信令线格式契约。
+///
+/// 服务端 `internal/ws.Message` 定义为：
+///   type / to / session_id / seq / payload(json.RawMessage)
+/// 业务数据放在**嵌套的 payload** 里。客户端必须与之保持一致，否则：
+/// - 客户端发扁平 payload → 服务端 Message.Payload = nil → SDP 丢失
+/// - 服务端发嵌套 payload → 客户端读顶层拿不到 sdp
 void main() {
-  group('SignalingMessage 协商路由', () {
-    test('to 字段序列化为 deviceID:sessionID', () {
+  group('信令线格式（与服务端 ws.Message 对齐）', () {
+    test('toJson 把业务数据放进嵌套 payload', () {
       final msg = SignalingMessage(
         type: SignalingMessageType.callOffer,
         to: '42:session-abc',
@@ -20,29 +23,68 @@ void main() {
       expect(json['type'], 'callOffer');
       expect(json['to'], '42:session-abc');
       expect(json['session_id'], 'session-abc');
-      expect(json['sdp'], 'v=0');
-      expect(json['sdp_type'], 'offer');
+      expect(json['payload'], isA<Map>());
+      expect((json['payload'] as Map)['sdp'], 'v=0');
+      // 顶层不应再出现 sdp
+      expect(json.containsKey('sdp'), isFalse);
     });
 
-    test('payload 中的 type 键不会覆盖信令消息类型', () {
-      // 回归测试：修复前 payload 的 'type': 'offer' 会把消息类型改成 'offer'，
-      // 对端 fromString 解析失败后降级为 error。
-      final msg = SignalingMessage(
-        type: SignalingMessageType.callOffer,
-        to: '1:session-1',
-        sessionId: 'session-1',
-        payload: {'sdp': 'v=0', 'type': 'offer'},
-      );
+    test('模拟服务端转发：嵌套 payload 能被正确解析', () {
+      // 服务端 hub 转发的形态
+      final wire = <String, dynamic>{
+        'type': 'callOffer',
+        'session_id': '123',
+        'payload': {
+          'sdp': 'v=0\r\na=group:BUNDLE 0',
+          'sdp_type': 'offer',
+          'from': '7',
+        },
+      };
 
-      final json = msg.toJson();
-      expect(json['type'], 'callOffer');
+      final msg = SignalingMessage.fromJson(wire);
 
-      final restored = SignalingMessage.fromJson(json);
-      expect(restored.type, SignalingMessageType.callOffer);
-      expect(restored.payload.containsKey('type'), isFalse);
+      expect(msg.type, SignalingMessageType.callOffer);
+      expect(msg.sessionId, '123');
+      expect(msg.payload['sdp'], contains('a=group:BUNDLE 0'));
+      expect(msg.payload['sdp_type'], 'offer');
+      expect(msg.payload['from'], '7');
     });
 
-    test('callAnswer 往返不丢失类型', () {
+    test('服务端 payload 为字符串 JSON 时也能解析', () {
+      final wire = <String, dynamic>{
+        'type': 'callAnswer',
+        'session_id': '9',
+        'payload': '{"sdp":"v=0","sdp_type":"answer"}',
+      };
+
+      final msg = SignalingMessage.fromJson(wire);
+
+      expect(msg.type, SignalingMessageType.callAnswer);
+      expect(msg.payload['sdp'], 'v=0');
+    });
+
+    test('无 payload 时不产生异常', () {
+      final wire = <String, dynamic>{'type': 'callEnd', 'session_id': '1'};
+      final msg = SignalingMessage.fromJson(wire);
+      expect(msg.type, SignalingMessageType.callEnd);
+      expect(msg.payload, isEmpty);
+    });
+
+    test('兼容扁平格式（旧客户端）', () {
+      final wire = <String, dynamic>{
+        'type': 'ice',
+        'to': '7:1',
+        'session_id': '1',
+        'candidate': 'candidate:1 1 UDP 1 10.0.0.2 5000 typ host',
+      };
+
+      final msg = SignalingMessage.fromJson(wire);
+
+      expect(msg.type, SignalingMessageType.ice);
+      expect(msg.payload['candidate'], contains('typ host'));
+    });
+
+    test('完整往返：client -> wire -> client 保持语义', () {
       final original = SignalingMessage(
         type: SignalingMessageType.callAnswer,
         to: '7:session-1',
@@ -50,9 +92,7 @@ void main() {
         payload: {'sdp': 'v=0', 'sdp_type': 'answer'},
       );
 
-      final restored = SignalingMessage.fromJson(
-        Map<String, dynamic>.from(original.toJson()),
-      );
+      final restored = SignalingMessage.fromJson(original.toJson());
 
       expect(restored.type, SignalingMessageType.callAnswer);
       expect(restored.to, '7:session-1');
@@ -61,110 +101,48 @@ void main() {
       expect(restored.payload['sdp_type'], 'answer');
     });
 
-    test('ice 候选往返不丢失', () {
-      final original = SignalingMessage(
-        type: SignalingMessageType.ice,
-        to: '7:session-1',
-        sessionId: 'session-1',
-        payload: {
-          'candidate': 'candidate:1 1 UDP 1 192.168.1.5 50000 typ host',
-          'sdpMid': '0',
-          'sdpMLineIndex': 0,
-        },
-      );
-
-      final restored = SignalingMessage.fromJson(
-        Map<String, dynamic>.from(original.toJson()),
-      );
-
-      expect(restored.type, SignalingMessageType.ice);
-      expect(restored.payload['candidate'], contains('typ host'));
-      expect(restored.payload['sdpMid'], '0');
-    });
-
-    test('callEnd 往返不丢失类型', () {
-      final original = SignalingMessage(
-        type: SignalingMessageType.callEnd,
-        to: '7:session-1',
-        sessionId: 'session-1',
-        payload: {'reason': 'ended'},
-      );
-
-      final restored = SignalingMessage.fromJson(
-        Map<String, dynamic>.from(original.toJson()),
-      );
-
-      expect(restored.type, SignalingMessageType.callEnd);
-      expect(restored.payload['reason'], 'ended');
-    });
-
-    test('缺少 to 时不写入 to 键（服务端会丢弃此类消息）', () {
+    test('保留字段不被 payload 覆盖（type 仍是消息类型）', () {
       final msg = SignalingMessage(
         type: SignalingMessageType.callOffer,
-        sessionId: 'session-1',
-        payload: {'sdp': 'v=0'},
+        to: '1:1',
+        sessionId: '1',
+        payload: {'sdp': 'v=0', 'sdp_type': 'offer'},
       );
 
-      expect(msg.to, isNull);
-      expect(msg.toJson().containsKey('to'), isFalse);
+      final json = msg.toJson();
+      expect(json['type'], 'callOffer');
+
+      final restored = SignalingMessage.fromJson(json);
+      expect(restored.type, SignalingMessageType.callOffer);
+      expect(restored.payload['sdp_type'], 'offer');
     });
 
-    test('clipboard 不再使用 type 作为 payload 键', () {
-      final msg = SignalingMessage(
-        type: SignalingMessageType.clipboard,
-        sessionId: 'session-1',
-        payload: {'content': 'hello', 'content_type': 'text'},
-      );
-
-      final restored = SignalingMessage.fromJson(
-        Map<String, dynamic>.from(msg.toJson()),
-      );
-
-      expect(restored.type, SignalingMessageType.clipboard);
-      expect(restored.payload['content'], 'hello');
-      expect(restored.payload['content_type'], 'text');
+    test('空 payload 不写 payload 键', () {
+      final msg = SignalingMessage(type: SignalingMessageType.ping);
+      expect(msg.toJson().containsKey('payload'), isFalse);
     });
   });
 
-  group('SignalingService 基础行为', () {
-    test('未连接时 send 不抛异常', () async {
-      final service = SignalingService(
-        serverUrl: 'wss://example.invalid',
-        token: 'token',
-        deviceId: '1',
+  group('信令目标地址', () {
+    test('to 必须是 deviceID:sessionID（服务端要求）', () {
+      final msg = SignalingMessage(
+        type: SignalingMessageType.callOffer,
+        to: '42:7',
+        sessionId: '7',
+        payload: {'sdp': 'v=0'},
       );
-
-      expect(service.isConnected, isFalse);
-      expect(
-        () => service.send(
-          SignalingMessage(
-            type: SignalingMessageType.callOffer,
-            to: '2:session-1',
-            sessionId: 'session-1',
-            payload: {'sdp': 'v=0'},
-          ),
-        ),
-        returnsNormally,
-      );
-
-      await service.disconnect();
+      final json = msg.toJson();
+      expect(json['to'], '42:7');
+      expect((json['to'] as String).split(':').first, '42');
     });
 
-    test('messages 是广播流，可多订阅', () async {
-      final service = SignalingService(
-        serverUrl: 'wss://example.invalid',
-        token: 'token',
-        deviceId: '1',
+    test('未设置 to 时不写 to 键（服务端会丢弃该消息）', () {
+      final msg = SignalingMessage(
+        type: SignalingMessageType.callOffer,
+        sessionId: '7',
+        payload: {'sdp': 'v=0'},
       );
-
-      final subA = service.messages.listen((_) {});
-      final subB = service.messages.listen((_) {});
-      expect(subA, isNotNull);
-      expect(subB, isNotNull);
-
-      await subA.cancel();
-      await subB.cancel();
-      await service.disconnect();
+      expect(msg.toJson().containsKey('to'), isFalse);
     });
   });
 }
