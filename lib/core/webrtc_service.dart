@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'api_client.dart';
 import 'quality_service.dart';
@@ -54,6 +55,10 @@ class WebRtcService {
   final List<ScreenStream> _remoteStreams = [];
   final List<RTCIceCandidate> _remoteCandidates = [];
 
+  /// 本地 SDP（offer 或 answer）生成并设为 localDescription 后回调，
+  /// 由调用方通过信令把 SDP 发给对端。
+  Function(RTCSessionDescription)? _onLocalDescription;
+
   static const int _maxWallStreams = 16;
   final Map<String, ScreenWallStream> _wallStreams = {};
 
@@ -94,6 +99,8 @@ class WebRtcService {
     };
 
     _pc = await createPeerConnection(configuration);
+
+    _onLocalDescription = onLocalDescription;
 
     _pc!.onIceCandidate = onIceCandidate;
 
@@ -259,21 +266,41 @@ class WebRtcService {
     }
   }
 
-  void createOffer() {
-    _pc!.createOffer().then((offer) {
+  /// 以 controller 身份发起协商：创建 offer，设为 localDescription，
+  /// 然后通过 [_onLocalDescription] 把 SDP 交给信令层发给对端。
+  Future<void> createOffer() async {
+    final pc = _pc;
+    if (pc == null) return;
+    try {
+      final offer = await pc.createOffer();
       // Prefer H.264 over VP8
-      final modifiedSdp = _setCodecPreference(offer.sdp!);
-      final modifiedOffer = RTCSessionDescription(modifiedSdp, offer.type);
-      _pc!.setLocalDescription(modifiedOffer);
-    });
+      final modifiedOffer = RTCSessionDescription(
+        _setCodecPreference(offer.sdp ?? ''),
+        offer.type,
+      );
+      await pc.setLocalDescription(modifiedOffer);
+      _onLocalDescription?.call(modifiedOffer);
+    } catch (e) {
+      debugPrint('createOffer failed: $e');
+    }
   }
 
-  void createAnswer() {
-    _pc!.createAnswer().then((answer) {
-      final modifiedSdp = _setCodecPreference(answer.sdp!);
-      final modifiedAnswer = RTCSessionDescription(modifiedSdp, answer.type);
-      _pc!.setLocalDescription(modifiedAnswer);
-    });
+  /// 以 controllee 身份回应 offer：创建 answer，设为 localDescription，
+  /// 然后通过 [_onLocalDescription] 把 SDP 交给信令层发给对端。
+  Future<void> createAnswer() async {
+    final pc = _pc;
+    if (pc == null) return;
+    try {
+      final answer = await pc.createAnswer();
+      final modifiedAnswer = RTCSessionDescription(
+        _setCodecPreference(answer.sdp ?? ''),
+        answer.type,
+      );
+      await pc.setLocalDescription(modifiedAnswer);
+      _onLocalDescription?.call(modifiedAnswer);
+    } catch (e) {
+      debugPrint('createAnswer failed: $e');
+    }
   }
 
   /// Reorder SDP to prefer H.264 codec

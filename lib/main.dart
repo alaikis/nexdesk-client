@@ -7,6 +7,8 @@ import 'app.dart';
 import 'l10n/app_localizations.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/devices/device_provider.dart';
+import 'features/devices/group_provider.dart';
+import 'features/screen_wall/screen_wall_provider.dart';
 import 'features/session/session_provider.dart';
 import 'features/shares/share_provider.dart';
 import 'platform/platform_service.dart';
@@ -71,6 +73,10 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: deviceProvider),
         ChangeNotifierProvider.value(value: sessionProvider),
         ChangeNotifierProvider.value(value: ShareProvider()),
+        // GroupProvider / ScreenWallProvider 被界面 context.watch 引用，
+        // 必须在此注册，否则进入对应页面会抛 ProviderNotFoundException。
+        ChangeNotifierProvider(create: (_) => GroupProvider()),
+        ChangeNotifierProvider(create: (_) => ScreenWallProvider()),
       ],
       child: const NexApp(),
     ),

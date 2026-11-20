@@ -67,11 +67,13 @@ class SignalingMessage {
   }
 
   Map<String, dynamic> toJson() {
+    // 保留字段必须写在 payload 之后，否则 payload 里的同名键（例如 SDP 的
+    // type: "offer"/"answer"）会覆盖信令消息类型，导致对端解析成 error。
     return {
+      ...payload,
       'type': type.name,
       if (to != null) 'to': to,
       if (sessionId != null) 'session_id': sessionId,
-      ...payload,
     };
   }
 }
@@ -342,7 +344,8 @@ class SignalingService {
     send(SignalingMessage(
       type: SignalingMessageType.clipboard,
       sessionId: sessionId,
-      payload: {'content': text, 'type': 'text'},
+      // 不能用 'type' 作为 payload 键，会与信令消息类型冲突。
+      payload: {'content': text, 'content_type': 'text'},
     ));
   }
 

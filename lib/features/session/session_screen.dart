@@ -56,10 +56,17 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
   final DragDropService _dragDrop = DragDropService();
   InputRelayService? _inputRelay;
   SignalingService? _signaling;
+  StreamSubscription<SignalingMessage>? _signalingSub;
   bool _audioEnabled = true;
   bool _whiteboardActive = false;
   bool _e2eeActive = false;
   String _localDeviceId = 'local';
+
+  /// 本端是否为发起方（controller）。controller 发 offer，controllee 回 answer。
+  bool _isController = true;
+
+  /// 协商对端设备 ID，用于信令的 `to` 字段（服务端要求 `deviceID:sessionID`）。
+  String _partnerDeviceId = '';
   final GlobalKey<WhiteboardScreenState> _whiteboardKey = GlobalKey<WhiteboardScreenState>();
 
   List<ScreenInfo> _screens = [];
@@ -231,6 +238,28 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     try {
       final token = await SecureStorageService.getString('jwt_token') ?? '';
       final deviceId = await SecureStorageService.getString('device_id') ?? '';
+      if (!mounted) return;
+      if (deviceId.isNotEmpty) {
+        _localDeviceId = deviceId;
+      }
+
+      // 确定本端角色：device_id 与 session.controller_device_id 相同则为发起方。
+      final activeSession = context.read<SessionProvider>().activeSession;
+      final controllerDeviceId = activeSession?.controllerDeviceId ?? '';
+      final controlleeDeviceId = activeSession?.controlleeDeviceId ?? '';
+      _isController =
+          controllerDeviceId.isEmpty || controllerDeviceId == _localDeviceId;
+      _partnerDeviceId =
+          _isController ? controlleeDeviceId : controllerDeviceId;
+      if (_partnerDeviceId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Session has no remote device')),
+          );
+        }
+        setState(() => _selectingScreens = true);
+        return;
+      }
 
       final granted = await ScreenCaptureService.requestPermission();
       if (!granted) {
@@ -305,6 +334,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         },
       );
       await _signaling!.connect();
+      _subscribeSignaling();
 
       // Wire real-time clipboard push through the signaling link.
       ClipboardService().sendClipboard = _signaling!.sendClipboard;
@@ -338,45 +368,145 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
             }
           : null;
       await _webrtc.initialize(
-        role: SessionRole.controller,
+        role: _isController ? SessionRole.controller : SessionRole.controllee,
         selectedScreenIds: _selectedScreenIds.toList(),
         qualityProfile: qualityProfile,
         captureConstraints: captureConstraints,
         onLocalDescription: (desc) {
-          final payload = <String, dynamic>{
-            'sdp': desc.sdp,
-            'type': desc.type,
-            if (_selectedWindow != null) 'window_id': _selectedWindow!.id,
-            if (_selectedWindow != null) 'window_title': _selectedWindow!.title,
-            if (_selectedWindow != null) 'window_bounds': _selectedWindow!.toJson(),
-          };
-          _signaling?.send(SignalingMessage(
-            type: SignalingMessageType.callOffer,
-            sessionId: widget.sessionId,
-            payload: payload,
-          ));
+          // controller 发 offer，controllee 回 answer；两端都通过信令交换 SDP。
+          _sendSignal(
+            _isController
+                ? SignalingMessageType.callOffer
+                : SignalingMessageType.callAnswer,
+            {
+              'sdp': desc.sdp,
+              // 不能用 'type' 作为 payload 键，会与信令消息类型冲突。
+              'sdp_type': desc.type,
+              if (_isController && _selectedWindow != null) ...{
+                'window_id': _selectedWindow!.id,
+                'window_title': _selectedWindow!.title,
+                'window_bounds': _selectedWindow!.toJson(),
+              },
+            },
+          );
         },
         onIceCandidate: (candidate) {
-          _signaling?.send(SignalingMessage(
-            type: SignalingMessageType.ice,
-            sessionId: widget.sessionId,
-            payload: {'candidate': candidate.candidate, 'sdpMid': candidate.sdpMid, 'sdpMLineIndex': candidate.sdpMLineIndex},
-          ));
+          _sendSignal(SignalingMessageType.ice, {
+            'candidate': candidate.candidate,
+            'sdpMid': candidate.sdpMid,
+            'sdpMLineIndex': candidate.sdpMLineIndex,
+          });
         },
         onRemoteStream: (stream) {
-          // Remote screen stream received
+          if (!mounted) return;
+          setState(() {});
         },
       );
 
-      _webrtc.createOffer();
-      // Add audio track for remote audio transmission
-      await _webrtc.addAudioTrack();
-      _inputRelay?.start();
+      // 只有 controller 发起协商；controllee 等对端 offer 到达后再 createAnswer。
+      if (_isController) {
+        await _webrtc.createOffer();
+        // Add audio track for remote audio transmission
+        await _webrtc.addAudioTrack();
+        _inputRelay?.start();
+      }
     } catch (e) {
       if (!mounted) return;
       handleError(e, context: context);
       setState(() => _selectingScreens = true);
     }
+  }
+
+  /// 发送带目标设备的信令。服务端要求 `to` 为 `<deviceID>:<sessionID>`，
+  /// 否则 callOffer/callAnswer/ice/callEnd 会被直接丢弃。
+  void _sendSignal(SignalingMessageType type, Map<String, dynamic> payload) {
+    final signaling = _signaling;
+    if (signaling == null || _partnerDeviceId.isEmpty) return;
+    signaling.send(SignalingMessage(
+      type: type,
+      to: '$_partnerDeviceId:${widget.sessionId}',
+      sessionId: widget.sessionId,
+      payload: payload,
+    ));
+  }
+
+  void _subscribeSignaling() {
+    _signalingSub?.cancel();
+    _signalingSub = _signaling!.messages.listen((msg) {
+      if (!mounted) return;
+      if (msg.sessionId != null && msg.sessionId != widget.sessionId) return;
+
+      switch (msg.type) {
+        case SignalingMessageType.callOffer:
+          // offer 只应由 controllee 处理
+          if (_isController) return;
+          _handleRemoteOffer(msg.payload);
+          break;
+        case SignalingMessageType.callAnswer:
+          // answer 只应由 controller 处理
+          if (!_isController) return;
+          _handleRemoteAnswer(msg.payload);
+          break;
+        case SignalingMessageType.ice:
+          _handleRemoteIce(msg.payload);
+          break;
+        case SignalingMessageType.callReject:
+          _handleCallEnded('rejected');
+          break;
+        case SignalingMessageType.callEnd:
+          _handleCallEnded('ended');
+          break;
+        default:
+          break;
+      }
+    });
+  }
+
+  Future<void> _handleRemoteOffer(Map<String, dynamic> payload) async {
+    final sdp = payload['sdp'] as String?;
+    if (sdp == null || sdp.isEmpty) return;
+    final type = payload['sdp_type'] as String? ?? 'offer';
+    try {
+      await _webrtc.setRemoteDescription(RTCSessionDescription(sdp, type));
+      await _webrtc.createAnswer();
+    } catch (e) {
+      debugPrint('handle offer failed: $e');
+    }
+  }
+
+  Future<void> _handleRemoteAnswer(Map<String, dynamic> payload) async {
+    final sdp = payload['sdp'] as String?;
+    if (sdp == null || sdp.isEmpty) return;
+    final type = payload['sdp_type'] as String? ?? 'answer';
+    try {
+      await _webrtc.setRemoteDescription(RTCSessionDescription(sdp, type));
+    } catch (e) {
+      debugPrint('handle answer failed: $e');
+    }
+  }
+
+  Future<void> _handleRemoteIce(Map<String, dynamic> payload) async {
+    final candidate = payload['candidate'] as String?;
+    if (candidate == null || candidate.isEmpty) return;
+    final sdpMid = payload['sdpMid'] as String?;
+    final lineIndex = (payload['sdpMLineIndex'] as num?)?.toInt() ?? 0;
+    try {
+      await _webrtc.addCandidate(
+        RTCIceCandidate(candidate, sdpMid, lineIndex),
+      );
+    } catch (e) {
+      debugPrint('add remote candidate failed: $e');
+    }
+  }
+
+  void _handleCallEnded(String reason) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Session $reason')),
+    );
+    _inputRelay?.stop();
+    context.read<SessionProvider>().setActiveSession(null);
+    GoRouter.of(context).go('/devices');
   }
 
   Future<void> _promptForPassword(String sessionId) async {
@@ -1291,6 +1421,8 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     _dragStatusSub?.cancel();
     _dragDropSub?.cancel();
     _dragDrop.stopListening();
+    _signalingSub?.cancel();
+    _signaling?.disconnect();
     _inputRelay?.stop();
     _webrtc.dispose();
     _e2ee.dispose();
