@@ -23,3 +23,10 @@ Thumbs.db
 *.tmp
 *.temp
 coverage/
+
+# Release / packaging artifacts
+NEX-Setup-*.exe
+NEX-v*.zip
+NEX-v*.tar.gz
+*.sha256
+installer/nex-windows/

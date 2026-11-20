@@ -7,63 +7,170 @@ on:
   workflow_dispatch:
 
 env:
-  FLUTTER_VERSION: '3.22.0'
+  FLUTTER_VERSION: '3.44.9'
   APP_NAME: NEX
-  APP_VERSION: 0.1.0-alpha.13
 
 jobs:
   build-windows:
     name: Windows
     runs-on: windows-latest
+    env:
+      # 生产证书（可选）。未配置时自动回退到自签名证书。
+      WINDOWS_CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}
+      WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve version from VERSION
+        shell: bash
+        run: |
+          set -e
+          V=$(tr -d '[:space:]' < VERSION)
+          test -n "$V" || { echo "VERSION file is empty"; exit 1; }
+          echo "APP_VERSION=$V" >> "$GITHUB_ENV"
+          echo "Resolved APP_VERSION=$V"
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
+
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
+      - run: flutter analyze
       - run: flutter build windows --release
         env:
           CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
-      - name: Package Windows ZIP
+
+      - name: Stage Windows payload
         shell: bash
         run: |
-          7z a nex-windows.zip build/windows/x64/Release/.
-          ls -lh nex-windows.zip
-      - name: Prepare Windows installer payload
+          set -e
+          SRC=build/windows/x64/runner/Release
+          if [ ! -f "$SRC/nex.exe" ]; then
+            echo "nex.exe not found under $SRC"
+            find build/windows -maxdepth 5 -type d || true
+            exit 1
+          fi
+          rm -rf installer/nex-windows
+          mkdir -p installer/nex-windows
+          cp -r "$SRC"/. installer/nex-windows/
+          cp installer/setup/app_icon.ico installer/nex-windows/app_icon.ico
+          ls -lh installer/nex-windows | head -20
+
+      - name: Prepare signing material
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'nex-code-signing.pfx'
+
+          if ($env:WINDOWS_CERT_PFX) {
+            Write-Host 'Using production certificate from secrets.'
+            [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:WINDOWS_CERT_PFX))
+            $password = $env:WINDOWS_CERT_PASSWORD
+          } else {
+            Write-Host 'WINDOWS_CERT_PFX not configured - generating a self-signed certificate.'
+            $cert = New-SelfSignedCertificate `
+              -Type CodeSigningCert `
+              -Subject 'CN=NEX Code Signing (Self-Signed)' `
+              -CertStoreLocation Cert:\CurrentUser\My `
+              -KeyExportPolicy Exportable `
+              -KeySpec Signature `
+              -KeyUsage DigitalSignature `
+              -HashAlgorithm SHA256 `
+              -FriendlyName 'NEX Code Signing' `
+              -NotAfter (Get-Date).AddYears(3)
+            $chars = 48..57 + 65..90 + 97..122
+            $password = -join ($chars | Get-Random -Count 32 | ForEach-Object { [char]$_ })
+            $secure = ConvertTo-SecureString -String $password -Force -AsPlainText
+            Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $secure | Out-Null
+            Write-Host "Self-signed certificate thumbprint: $($cert.Thumbprint)"
+          }
+
+          "PFX_PATH=$pfxPath" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "PFX_PASSWORD=$password" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Sign application binary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '\\x64\\' } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe not found in the Windows SDK' }
+
+          $targets = @(Get-ChildItem -Path installer/nex-windows -Filter *.exe -Recurse)
+          if ($targets.Count -eq 0) { throw 'no exe found to sign' }
+
+          foreach ($t in $targets) {
+            Write-Host "Signing $($t.FullName)"
+            & $signtool.FullName sign /fd SHA256 /f $env:PFX_PATH /p $env:PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $t.FullName
+            if ($LASTEXITCODE -ne 0) { throw "signtool failed for $($t.FullName)" }
+
+            # 自签名证书不受信任，Get-AuthenticodeSignature 会返回 UnknownError，
+            # 因此这里只断言“确实带上了签名者证书”，不用 /pa 策略校验。
+            $sig = Get-AuthenticodeSignature $t.FullName
+            if ($null -eq $sig.SignerCertificate) { throw "no signature on $($t.FullName): $($sig.Status)" }
+            Write-Host "Signed $($t.Name) | status=$($sig.Status) | subject=$($sig.SignerCertificate.Subject)"
+          }
+
+      - name: Build installer (NSIS)
         shell: bash
         run: |
-          mkdir -p build/windows/x64/Release/nex-windows
-          cp -r installer/nex-windows/* build/windows/x64/Release/nex-windows/
-          cp -r build/windows/x64/Release/* build/windows/x64/Release/nex-windows/
-      - name: Build Windows Installer (NSIS)
-        shell: bash
-        run: |
-          cd build/windows/x64/Release
-          makensis ../../../../../../installer/nex.nsi
+          set -e
+          command -v makensis >/dev/null 2>&1 || choco install nsis -y --no-progress
+          cd installer
+          # 单一版本来源：clients/VERSION
+          sed -i "s/^!define APP_VERSION .*/!define APP_VERSION \"${APP_VERSION}\"/" nex.nsi
+          makensis nex.nsi
+          cp NEX-Setup-*.exe ../
+          cd ..
           ls -lh NEX-Setup-*.exe
-      - name: Sign Windows binaries
-        if: startsWith(github.ref, 'refs/tags/v') && env.WINDOWS_CERT_PFX != ''
+
+      - name: Sign installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '\\x64\\' } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe not found in the Windows SDK' }
+
+          $installer = Get-ChildItem -Path . -Filter 'NEX-Setup-*.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'installer not found' }
+          & $signtool.FullName sign /fd SHA256 /f $env:PFX_PATH /p $env:PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $installer.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'signtool failed for the installer' }
+
+          $sig = Get-AuthenticodeSignature $installer.FullName
+          if ($null -eq $sig.SignerCertificate) { throw "installer is not signed: $($sig.Status)" }
+          Write-Host "Signed $($installer.Name) | status=$($sig.Status) | subject=$($sig.SignerCertificate.Subject)"
+
+      - name: Package portable ZIP
         shell: bash
         run: |
-          echo "Signing Windows binaries..."
-          # Convert PFX to P12 if needed
-          # signtool sign /f "${{ env.WINDOWS_CERT_PFX }}" /p "${{ secrets.WINDOWS_CERT_PASSWORD }}" /tr http://timestamp.digicert.com /td sha256 /fd sha256 NEX-Setup-*.exe
-          echo "Windows signing placeholder - configure WINDOWS_CERT_PFX secret"
+          set -e
+          OUT="NEX-v${APP_VERSION}-windows-portable.zip"
+          rm -f "$OUT"
+          ( cd installer/nex-windows && 7z a "../../${OUT}" . >/dev/null )
+          ls -lh "$OUT"
+
       - name: Compute checksums
         shell: bash
         run: |
-          cd build/windows/x64/Release
-          sha256sum NEX-Setup-*.exe > NEX-Setup-${{ env.APP_VERSION }}-win.exe.sha256
-          sha256sum nex-windows.zip > nex-windows.zip.sha256
+          set -e
+          sha256sum NEX-Setup-*.exe > "NEX-v${APP_VERSION}-windows-installer.exe.sha256"
+          sha256sum NEX-v${APP_VERSION}-windows-portable.zip > "NEX-v${APP_VERSION}-windows-portable.zip.sha256"
+          cat *.sha256
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
           path: |
-            build/windows/x64/Release/NEX-Setup-*.exe
-            build/windows/x64/Release/nex-windows.zip
-            build/windows/x64/Release/*.sha256
+            NEX-Setup-*.exe
+            NEX-v${{ env.APP_VERSION }}-windows-portable.zip
+            *.sha256
 
   build-macos:
     name: macOS
@@ -77,30 +184,22 @@ jobs:
       - run: flutter config --enable-macos-desktop
       - run: flutter pub get
       - run: flutter build macos --release
-      - name: Sign macOS app
-        if: startsWith(github.ref, 'refs/tags/v') && env.MACOS_CERT_P12 != ''
-        run: |
-          echo "Signing macOS app..."
-          # security create-keychain -p "${{ secrets.MACOS_KEYCHAIN_PASSWORD }}" build.keychain
-          # security import "${{ env.MACOS_CERT_P12 }}" -k build.keychain -P "${{ secrets.MACOS_CERT_PASSWORD }}" -T /usr/bin/codesign
-          # security unlock-keychain -p "${{ secrets.MACOS_KEYCHAIN_PASSWORD }}" build.keychain
-          # codesign --deep --force --sign "${{ env.MACOS_CERT_ID }}" build/macos/Build/Products/Release/*.app
-          # echo "macOS signing placeholder - configure MACOS_CERT_P12 secret"
       - name: Package macOS
         shell: bash
         run: |
-          zip -r nex-macos.zip build/macos/Build/Products/Release/*.app
-          ls -lh nex-macos.zip
-      - name: Compute checksums
-        shell: bash
-        run: |
-          sha256sum nex-macos.zip > nex-macos.zip.sha256
+          set -e
+          APP=$(ls -d build/macos/Build/Products/Release/*.app | head -1)
+          test -n "$APP" || { echo "no .app bundle found"; exit 1; }
+          V=$(tr -d '[:space:]' < VERSION)
+          zip -qr "NEX-v${V}-macos.zip" "$APP"
+          ls -lh NEX-v*.zip
+          sha256sum NEX-v${V}-macos.zip > "NEX-v${V}-macos.zip.sha256"
       - uses: actions/upload-artifact@v4
         with:
           name: macos-artifacts
           path: |
-            nex-macos.zip
-            nex-macos.zip.sha256
+            NEX-v*-macos.zip
+            NEX-v*-macos.zip.sha256
 
   build-linux:
     name: Linux
@@ -111,52 +210,23 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
-      - run: flutter config --enable-linux-desktop
       - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev libx11-dev libjpeg-dev libsecret-1-dev liblzma-dev libfuse2
       - run: flutter pub get
       - run: flutter build linux --release
       - name: Package Linux TAR
         shell: bash
         run: |
-          tar -czf nex-linux-x64.tar.gz -C build/linux/x64/release/bundle .
-          ls -lh nex-linux-x64.tar.gz
-      - name: Build Linux AppImage
-        shell: bash
-        run: |
-          echo "Building AppImage..."
-          # Download linuxdeploy
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          chmod +x linuxdeploy-x86_64.AppImage
-          # Create AppDir
-          mkdir -p AppDir/usr/bin
-          cp -r build/linux/x64/release/bundle/* AppDir/usr/
-          # Create desktop entry
-          cat > AppDir/nex.desktop << 'EOF'
-          [Desktop Entry]
-          Type=Application
-          Name=NEX
-          Exec=nex
-          Icon=nex
-          Categories=Network;RemoteAccess;
-          EOF
-          # Create icon
-          cp installer/nex-windows/web/favicon.svg AppDir/nex.svg
-          # Build AppImage
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
-          ls -lh NEX-*.AppImage || true
-      - name: Compute checksums
-        shell: bash
-        run: |
-          sha256sum nex-linux-x64.tar.gz > nex-linux-x64.tar.gz.sha256
-          if ls NEX-*.AppImage 1>/dev/null 2>&1; then sha256sum NEX-*.AppImage > nex-linux.AppImage.sha256; fi
+          set -e
+          V=$(tr -d '[:space:]' < VERSION)
+          tar -czf "NEX-v${V}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
+          sha256sum "NEX-v${V}-linux-x64.tar.gz" > "NEX-v${V}-linux-x64.tar.gz.sha256"
+          ls -lh NEX-v*.tar.gz
       - uses: actions/upload-artifact@v4
         with:
           name: linux-artifacts
           path: |
-            nex-linux-x64.tar.gz
-            nex-linux-x64.tar.gz.sha256
-            NEX-*.AppImage
-            nex-linux.AppImage.sha256
+            NEX-v*-linux-x64.tar.gz
+            NEX-v*-linux-x64.tar.gz.sha256
 
   build-android:
     name: Android
@@ -173,19 +243,18 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: flutter build apk --release
-      - run: flutter build appbundle --release
       - name: Compute checksums
         shell: bash
         run: |
-          sha256sum build/app/outputs/flutter-apk/app-release.apk > app-release.apk.sha256
-          sha256sum build/app/outputs/bundle/release/app-release.aab > app-release.aab.sha256
+          set -e
+          cp build/app/outputs/flutter-apk/app-release.apk .
+          sha256sum app-release.apk > app-release.apk.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: android-artifacts
           path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
-            *.sha256
+            app-release.apk
+            app-release.apk.sha256
 
   release:
     name: Create GitHub Release
@@ -195,6 +264,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+      - name: Resolve version
+        id: ver
+        run: |
+          V=$(tr -d '[:space:]' < VERSION)
+          echo "version=$V" >> "$GITHUB_OUTPUT"
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -207,21 +282,26 @@ jobs:
         with:
           files: release-assets/*
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(steps.ver.outputs.version, '-') }}
           generate_release_notes: true
           body: |
-            ## NEX ${{ env.APP_VERSION }}
+            ## NEX ${{ steps.ver.outputs.version }}
 
             ### Downloads
-            - **Windows**: `NEX-Setup-${{ env.APP_VERSION }}-win.exe` (installer) + `nex-windows.zip` (portable)
-            - **macOS**: `nex-macos.zip`
-            - **Linux**: `nex-linux-x64.tar.gz` + `NEX-*.AppImage`
-            - **Android**: `app-release.apk` + `app-release.aab`
+            - **Windows**: `NEX-Setup-${{ steps.ver.outputs.version }}.exe` (installer) + `NEX-v${{ steps.ver.outputs.version }}-windows-portable.zip` (portable)
+            - **macOS**: `NEX-v${{ steps.ver.outputs.version }}-macos.zip`
+            - **Linux**: `NEX-v${{ steps.ver.outputs.version }}-linux-x64.tar.gz`
+            - **Android**: `app-release.apk`
+
+            ### Windows 代码签名
+            未配置 `WINDOWS_CERT_PFX` secret 时使用**自签名证书**。自签名证书不在受信任根列表中，
+            Windows SmartScreen 仍会提示"未知发布者"。企业内可通过组策略分发该证书以消除提示；
+            正式对外分发请改用 Azure Trusted Signing 或 OV/EV 证书（配置 `WINDOWS_CERT_PFX` 即自动切换）。
 
             ### Installation
             - **Windows**: Run the `.exe` installer and follow the wizard.
             - **macOS**: Unzip and drag `NEX.app` to `/Applications`.
-            - **Linux**: Extract the tarball or run the AppImage.
-            - **Android**: Install the APK or download from app store (coming soon).
+            - **Linux**: Extract the tarball.
+            - **Android**: Install the APK.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
