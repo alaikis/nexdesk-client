@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/api_client.dart';
+import '../../core/secure_storage_service.dart';
+import '../../core/unattended_service.dart';
 import '../../widgets/nex_card.dart';
 import '../../theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -17,12 +20,22 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final String _baseUrl = 'https://nex.hottol.com';
+  final UnattendedService _unattended = UnattendedService();
+  final ApiClient _api = ApiClient();
+
   String _version = '0.1.0';
+
+  String _localDeviceId = '';
+  bool _unattendedEnabled = false;
+  bool _autoStart = false;
+  bool _busy = false;
+  String _passwordState = '未设置';
 
   @override
   void initState() {
     super.initState();
     _loadVersion();
+    _loadUnattendedState();
   }
 
   Future<void> _loadVersion() async {
@@ -36,6 +49,104 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } on Exception catch (_) {
       if (mounted) setState(() {});
     }
+  }
+
+  Future<void> _loadUnattendedState() async {
+    final deviceId = await SecureStorageService.getString('device_id') ?? '';
+    final autoStart = await _unattended.isAutoStartEnabled();
+    final enabled =
+        deviceId.isEmpty ? false : await _unattended.isEnabled(deviceId);
+    if (!mounted) return;
+    setState(() {
+      _localDeviceId = deviceId;
+      _autoStart = autoStart;
+      _unattendedEnabled = enabled;
+      _passwordState = '已设置';
+    });
+  }
+
+  Future<void> _toggleUnattended(bool value) async {
+    if (_localDeviceId.isEmpty) {
+      _showMessage('未找到本机设备 ID，请重新登录后再试');
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      if (value) {
+        await _unattended.enable(
+          deviceId: _localDeviceId,
+          autoStart: _autoStart,
+        );
+      } else {
+        await _unattended.disable(_localDeviceId);
+      }
+      if (!mounted) return;
+      setState(() => _unattendedEnabled = value);
+      _showMessage(value ? '已开启无人值守' : '已关闭无人值守');
+    } catch (e) {
+      if (mounted) _showMessage('操作失败：$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _toggleAutoStart(bool value) async {
+    final ok = await _unattended.setAutoStart(value);
+    if (!mounted) return;
+    setState(() => _autoStart = ok ? value : false);
+    if (!ok) _showMessage('开机自启动设置失败');
+  }
+
+  Future<void> _setControlPassword() async {
+    final controller = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('控制密码'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          decoration: const InputDecoration(hintText: '至少 6 位'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (password == null) return;
+
+    final trimmed = password.trim();
+    if (trimmed.length < 6) {
+      _showMessage('密码至少 6 位');
+      return;
+    }
+    if (_localDeviceId.isEmpty) {
+      _showMessage('未找到本机设备 ID');
+      return;
+    }
+
+    try {
+      await _api.updateControlPassword(_localDeviceId, trimmed);
+      if (!mounted) return;
+      setState(() => _passwordState = '已设置');
+      _showMessage('控制密码已保存');
+    } catch (e) {
+      if (mounted) _showMessage('保存失败：$e');
+    }
+  }
+
+  void _showMessage(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(text)));
   }
 
   Future<void> _launchUrl(String path) async {
@@ -119,10 +230,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
             enableShadow: true,
             child: Column(
               children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
+                  title: Text(
+                    '无人值守',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: wise.textPrimary,
+                        height: 1.57),
+                  ),
+                  subtitle: const Text('开启后其他设备可在无人确认的情况下接入本机'),
+                  value: _unattendedEnabled,
+                  onChanged: _busy ? null : _toggleUnattended,
+                ),
+                Divider(height: 1, color: wise.border),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
+                  title: Text(
+                    '开机自启动',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: wise.textPrimary,
+                        height: 1.57),
+                  ),
+                  subtitle: const Text('登录系统后自动运行，保持本机可接入'),
+                  value: _autoStart,
+                  onChanged: _toggleAutoStart,
+                ),
+                Divider(height: 1, color: wise.border),
                 ListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
-                    title: Text(l10n.language, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: wise.textPrimary, height: 1.57)),
-                  subtitle: Text(l10n.selectLanguage, style: TextStyle(fontSize: 13, color: wise.textSecondary)),
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
+                  title: Text(
+                    '控制密码',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: wise.textPrimary,
+                        height: 1.57),
+                  ),
+                  subtitle: Text(_passwordState),
+                  trailing:
+                      Icon(Icons.chevron_right, color: wise.textTertiary),
+                  onTap: _setControlPassword,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: wise.spacing.md),
+          NexCard(
+            color: wise.card,
+            enableShadow: true,
+            child: Column(
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
+                  title: Text(l10n.language,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: wise.textPrimary,
+                          height: 1.57)),
+                  subtitle: Text(l10n.selectLanguage,
+                      style: TextStyle(
+                          fontSize: 13, color: wise.textSecondary)),
                   trailing: PopupMenuButton<String>(
                     onSelected: (value) => _changeLanguage(value),
                     itemBuilder: (context) => [

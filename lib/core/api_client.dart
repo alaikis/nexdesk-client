@@ -286,6 +286,30 @@ class ApiClient {
     return patch('/devices/$deviceId/password', {'password': password});
   }
 
+  /// 列出当前账号下已开启无人值守的设备。
+  Future<List<dynamic>> listUnattendedDevices() async {
+    final res = await get('/devices/unattended');
+    return (res['unattended'] as List<dynamic>?) ?? const [];
+  }
+
+  /// 为指定设备开启无人值守访问。
+  Future<Map<String, dynamic>> enableUnattendedAccess({
+    required String deviceId,
+    bool autoStart = true,
+    bool keepAlive = true,
+  }) async {
+    return post('/devices/unattended', {
+      'device_id': int.tryParse(deviceId) ?? deviceId,
+      'auto_start': autoStart,
+      'keep_alive': keepAlive,
+    });
+  }
+
+  /// 关闭指定设备的无人值守访问。
+  Future<void> disableUnattendedAccess(String deviceId) async {
+    await delete('/devices/unattended/$deviceId');
+  }
+
   Future<List<dynamic>> getFavorites() async {
     final res = await get('/devices/favorites');
     return res['devices'] as List<dynamic>;
