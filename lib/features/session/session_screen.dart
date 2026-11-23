@@ -14,11 +14,14 @@ import '../../config/app_config.dart';
 import '../../core/error_handler.dart';
 import '../../core/screen_capture_service.dart';
 import '../../core/api_client.dart';
+import '../../core/lan_discovery_service.dart';
+import '../../core/storage_service.dart';
 import '../../core/input_relay_service.dart';
 import '../../core/quality_service.dart';
 import '../../core/clipboard_service.dart';
 import '../../core/drag_drop_service.dart';
 import '../session/session_provider.dart';
+import '../devices/device_provider.dart';
 import 'screen_selector.dart';
 import 'file_transfer_screen.dart';
 import 'clipboard_screen.dart';
@@ -72,6 +75,9 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
 
   /// 协商对端设备 ID，用于信令的 `to` 字段（服务端要求 `deviceID:sessionID`）。
   String _partnerDeviceId = '';
+
+  /// 局域网直连：两端在同一私有 /24 网段时只走 host 候选，不经 TURN 中继。
+  bool _lanDirect = false;
   final GlobalKey<WhiteboardScreenState> _whiteboardKey = GlobalKey<WhiteboardScreenState>();
 
   List<ScreenInfo> _screens = [];
@@ -129,6 +135,29 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
     final id = await SecureStorageService.getString('device_id');
     if (mounted) {
       setState(() => _localDeviceId = id ?? 'local');
+    }
+  }
+
+  /// 根据对端设备上报的局域网 IP 判断是否为同一网段直连。
+  Future<bool> _detectLanDirect(String partnerDeviceId) async {
+    try {
+      final localIp = await LanDiscoveryService.localIpv4();
+      if (localIp == null || localIp.isEmpty) return false;
+      if (!mounted) return false;
+
+      final devices = context.read<DeviceProvider>().devices;
+      final partner = devices.where((d) => d.id.toString() == partnerDeviceId);
+      if (partner.isEmpty) return false;
+
+      final remoteIp = partner.first.ip;
+      if (remoteIp.isEmpty) return false;
+
+      final same = LanDiscoveryService.samePrivateSubnet(localIp, remoteIp);
+      debugPrint('[webrtc] lan detect: local=$localIp remote=$remoteIp same=$same');
+      return same;
+    } catch (e) {
+      debugPrint('[webrtc] lan detect failed: $e');
+      return false;
     }
   }
 
@@ -299,6 +328,13 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         return;
       }
 
+      // 局域网直连判定：本机与对端都在同一私有 /24 网段时，禁用 TURN 中继。
+      // 手动开关优先，否则按网段自动判定。
+      final manualLanDirect =
+          await StorageService.getBool('lan_direct_mode') ?? false;
+      _lanDirect = manualLanDirect || await _detectLanDirect(_partnerDeviceId);
+      debugPrint('[webrtc] lanDirect=$_lanDirect (manual=$manualLanDirect)');
+
       final granted = await ScreenCaptureService.requestPermission();
       if (!granted) {
         if (mounted) {
@@ -410,6 +446,7 @@ class _SessionScreenState extends State<SessionScreen> with ErrorHandler {
         selectedScreenIds: _selectedScreenIds.toList(),
         qualityProfile: qualityProfile,
         captureConstraints: captureConstraints,
+        forceNoRelay: _lanDirect,
         onLocalDescription: (desc) {
           // controller 发 offer，controllee 回 answer；两端都通过信令交换 SDP。
           _sendSignal(

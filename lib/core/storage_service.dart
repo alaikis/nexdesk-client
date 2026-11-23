@@ -17,6 +17,14 @@ class StorageService {
     await (await _prefs()).setString(_prefix + key, value);
   }
 
+  static Future<bool?> getBool(String key) async {
+    return (await _prefs()).getBool(_prefix + key);
+  }
+
+  static Future<void> setBool(String key, bool value) async {
+    await (await _prefs()).setBool(_prefix + key, value);
+  }
+
   static Future<Uint8List?> getBytes(String key) async {
     final raw = await getString(key);
     if (raw == null) return null;

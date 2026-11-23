@@ -70,32 +70,36 @@ class WebRtcService {
     required Function(ScreenStream) onRemoteStream,
     QualityProfile? qualityProfile,
     Map<String, dynamic>? captureConstraints,
+    bool forceNoRelay = false,
   }) async {
-    // Fetch dynamic TURN credentials from server
-    final iceServers = <Map<String, dynamic>>[
-      {'urls': 'stun:stun.l.google.com:19302'},
-    ];
-
-    try {
-      final turnCred = await ApiClient().getTurnCredential();
-      final username = turnCred['username'] as String?;
-      final credential = turnCred['credential'] as String?;
-      final uris = turnCred['uris'] as List<dynamic>?;
-      if (username != null && credential != null && uris != null) {
-        for (final uri in uris) {
-          iceServers.add({
-            'urls': uri as String,
-            'username': username,
-            'credential': credential,
-          });
+    // 局域网直连：不请求 TURN、只允许 host 候选。
+    // 同网段下 TURN 中继只会增加延迟与带宽开销，且会把局域网流量绕到公网。
+    final iceServers = <Map<String, dynamic>>[];
+    if (!forceNoRelay) {
+      iceServers.add({'urls': 'stun:stun.l.google.com:19302'});
+      try {
+        final turnCred = await ApiClient().getTurnCredential();
+        final username = turnCred['username'] as String?;
+        final credential = turnCred['credential'] as String?;
+        final uris = turnCred['uris'] as List<dynamic>?;
+        if (username != null && credential != null && uris != null) {
+          for (final uri in uris) {
+            iceServers.add({
+              'urls': uri as String,
+              'username': username,
+              'credential': credential,
+            });
+          }
         }
+      } catch (e) {
+        // TURN credential fetch failed, continue with STUN only
       }
-    } catch (e) {
-      // TURN credential fetch failed, continue with STUN only
     }
 
     final configuration = <String, dynamic>{
       'iceServers': iceServers,
+      // noRelay = 只用 host 候选，完全禁止中继（WebRTC 规范值）
+      if (forceNoRelay) 'iceTransportPolicy': 'noRelay',
     };
 
     _pc = await createPeerConnection(configuration);

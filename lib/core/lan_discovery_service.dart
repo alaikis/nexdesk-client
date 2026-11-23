@@ -120,6 +120,18 @@ class LanDiscoveryService {
     return false;
   }
 
+  /// 两个地址是否在同一私有 /24 网段（局域网直连判定的最常用口径）。
+  static bool samePrivateSubnet(String a, String b) {
+    final pa = a.split('.');
+    final pb = b.split('.');
+    if (pa.length != 4 || pb.length != 4) return false;
+    if (!_isPrivateIpv4(a) || !_isPrivateIpv4(b)) return false;
+    for (var i = 0; i < 3; i++) {
+      if (pa[i] != pb[i]) return false;
+    }
+    return true;
+  }
+
   Future<void> start({required String deviceId, required String name}) async {
     if (_running) return;
     _deviceId = deviceId;

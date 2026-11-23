@@ -16,6 +16,9 @@ class Device with ChangeNotifier {
   final bool favorite;
   final List<String> tags;
 
+  /// 设备上报的局域网 IPv4（用于判定局域网直连）。
+  final String ip;
+
   Device({
     required this.id,
     required this.name,
@@ -26,6 +29,7 @@ class Device with ChangeNotifier {
     this.hasControlPassword = false,
     this.favorite = false,
     this.tags = const [],
+    this.ip = '',
   });
 
   factory Device.fromJson(Map<String, dynamic> json) {
@@ -36,6 +40,7 @@ class Device with ChangeNotifier {
       online: json['online'] as bool? ?? false,
       wolEnabled: json['wol_enabled'] as bool? ?? false,
       code: json['code'] as String? ?? '',
+      ip: json['ip'] as String? ?? '',
       hasControlPassword: json['control_password'] is bool
           ? json['control_password'] as bool
           : (json['control_password'] as String?)?.isNotEmpty ?? false,

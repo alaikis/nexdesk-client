@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 import '../../core/secure_storage_service.dart';
+import '../../core/storage_service.dart';
 import '../../core/unattended_service.dart';
 import '../../widgets/nex_card.dart';
 import '../../theme/app_theme.dart';
@@ -29,6 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _unattendedEnabled = false;
   bool _autoStart = false;
   bool _busy = false;
+  bool _lanDirect = false;
   String _passwordState = '未设置';
 
   @override
@@ -56,13 +58,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final autoStart = await _unattended.isAutoStartEnabled();
     final enabled =
         deviceId.isEmpty ? false : await _unattended.isEnabled(deviceId);
+    final lanDirect = await StorageService.getBool('lan_direct_mode') ?? false;
     if (!mounted) return;
     setState(() {
       _localDeviceId = deviceId;
       _autoStart = autoStart;
       _unattendedEnabled = enabled;
+      _lanDirect = lanDirect;
       _passwordState = '已设置';
     });
+  }
+
+  Future<void> _toggleLanDirect(bool value) async {
+    await StorageService.setBool('lan_direct_mode', value);
+    if (!mounted) return;
+    setState(() => _lanDirect = value);
+    _showMessage(value
+        ? '已开启局域网直连：同网段时只走 host 候选'
+        : '已关闭局域网直连：按网段自动判定');
   }
 
   Future<void> _toggleUnattended(bool value) async {
@@ -260,6 +273,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: const Text('登录系统后自动运行，保持本机可接入'),
                   value: _autoStart,
                   onChanged: _toggleAutoStart,
+                ),
+                Divider(height: 1, color: wise.border),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: wise.spacing.lg, vertical: wise.spacing.xs),
+                  title: Text(
+                    '局域网直连',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: wise.textPrimary,
+                        height: 1.57),
+                  ),
+                  subtitle: const Text('同网段设备只走 host 候选，不经 TURN 中继'),
+                  value: _lanDirect,
+                  onChanged: _toggleLanDirect,
                 ),
                 Divider(height: 1, color: wise.border),
                 ListTile(
