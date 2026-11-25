@@ -199,14 +199,18 @@ class ApiClient {
     return res;
   }
 
-  /// Desktop SSO 登录：通过 nex 服务端获取 auth URL，打开系统浏览器
+  /// Desktop SSO 登录：通过 nex 服务端获取 auth URL，打开系统浏览器。
+///
+/// 必须用 POST：现网 CDN 会忽略 query string、按路径缓存 GET 响应，
+/// 导致所有客户端拿到同一个过期 state（表现为永久 Session expired）。
+/// POST 响应默认不可缓存，可保证每次都是全新 state。
   Future<Map<String, dynamic>> ssoDesktopInit() async {
-    return get('/sso/desktop/init');
+    return post('/sso/desktop/init', {});
   }
 
-  /// Desktop SSO 轮询：查询登录状态
+  /// Desktop SSO 轮询：查询登录状态（同样用 POST，避免 CDN 缓存 pending）。
   Future<Map<String, dynamic>> ssoDesktopPoll(String sessionId) async {
-    return get('/sso/desktop/poll?session_id=$sessionId');
+    return post('/sso/desktop/poll', {'session_id': sessionId});
   }
 
   /// Desktop SSO 登出（调用云端清会话，并清除本地 token）
