@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../../config/app_config.dart';
 import '../../core/storage_service.dart';
@@ -201,16 +202,23 @@ class ApiClient {
 
   /// Desktop SSO 登录：通过 nex 服务端获取 auth URL，打开系统浏览器。
 ///
-/// 必须用 POST：现网 CDN 会忽略 query string、按路径缓存 GET 响应，
-/// 导致所有客户端拿到同一个过期 state（表现为永久 Session expired）。
-/// POST 响应默认不可缓存，可保证每次都是全新 state。
+/// 现网 CDN 按「路径」缓存 GET 响应且不支持 POST（504），因此 GET 路径后追加
+/// 随机段（/sso/desktop/init/{rand}），使每次请求路径唯一，CDN 无法复用旧响应。
   Future<Map<String, dynamic>> ssoDesktopInit() async {
-    return post('/sso/desktop/init', {});
+    final rand = _randNonce();
+    return get('/sso/desktop/init/$rand');
   }
 
-  /// Desktop SSO 轮询：查询登录状态（同样用 POST，避免 CDN 缓存 pending）。
+  /// Desktop SSO 轮询：把 session_id 放在唯一路径段，避开 CDN 路径缓存。
   Future<Map<String, dynamic>> ssoDesktopPoll(String sessionId) async {
-    return post('/sso/desktop/poll', {'session_id': sessionId});
+    return get('/sso/desktop/poll/$sessionId');
+  }
+
+  /// 生成短随机串，用于给 GET 路径追加唯一段（CDN 按路径缓存的规避）。
+  static String _randNonce() {
+    final r = Random.secure();
+    final bytes = List<int>.generate(8, (_) => r.nextInt(256));
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   /// Desktop SSO 登出（调用云端清会话，并清除本地 token）
